@@ -9,7 +9,6 @@ mod parser;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
 
     #[test]
     fn test_indicator() {
@@ -19,14 +18,45 @@ mod tests {
 
     #[test]
     fn test_json() {
-        let ans = parse_yaml(r#"{"a": "b"}"#).unwrap();
+        let ans = parse_yaml(r#"{"a": "b", "c": 123}"#).unwrap();
         assert_eq!(
             ans[0],
             Node::new(Yaml::Map(
-                vec![(
-                    Node::new(Yaml::Str("a".into())).pos(1),
-                    Node::new(Yaml::Str("b".into())).pos(6),
-                )]
+                vec![
+                    (
+                        Node::new(Yaml::Str("a".into())).pos(1),
+                        Node::new(Yaml::Str("b".into())).pos(6),
+                    ),
+                    (
+                        Node::new(Yaml::Str("c".into())).pos(11),
+                        Node::new(Yaml::Str("123".into())).pos(16),
+                    )
+                ]
+                .into_iter()
+                .collect()
+            ))
+        );
+    }
+
+    #[test]
+    fn test_yaml() {
+        let ans = parse_yaml(r#"{a: &a !!t b, cde: 123}"#).unwrap();
+        assert_eq!(
+            ans[0],
+            Node::new(Yaml::Map(
+                vec![
+                    (
+                        Node::new(Yaml::Str("a".into())).pos(1),
+                        Node::new(Yaml::Str("b".into()))
+                            .pos(11)
+                            .anchor(Some("a".into()))
+                            .ty(Some("t".into())),
+                    ),
+                    (
+                        Node::new(Yaml::Str("cde".into())).pos(14),
+                        Node::new(Yaml::Str("123".into())).pos(19),
+                    )
+                ]
                 .into_iter()
                 .collect()
             ))
