@@ -23,14 +23,8 @@ mod tests {
             ans[0],
             Node::new(Yaml::Map(
                 vec![
-                    (
-                        Node::new(Yaml::Str("a".into())).pos(1),
-                        Node::new(Yaml::Str("b".into())).pos(6),
-                    ),
-                    (
-                        Node::new(Yaml::Str("c".into())).pos(11),
-                        Node::new(Yaml::Str("123".into())).pos(16),
-                    )
+                    ((1, "a".into()).into(), (6, "b".into()).into()),
+                    ((11, "c".into()).into(), (16, "123".into()).into()),
                 ]
                 .into_iter()
                 .collect()
@@ -40,22 +34,13 @@ mod tests {
 
     #[test]
     fn test_yaml() {
-        let ans = parse_yaml(r#"{a: &a !!t b, cde: 123}"#).unwrap();
+        let ans = parse_yaml(r#"{a: &a !!t b c, def: 123}"#).unwrap();
         assert_eq!(
             ans[0],
             Node::new(Yaml::Map(
                 vec![
-                    (
-                        Node::new(Yaml::Str("a".into())).pos(1),
-                        Node::new(Yaml::Str("b".into()))
-                            .pos(11)
-                            .anchor(Some("a".into()))
-                            .ty(Some("t".into())),
-                    ),
-                    (
-                        Node::new(Yaml::Str("cde".into())).pos(14),
-                        Node::new(Yaml::Str("123".into())).pos(19),
-                    )
+                    ((1, "a".into()).into(), (11, "b c".into(), "a", "t").into()),
+                    ((16, "def".into()).into(), (21, "123".into()).into()),
                 ]
                 .into_iter()
                 .collect()

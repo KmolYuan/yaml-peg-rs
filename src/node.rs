@@ -13,6 +13,12 @@ pub enum Yaml {
     Anchor(String),
 }
 
+impl From<&str> for Yaml {
+    fn from(s: &str) -> Self {
+        Yaml::Str(s.into())
+    }
+}
+
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub struct Node {
     pub pos: usize,
@@ -44,5 +50,20 @@ impl Node {
     pub fn anchor(mut self, anchor: Option<String>) -> Self {
         self.anchor = anchor.unwrap_or("".into());
         self
+    }
+}
+
+impl From<(usize, Yaml)> for Node {
+    fn from((pos, yaml): (usize, Yaml)) -> Self {
+        Self::new(yaml).pos(pos)
+    }
+}
+
+impl From<(usize, Yaml, &str, &str)> for Node {
+    fn from((pos, yaml, a, ty): (usize, Yaml, &str, &str)) -> Self {
+        Self::new(yaml)
+            .pos(pos)
+            .anchor(Some(a.into()))
+            .ty(Some(ty.into()))
     }
 }
