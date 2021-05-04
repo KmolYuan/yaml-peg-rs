@@ -48,7 +48,7 @@ fn inf<'a>() -> Parser<'a, u8, String> {
 }
 
 fn nan<'a>() -> Parser<'a, u8, String> {
-    (sym(b'.') + one_of(b"nN") + one_of(b"aA") + one_of(b"nN")).map(|_| "nan".into())
+    (sym(b'.') + one_of(b"nN") + one_of(b"aA") + one_of(b"nN")).map(|_| "NaN".into())
 }
 
 fn string_flow<'a>() -> Parser<'a, u8, String> {
