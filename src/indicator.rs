@@ -1,12 +1,5 @@
 use pom::Error;
 
-macro_rules! err {
-    ($e:expr) => {{
-        use std::io::{Error, ErrorKind};
-        Error::new(ErrorKind::InvalidData, $e)
-    }};
-}
-
 pub fn indicated_msg(doc: &str, mut pos: usize) -> String {
     let mut show_line = String::new();
     for (line, str_line) in doc.split('\n').enumerate() {

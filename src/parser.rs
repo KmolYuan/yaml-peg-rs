@@ -48,11 +48,14 @@ fn escape<'a>() -> Parser<'a, u8, u8> {
             | sym(b't').map(|_| b'\t'))
 }
 
+fn integer<'a>() -> Parser<'a, u8, String> {
+    is_a(digit).repeat(1..).collect().map(|s| to_string!(s))
+}
+
 fn number<'a>() -> Parser<'a, u8, String> {
-    let integer = is_a(digit).repeat(1..);
-    let frac = sym(b'.').opt() + (is_a(digit).repeat(0..));
+    let frac = is_a(digit).repeat(0..) + sym(b'.') + (is_a(digit).repeat(1..));
     let exp = one_of(b"eE") + one_of(b"+-").opt() + is_a(digit).repeat(1..);
-    let number = sym(b'-').opt() + integer + frac + exp.opt();
+    let number = one_of(b"+-").opt() + frac + exp.opt();
     number.collect().map(|s| to_string!(s))
 }
 
@@ -100,7 +103,8 @@ fn value<'a>() -> Parser<'a, u8, Node> {
             | seq(b"null").map(|_| Yaml::Null)
             | seq(b"true").map(|_| Yaml::Bool(true))
             | seq(b"false").map(|_| Yaml::Bool(false))
-            | number().map(|num| Yaml::Str(num))
+            | integer().map(|num| Yaml::Int(num))
+            | number().map(|num| Yaml::Float(num))
             | inf_nan().map(|num| Yaml::Str(num))
             | anchor_use().map(|a| Yaml::Anchor(a))
             | string().map(|text| Yaml::Str(text))
