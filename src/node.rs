@@ -1,5 +1,4 @@
-use linked_hash_map::LinkedHashMap;
-use std::fmt::Display;
+use crate::*;
 use std::{
     hash::{Hash, Hasher},
     io::Result,
@@ -8,27 +7,15 @@ use std::{
     str::FromStr,
 };
 
-macro_rules! yaml_from_method {
-    ($(#[$meta:meta])* fn $id:ident = $ty:ident) => {
-        $(#[$meta])*
-        pub fn $id<T>(s: T) -> Self
-        where
-            T: Display,
-        {
-            Self::$ty(format!("{}", s))
-        }
-    };
-}
-
 macro_rules! as_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty:ident} => {
+    {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
         $(#[$meta])*
         pub fn $id<N>(&self) -> Option<N>
         where
             N: FromStr,
         {
             match &self.yaml {
-                Yaml::$ty(n) => match n.parse() {
+                Yaml::$ty1(n) $(| Yaml::$ty2(n))* => match n.parse() {
                     Ok(v) => Some(v),
                     Err(_) => None,
                 },
@@ -39,7 +26,7 @@ macro_rules! as_method {
 }
 
 macro_rules! assert_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty:ident} => {
+    {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
         $(#[$meta])*
         pub fn $id<E, N>(&self, e: E) -> Result<N>
         where
@@ -47,7 +34,7 @@ macro_rules! assert_method {
             N: FromStr,
         {
             match match &self.yaml {
-                Yaml::$ty(n) => n,
+                Yaml::$ty1(n) $(| Yaml::$ty2(n))* => n,
                 _ => "",
             }
             .parse()
@@ -57,66 +44,6 @@ macro_rules! assert_method {
             }
         }
     };
-}
-
-/// The array data structure of YAML.
-pub type Array = Vec<Node>;
-/// The map data structure of YAML.
-pub type Map = LinkedHashMap<Node, Node>;
-
-/// Yaml data types.
-#[derive(Hash, Eq, PartialEq, Debug, Clone)]
-pub enum Yaml {
-    /// Null
-    Null,
-    /// Boolean
-    Bool(bool),
-    /// Integer
-    Int(String),
-    /// Float
-    Float(String),
-    /// String
-    Str(String),
-    /// Array
-    Array(Array),
-    /// Map
-    Map(Map),
-    /// Anchor insertion
-    Anchor(String),
-}
-
-impl Yaml {
-    yaml_from_method! {
-        /// Create from integer.
-        fn int = Int
-    }
-    yaml_from_method! {
-        /// Create from float.
-        fn float = Float
-    }
-    yaml_from_method! {
-        /// Create from string.
-        fn string = Str
-    }
-    yaml_from_method! {
-        /// Create an inserted anchor, won't check.
-        fn anchor = Anchor
-    }
-
-    /// Check the anchor is valid.
-    pub fn is_valid_anchor<T>(s: T) -> bool
-    where
-        T: Display,
-    {
-        let s = format!("{}", s);
-        !s.contains(" ")
-    }
-}
-
-impl From<&str> for Yaml {
-    fn from(s: &str) -> Self {
-        Yaml::Str(s.into())
-    }
 }
 
 /// Parser node, includes line number, column number, type assertion and anchor.
@@ -213,6 +140,31 @@ impl Node {
         /// Convert to float.
         fn as_float = Float
     }
+    as_method! {
+        /// Convert to number.
+        fn as_number = Int | Float
+    }
+
+    /// Convert to array.
+    ///
+    /// Warn: The object ownership will be took.
+    pub fn as_array(&self) -> Option<&Array> {
+        match &self.yaml {
+            Yaml::Array(a) => Some(a),
+            _ => None,
+        }
+    }
+
+    /// Convert to map and try to get the value by keys.
+    ///
+    /// If get failed, returns [`Option::None`].
+    pub fn as_get(&self, keys: &[&str]) -> Option<&Self> {
+        if let Yaml::Map(a) = &self.yaml {
+            get_from_map(a, keys)
+        } else {
+            None
+        }
+    }
 
     /// Assert the data is boolean.
     pub fn assert_bool<E>(&self, e: E) -> Result<bool>
@@ -227,15 +179,26 @@ impl Node {
 
     assert_method! {
         /// Assert the data is integer.
+        ///
+        /// If get failed, returns [`std::io::Error`].
         fn assert_int = Int
     }
     assert_method! {
         /// Assert the data is float.
+        ///
+        /// If get failed, returns [`std::io::Error`].
         fn assert_float = Float
+    }
+    assert_method! {
+        /// Assert the data is float.
+        ///
+        /// If get failed, returns [`std::io::Error`].
+        fn assert_number = Int | Float
     }
 
     /// Assert the data is string reference.
     ///
+    /// If get failed, returns [`std::io::Error`].
     /// Null value will generate an empty string.
     /// Warn: The object ownership will be took.
     pub fn assert_str<E>(&self, e: E) -> Result<&str>
@@ -251,6 +214,7 @@ impl Node {
 
     /// Assert the data is string.
     ///
+    /// If get failed, returns [`std::io::Error`].
     /// Null value will generate an empty string.
     pub fn assert_string<E>(&self, e: E) -> Result<String>
     where
@@ -265,6 +229,7 @@ impl Node {
 
     /// Assert the data is array.
     ///
+    /// If get failed, returns [`std::io::Error`].
     /// Null value will generate an empty array.
     pub fn assert_array<E>(&self, e: E) -> Result<(usize, Iter<Node>)>
     where
@@ -278,38 +243,38 @@ impl Node {
     }
 
     /// Assert the data is map and try to get the value by keys.
-    pub fn assert_get<E>(&self, keys: &[&str], e: E) -> Result<&Node>
+    ///
+    /// If get failed, returns [`std::io::Error`].
+    pub fn assert_get<E>(&self, keys: &[&str], e: E) -> Result<&Self>
     where
         E: AsRef<str>,
     {
         if let Yaml::Map(m) = &self.yaml {
-            get_from_map(m, keys, e)
+            get_from_map(m, keys).ok_or(err!(e.as_ref()))
         } else {
             Err(err!(e.as_ref()))
         }
     }
 }
 
-fn get_from_map<'a, E>(m: &'a Map, keys: &[&str], e: E) -> Result<&'a Node>
-where
-    E: AsRef<str>,
-{
+fn get_from_map<'a>(m: &'a Map, keys: &[&str]) -> Option<&'a Node> {
     if keys.is_empty() {
         panic!("invalid search!");
     }
     let key = Node::from(keys[0]);
-    match m.get(&key) {
-        Some(v) => match &v.yaml {
+    if let Some(v) = m.get(&key) {
+        match &v.yaml {
             Yaml::Map(m) => {
                 if keys[1..].is_empty() {
-                    Ok(v)
+                    Some(v)
                 } else {
-                    get_from_map(m, &keys[1..], e)
+                    get_from_map(m, &keys[1..])
                 }
             }
-            _ => Ok(v),
-        },
-        None => Err(err!(e.as_ref())),
+            _ => Some(v),
+        }
+    } else {
+        None
     }
 }
 
