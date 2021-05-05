@@ -99,8 +99,8 @@ fn array_flow<'a>() -> Parser<'a, u8, Array> {
 
 fn map_flow<'a>() -> Parser<'a, u8, Map> {
     let member = empty().pos() + string_flow() - sym(b':') + value();
-    let obj = sym(b'{') * ws_any() * list(member, sym(b',') - ws_any()) - ws_any() - sym(b'}');
-    obj.map(|v| {
+    let m = sym(b'{') * ws_any() * list(member, sym(b',') - ws_any()) - ws_any() - sym(b'}');
+    m.map(|v| {
         v.iter()
             .map(|((pos, k), v)| (Node::new(Yaml::string(k)).pos(*pos), v.clone()))
             .into_iter()
@@ -109,23 +109,24 @@ fn map_flow<'a>() -> Parser<'a, u8, Map> {
 }
 
 // TODO
-fn array<'a>() -> Parser<'a, u8, Array> {
-    let item = sym(b'-') * ws() * value() - nw();
-    nw() * item.repeat(1..)
+fn array<'a>(level: usize) -> Parser<'a, u8, Node> {
+    let item = indent().repeat(level) * sym(b'-') * ws() * value() - nw();
+    let a = prefix() + nw() * item.repeat(1..);
+    a.map(|((an, ty, pos), a)| Node::new(Yaml::Array(a)).pos(pos).anchor(an).ty(ty))
 }
 
 // TODO
-fn map<'a>() -> Parser<'a, u8, Map> {
-    let item1 = sym(b'?') * value() - sym(b':') + value() - nw();
-    let item2 = empty().pos() + string_flow() - sym(b':') + value();
+fn map<'a>(level: usize) -> Parser<'a, u8, Node> {
+    let item1 = indent().repeat(level) * sym(b'?') * value() - sym(b':') + value() - nw();
+    let item2 = indent().repeat(level) * empty().pos() + string_flow() - sym(b':') + value();
     let item2 = item2.map(|((pos, k), v)| (Node::new(Yaml::string(k)).pos(pos), v));
     let item = item1 | item2;
-    nw() * item.repeat(1..).map(|v| v.into_iter().collect())
+    let m = prefix() + nw() * item.repeat(1..).map(|v| v.into_iter().collect::<Map>());
+    m.map(|((an, ty, pos), m)| Node::new(Yaml::Map(m)).pos(pos).anchor(an).ty(ty))
 }
 
 fn value<'a>() -> Parser<'a, u8, Node> {
-    (ws() * anchor().opt() - ws() + ty().opt() - ws()
-        + empty().pos()
+    (prefix()
         + (sym(b'~').map(|_| Yaml::Null)
             | seq(b"null").map(|_| Yaml::Null)
             | seq(b"true").map(|_| Yaml::Bool(true))
@@ -135,16 +136,23 @@ fn value<'a>() -> Parser<'a, u8, Node> {
             | inf_nan().map(|num| Yaml::Float(num))
             | anchor_use().map(|a| Yaml::Anchor(a))
             | string_flow().map(|text| Yaml::Str(text))
-            | call(array).map(|a| Yaml::Array(a))
-            | call(map).map(|a| Yaml::Map(a))
             | call(array_flow).map(|a| Yaml::Array(a))
             | call(map_flow).map(|m| Yaml::Map(m))))
-    .map(|(((a, ty), pos), yaml)| Node::new(yaml).pos(pos).ty(ty).anchor(a))
+    .map(|((a, ty, pos), yaml)| Node::new(yaml).pos(pos).ty(ty).anchor(a))
         - ws_any()
 }
 
+fn prefix<'a>() -> Parser<'a, u8, (Option<String>, Option<String>, usize)> {
+    let p = ws() * anchor().opt() - ws() + ty().opt() - ws() + empty().pos();
+    p.map(|((an, ty), pos)| (an, ty, pos))
+}
+
+fn documentation<'a>() -> Parser<'a, u8, Node> {
+    seq(b"---").opt() * (value() | call(|| array(0)) | call(|| map(0))) - seq(b"...").opt()
+}
+
 fn yaml<'a>() -> Parser<'a, u8, Array> {
-    (seq(b"---").opt() * value() - seq(b"...").opt()).repeat(1..) - end()
+    documentation().repeat(1..) - end()
 }
 
 /// Parse YAML document.
