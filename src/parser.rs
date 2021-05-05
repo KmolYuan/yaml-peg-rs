@@ -29,15 +29,24 @@ fn anchor_use<'a>() -> Parser<'a, u8, String> {
 }
 
 fn comment<'a>() -> Parser<'a, u8, ()> {
-    (sym(b'#') + none_of(b"\n").repeat(0..)).discard()
+    (sym(b'#') + none_of(b"\r\n").repeat(0..) + nw()).discard()
+}
+
+fn nw<'a>() -> Parser<'a, u8, ()> {
+    one_of(b"\r\n").discard()
+}
+
+fn indent<'a>() -> Parser<'a, u8, ()> {
+    seq(b"  ").discard()
 }
 
 fn ws<'a>() -> Parser<'a, u8, ()> {
-    (one_of(b" ").repeat(0..) - comment().opt()).discard()
+    (sym(b' ').repeat(0..) - comment().opt()).discard()
 }
 
-fn ws_any<'a>() -> Parser<'a, u8, ()> {
-    (one_of(b" \t\r\n").repeat(0..) - comment().opt()).discard()
+fn ws_any<'a>() -> Parser<'a, u8, String> {
+    let space = one_of(b" \t\r\n").repeat(0..) - comment().opt();
+    space.collect().map(|_| " ".into())
 }
 
 fn escape<'a>() -> Parser<'a, u8, u8> {
@@ -69,34 +78,49 @@ fn inf_nan<'a>() -> Parser<'a, u8, String> {
         | (sym(b'.') + one_of(b"nN") + one_of(b"aA") + one_of(b"nN")).map(|_| "NaN".into())
 }
 
-fn string_literal<'a>() -> Parser<'a, u8, String> {
-    let string = none_of(b"[]{}&*:,\"").repeat(1..);
-    string.convert(String::from_utf8)
+fn string_plain<'a>() -> Parser<'a, u8, String> {
+    let string = none_of(b"\"\'?-#[]{},") + none_of(b":#[]{},").repeat(0..);
+    string.collect().map(|s| to_string!(s))
 }
 
 fn string_quoted<'a>() -> Parser<'a, u8, String> {
     let string = sym(b'"') * (none_of(b"\\\"") | escape()).repeat(0..) - sym(b'"');
+    let string = string | sym(b'\'') * (none_of(b"\\\'") | escape()).repeat(0..) - sym(b'\'');
     string.convert(String::from_utf8)
 }
 
 fn string_flow<'a>() -> Parser<'a, u8, String> {
-    string_quoted() | string_literal()
+    string_quoted() | string_plain()
 }
 
 fn array_flow<'a>() -> Parser<'a, u8, Array> {
-    sym(b'[') * ws_any() * list(value(), sym(b',') * ws_any()) - ws_any() - sym(b']')
+    sym(b'[') * ws_any() * list(value(), sym(b',') - ws_any()) - ws_any() - sym(b']')
 }
 
 fn map_flow<'a>() -> Parser<'a, u8, Map> {
     let member = empty().pos() + string_flow() - sym(b':') + value();
-    let obj = sym(b'{') * ws_any() * list(member, sym(b',') * ws_any()) - ws_any() - sym(b'}');
-    obj.map(|members| {
-        members
-            .iter()
-            .map(|((pos, k), v)| (Node::new(Yaml::Str(k.clone())).pos(*pos), v.clone()))
+    let obj = sym(b'{') * ws_any() * list(member, sym(b',') - ws_any()) - ws_any() - sym(b'}');
+    obj.map(|v| {
+        v.iter()
+            .map(|((pos, k), v)| (Node::new(Yaml::string(k)).pos(*pos), v.clone()))
             .into_iter()
             .collect()
     })
+}
+
+// TODO
+fn array<'a>() -> Parser<'a, u8, Array> {
+    let item = sym(b'-') * ws() * value() - nw();
+    nw() * item.repeat(1..)
+}
+
+// TODO
+fn map<'a>() -> Parser<'a, u8, Map> {
+    let item1 = sym(b'?') * value() - sym(b':') + value() - nw();
+    let item2 = empty().pos() + string_flow() - sym(b':') + value();
+    let item2 = item2.map(|((pos, k), v)| (Node::new(Yaml::string(k)).pos(pos), v));
+    let item = item1 | item2;
+    nw() * item.repeat(1..).map(|v| v.into_iter().collect())
 }
 
 fn value<'a>() -> Parser<'a, u8, Node> {
@@ -111,10 +135,12 @@ fn value<'a>() -> Parser<'a, u8, Node> {
             | inf_nan().map(|num| Yaml::Float(num))
             | anchor_use().map(|a| Yaml::Anchor(a))
             | string_flow().map(|text| Yaml::Str(text))
-            | call(array_flow).map(|arr| Yaml::Array(arr))
-            | call(map_flow).map(|obj| Yaml::Map(obj))))
+            | call(array).map(|a| Yaml::Array(a))
+            | call(map).map(|a| Yaml::Map(a))
+            | call(array_flow).map(|a| Yaml::Array(a))
+            | call(map_flow).map(|m| Yaml::Map(m))))
     .map(|(((a, ty), pos), yaml)| Node::new(yaml).pos(pos).ty(ty).anchor(a))
-        - ws()
+        - ws_any()
 }
 
 fn yaml<'a>() -> Parser<'a, u8, Array> {
