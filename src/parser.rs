@@ -33,6 +33,10 @@ fn comment<'a>() -> Parser<'a, u8, ()> {
 }
 
 fn ws<'a>() -> Parser<'a, u8, ()> {
+    (one_of(b" ").repeat(0..) - comment().opt()).discard()
+}
+
+fn ws_any<'a>() -> Parser<'a, u8, ()> {
     (one_of(b" \t\r\n").repeat(0..) - comment().opt()).discard()
 }
 
@@ -75,18 +79,17 @@ fn string_quoted<'a>() -> Parser<'a, u8, String> {
     string.convert(String::from_utf8)
 }
 
-fn string<'a>() -> Parser<'a, u8, String> {
+fn string_flow<'a>() -> Parser<'a, u8, String> {
     string_quoted() | string_literal()
 }
 
 fn array_flow<'a>() -> Parser<'a, u8, Array> {
-    sym(b'[') * ws() * list(value(), sym(b',') * ws()) - ws() - sym(b']')
+    sym(b'[') * ws_any() * list(value(), sym(b',') * ws_any()) - ws_any() - sym(b']')
 }
 
 fn map_flow<'a>() -> Parser<'a, u8, Map> {
-    let member = empty().pos() + string() - sym(b':') + value();
-    let members = list(member, sym(b',') * ws());
-    let obj = sym(b'{') * ws() * members - ws() - sym(b'}');
+    let member = empty().pos() + string_flow() - sym(b':') + value();
+    let obj = sym(b'{') * ws_any() * list(member, sym(b',') * ws_any()) - ws_any() - sym(b'}');
     obj.map(|members| {
         members
             .iter()
@@ -105,9 +108,9 @@ fn value<'a>() -> Parser<'a, u8, Node> {
             | seq(b"false").map(|_| Yaml::Bool(false))
             | integer().map(|num| Yaml::Int(num))
             | number().map(|num| Yaml::Float(num))
-            | inf_nan().map(|num| Yaml::Str(num))
+            | inf_nan().map(|num| Yaml::Float(num))
             | anchor_use().map(|a| Yaml::Anchor(a))
-            | string().map(|text| Yaml::Str(text))
+            | string_flow().map(|text| Yaml::Str(text))
             | call(array_flow).map(|arr| Yaml::Array(arr))
             | call(map_flow).map(|obj| Yaml::Map(obj))))
     .map(|(((a, ty), pos), yaml)| Node::new(yaml).pos(pos).ty(ty).anchor(a))
@@ -118,6 +121,7 @@ fn yaml<'a>() -> Parser<'a, u8, Array> {
     (seq(b"---").opt() * value() - seq(b"...").opt()).repeat(1..) - end()
 }
 
+/// Parse YAML document.
 pub fn parse_yaml(doc: &str) -> Result<Array> {
     match yaml().parse(doc.as_bytes()) {
         Ok(e) => Ok(e),

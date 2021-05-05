@@ -1,12 +1,67 @@
 use linked_hash_map::LinkedHashMap;
+use std::fmt::Display;
 use std::{
     hash::{Hash, Hasher},
     io::Result,
+    ops::Index,
     slice::Iter,
     str::FromStr,
 };
 
+macro_rules! yaml_from_method {
+    ($(#[$meta:meta])* fn $id:ident = $ty:ident) => {
+        $(#[$meta])*
+        pub fn $id<T>(s: T) -> Self
+        where
+            T: Display,
+        {
+            Self::$ty(format!("{}", s))
+        }
+    };
+}
+
+macro_rules! as_method {
+    {$(#[$meta:meta])* fn $id:ident = $ty:ident} => {
+        $(#[$meta])*
+        pub fn $id<N>(&self) -> Option<N>
+        where
+            N: FromStr,
+        {
+            match &self.yaml {
+                Yaml::$ty(n) => match n.parse() {
+                    Ok(v) => Some(v),
+                    Err(_) => None,
+                },
+                _ => None,
+            }
+        }
+    };
+}
+
+macro_rules! assert_method {
+    {$(#[$meta:meta])* fn $id:ident = $ty:ident} => {
+        $(#[$meta])*
+        pub fn $id<E, N>(&self, e: E) -> Result<N>
+        where
+            E: AsRef<str>,
+            N: FromStr,
+        {
+            match match &self.yaml {
+                Yaml::$ty(n) => n,
+                _ => "",
+            }
+            .parse()
+            {
+                Ok(v) => Ok(v),
+                Err(_) => Err(err!(e.as_ref())),
+            }
+        }
+    };
+}
+
+/// The array data structure of YAML.
 pub type Array = Vec<Node>;
+/// The map data structure of YAML.
 pub type Map = LinkedHashMap<Node, Node>;
 
 /// Yaml data types.
@@ -31,25 +86,30 @@ pub enum Yaml {
 }
 
 impl Yaml {
-    pub fn int<T>(s: T) -> Self
-    where
-        T: Into<String>,
-    {
-        Self::Int(s.into())
+    yaml_from_method! {
+        /// Create from integer.
+        fn int = Int
+    }
+    yaml_from_method! {
+        /// Create from float.
+        fn float = Float
+    }
+    yaml_from_method! {
+        /// Create from string.
+        fn string = Str
+    }
+    yaml_from_method! {
+        /// Create an inserted anchor, won't check.
+        fn anchor = Anchor
     }
 
-    pub fn float<T>(s: T) -> Self
+    /// Check the anchor is valid.
+    pub fn is_valid_anchor<T>(s: T) -> bool
     where
-        T: Into<String>,
+        T: Display,
     {
-        Self::Float(s.into())
-    }
-
-    pub fn string<T>(s: T) -> Self
-    where
-        T: Into<String>,
-    {
-        Yaml::Str(s.into())
+        let s = format!("{}", s);
+        !s.contains(" ")
     }
 }
 
@@ -59,9 +119,34 @@ impl From<&str> for Yaml {
     }
 }
 
-/// Parser node, includes some information.
+/// Parser node, includes line number, column number, type assertion and anchor.
 ///
 /// This type will ignore additional members when comparison and hashing.
+///
+/// ```
+/// use std::collections::HashSet;
+/// use yaml_pom::Node;
+/// let mut s = HashSet::new();
+/// s.insert(Node::new("a".into()).pos(0));
+/// s.insert(Node::new("a".into()).pos(1));
+/// s.insert(Node::new("a".into()).pos(2));
+/// assert_eq!(s.len(), 1);
+/// ```
+///
+/// Nodes can be indexing by `usize` or `&str`,
+/// but it will always return self if the index is not contained.
+///
+/// ```
+/// use yaml_pom::{Yaml, Node};
+/// let node = Node::new(Yaml::Null);
+/// assert_eq!(node["a"][0]["bc"], node);
+/// ```
+///
+/// There are `as_*` methods provide `Option` returns,
+/// default options can be created by [`Option::unwrap_or`].
+///
+/// In another hand, using `assert_*` methods to convert the YAML types with **error** returns.
+/// The `assert_*` methods are support to use `null` as empty option (for user inputs).
 #[derive(Eq, Debug, Clone)]
 pub struct Node {
     /// Document position
@@ -70,12 +155,12 @@ pub struct Node {
     pub ty: String,
     /// Anchor reference
     pub anchor: String,
-    /// Yaml data
+    /// YAML data
     pub yaml: Yaml,
 }
 
 impl Node {
-    /// Create node from yaml data.
+    /// Create node from YAML data.
     pub fn new(yaml: Yaml) -> Self {
         Self {
             pos: 0,
@@ -112,38 +197,41 @@ impl Node {
         }
     }
 
+    /// Convert to boolean.
+    pub fn as_bool(&self) -> Option<bool> {
+        match &self.yaml {
+            Yaml::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+
+    as_method! {
+        /// Convert to integer.
+        fn as_int = Int
+    }
+    as_method! {
+        /// Convert to float.
+        fn as_float = Float
+    }
+
     /// Assert the data is boolean.
-    pub fn assert_bool<E: Into<String>>(&self, e: E) -> Result<bool> {
+    pub fn assert_bool<E>(&self, e: E) -> Result<bool>
+    where
+        E: AsRef<str>,
+    {
         match &self.yaml {
             Yaml::Bool(b) => Ok(*b),
-            _ => Err(err!(e.into())),
+            _ => Err(err!(e.as_ref())),
         }
     }
 
-    /// Assert the data is integer.
-    pub fn assert_int<E: Into<String>, N: FromStr>(&self, e: E) -> Result<N> {
-        match match &self.yaml {
-            Yaml::Int(n) => n,
-            _ => "",
-        }
-        .parse()
-        {
-            Ok(v) => Ok(v),
-            Err(_) => Err(err!(e.into())),
-        }
+    assert_method! {
+        /// Assert the data is integer.
+        fn assert_int = Int
     }
-
-    /// Assert the data is float.
-    pub fn assert_float<E: Into<String>, N: FromStr>(&self, e: E) -> Result<N> {
-        match match &self.yaml {
-            Yaml::Float(n) => n,
-            _ => "",
-        }
-        .parse()
-        {
-            Ok(v) => Ok(v),
-            Err(_) => Err(err!(e.into())),
-        }
+    assert_method! {
+        /// Assert the data is float.
+        fn assert_float = Float
     }
 
     /// Assert the data is string reference.
@@ -152,12 +240,12 @@ impl Node {
     /// Warn: The object ownership will be took.
     pub fn assert_str<E>(&self, e: E) -> Result<&str>
     where
-        E: Into<String>,
+        E: AsRef<str>,
     {
         match &self.yaml {
             Yaml::Str(s) => Ok(s.as_ref()),
             Yaml::Null => Ok(""),
-            _ => Err(err!(e.into())),
+            _ => Err(err!(e.as_ref())),
         }
     }
 
@@ -166,12 +254,12 @@ impl Node {
     /// Null value will generate an empty string.
     pub fn assert_string<E>(&self, e: E) -> Result<String>
     where
-        E: Into<String>,
+        E: AsRef<str>,
     {
         match &self.yaml {
             Yaml::Str(s) => Ok(s.clone()),
             Yaml::Null => Ok("".into()),
-            _ => Err(err!(e.into())),
+            _ => Err(err!(e.as_ref())),
         }
     }
 
@@ -180,31 +268,31 @@ impl Node {
     /// Null value will generate an empty array.
     pub fn assert_array<E>(&self, e: E) -> Result<(usize, Iter<Node>)>
     where
-        E: Into<String>,
+        E: AsRef<str>,
     {
         match &self.yaml {
             Yaml::Array(a) => Ok((a.len(), a.iter())),
             Yaml::Null => Ok((0, [].iter())),
-            _ => Err(err!(e.into())),
+            _ => Err(err!(e.as_ref())),
         }
     }
 
     /// Assert the data is map and try to get the value by keys.
     pub fn assert_get<E>(&self, keys: &[&str], e: E) -> Result<&Node>
     where
-        E: Into<String>,
+        E: AsRef<str>,
     {
         if let Yaml::Map(m) = &self.yaml {
             get_from_map(m, keys, e)
         } else {
-            Err(err!(e.into()))
+            Err(err!(e.as_ref()))
         }
     }
 }
 
 fn get_from_map<'a, E>(m: &'a Map, keys: &[&str], e: E) -> Result<&'a Node>
 where
-    E: Into<String>,
+    E: AsRef<str>,
 {
     if keys.is_empty() {
         panic!("invalid search!");
@@ -221,7 +309,7 @@ where
             }
             _ => Ok(v),
         },
-        None => Err(err!(e.into())),
+        None => Err(err!(e.as_ref())),
     }
 }
 
@@ -234,6 +322,32 @@ impl Hash for Node {
 impl PartialEq for Node {
     fn eq(&self, rhs: &Self) -> bool {
         self.yaml == rhs.yaml
+    }
+}
+
+impl Index<usize> for Node {
+    type Output = Self;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match &self.yaml {
+            Yaml::Array(a) => a.get(index).unwrap_or(self),
+            Yaml::Map(m) => m
+                .get(&Node::new(Yaml::Int(index.to_string())))
+                .unwrap_or(self),
+            _ => self,
+        }
+    }
+}
+
+impl Index<&str> for Node {
+    type Output = Self;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        if let Yaml::Map(m) = &self.yaml {
+            m.get(&index.into()).unwrap_or(self)
+        } else {
+            self
+        }
     }
 }
 
