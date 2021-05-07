@@ -3,7 +3,7 @@ use pom::{
     char_class::{alpha, alphanum, digit},
     parser::{call, empty, end, is_a, list, none_of, one_of, seq, sym, Parser},
 };
-use std::io::Result;
+use std::{io::Result, iter::FromIterator};
 
 type Id = (String, String, usize);
 
@@ -38,8 +38,8 @@ fn nw<'a>() -> Parser<'a, u8, ()> {
     one_of(b"\r\n").discard()
 }
 
-fn indent<'a>() -> Parser<'a, u8, &'a [u8]> {
-    seq(b"  ")
+fn indent<'a>() -> Parser<'a, u8, ()> {
+    seq(b"  ").discard()
 }
 
 fn ws<'a>() -> Parser<'a, u8, ()> {
@@ -110,35 +110,34 @@ fn map_flow<'a>() -> Parser<'a, u8, Map> {
     })
 }
 
-fn array<'a, I: 'a, L: 'a>(id: I, level: L) -> Parser<'a, u8, Node>
+fn array<'a, I: 'a>(id: I, level: usize) -> Parser<'a, u8, Node>
 where
     I: Fn() -> Parser<'a, u8, Id>,
-    L: Fn() -> Parser<'a, u8, &'a [u8]>,
 {
-    let no_wrap = call(|| array(pos, || (level() + indent()).collect()))
-        | call(|| map(pos, || (level() + indent()).collect()));
-    // FIXME
-    let leading = (level() + indent().opt()).collect();
-    let wrap = nw() * (call(|| array(prefix, || leading)) | call(|| map(prefix, || leading)));
+    let no_wrap = call(move || array(pos, level + 1)) | call(move || map(pos, level + 1));
+    let wrap =
+        nw() * (call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1)));
     let sub = value() | no_wrap | wrap;
     let item = sym(b'-') * ws() * sub;
-    let item = list(item, nw() + level());
+    let item = list(item, nw() + indent().repeat(level));
     let a = id() + nw() * item - nw();
-    a.map(|((an, ty, pos), a)| Node::new(Yaml::Array(a)).pos(pos).anchor(an).ty(ty))
+    a.map(|((an, ty, pos), a)| node!(Yaml::from_iter(a), pos, an, ty))
 }
 
-// TODO
-fn map<'a, I: 'a, L: 'a>(id: I, level: L) -> Parser<'a, u8, Node>
+fn map<'a, I: 'a>(id: I, level: usize) -> Parser<'a, u8, Node>
 where
     I: Fn() -> Parser<'a, u8, Id>,
-    L: Fn() -> Parser<'a, u8, &'a [u8]>,
 {
-    let item1 = level() * sym(b'?') * value() - sym(b':') + value();
-    let item2 = level() * empty().pos() + string_flow() - sym(b':') + value();
-    let item2 = item2.map(|((pos, k), v)| (node!(k.into(), pos), v));
-    let item = item1 | item2;
-    let m = prefix() + nw() * item.repeat(1..).map(|v| v.into_iter().collect::<Map>()) - nw();
-    m.map(|((an, ty, pos), m)| Node::new(Yaml::Map(m)).pos(pos).anchor(an).ty(ty))
+    let no_wrap = call(move || array(pos, level + 1)) | call(move || map(pos, level + 1));
+    let wrap =
+        nw() * (call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1)));
+    let sub = value() | no_wrap | wrap;
+    let k1 = value() - sym(b':') + sub;
+    // TODO '?' key
+    let item = k1;
+    let item = list(item, nw() + indent().repeat(level));
+    let m = id() + nw() * item - nw();
+    m.map(|((an, ty, pos), m)| node!(Yaml::from_iter(m), pos, an, ty))
 }
 
 fn value<'a>() -> Parser<'a, u8, Node> {
@@ -171,12 +170,8 @@ fn prefix<'a>() -> Parser<'a, u8, Id> {
     p.map(|((an, ty), pos)| (an, ty, pos))
 }
 
-fn dummy<'a>() -> Parser<'a, u8, &'a [u8]> {
-    sym(b' ').repeat(0).collect()
-}
-
 fn documentation<'a>() -> Parser<'a, u8, Node> {
-    seq(b"---").opt() * (call(|| array(prefix, dummy)) | call(|| map(prefix, dummy)) | value())
+    seq(b"---").opt() * (call(|| array(prefix, 0)) | call(|| map(prefix, 0)) | value())
         - seq(b"...").opt()
 }
 

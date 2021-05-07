@@ -1,12 +1,16 @@
+//! YAML parser implemented by Rust [POM](https://crates.io/crates/pom), a PEG parser combinators.
+//!
+//! The major purpose of this crate is to let the user build their own YAML parser / builder / validator.
 pub use crate::indicator::*;
 pub use crate::node::*;
 pub use crate::parser::*;
 pub use crate::yaml::*;
 
-/// Build [`std::io::ErrorKind::InvalidData`] from strings.
+/// Build [`std::io::Error`] with [`std::io::ErrorKind::InvalidData`] from strings.
 ///
 /// ```
-/// Err(err!("error message"));
+/// use yaml_pom::err;
+/// Err::<(), std::io::Error>(err!("error message"));
 /// ```
 #[macro_export]
 macro_rules! err {
@@ -21,6 +25,7 @@ macro_rules! err {
 /// Literals will be transformed to [`Yaml`] automatically.
 ///
 /// ```
+/// use yaml_pom::node;
 /// let k = "a";
 /// assert_eq!(node!(k.into()), node!("a"));
 /// ```
@@ -37,18 +42,20 @@ macro_rules! node {
 /// Create [`Yaml::Array`] items literally.
 ///
 /// ```
+/// use yaml_pom::{node, yaml_array};
 /// yaml_array![node!("a"), node!("b"), node!("c")];
 /// ```
 #[macro_export]
 macro_rules! yaml_array {
     ($v1:expr $(, $v2:expr)* $(,)?) => {
-        Yaml::Array(vec![$v1 $(, $v2)*])
+        $crate::Yaml::Array(vec![$v1 $(, $v2)*])
     };
 }
 
 /// Create [`Yaml::Map`] items literally.
 ///
 /// ```
+/// use yaml_pom::{node, yaml_map};
 /// yaml_map!{
 ///     node!("a") => node!("b"),
 ///     node!("c") => node!("d"),
@@ -57,7 +64,7 @@ macro_rules! yaml_array {
 #[macro_export]
 macro_rules! yaml_map {
     ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {
-        Yaml::Map(vec![($k1, $v1) $(, ($k2, $v2))*].into_iter().collect())
+        $crate::Yaml::Map(vec![($k1, $v1) $(, ($k2, $v2))*].into_iter().collect())
     };
 }
 
