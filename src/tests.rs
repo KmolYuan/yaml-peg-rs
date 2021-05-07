@@ -7,8 +7,19 @@ const TEST_JSON: &str = r#"
     "c": [123, 321, 1234567]
 }
 "#;
+const TEST_YAML_CONST: &str = "~";
 const TEST_YAML_FLOW: &str = r#"
-{a: &a !!t b c, def: 123}
+---
+a0 bb: val
+a1: &x
+  b1: 4
+  b2: d
+a2: !!t 4
+a3: [1, 2, 3]
+a4:
+  - [a1, a2]
+  - 2
+a5: *x
 "#;
 
 #[test]
@@ -31,6 +42,17 @@ fn test_json() {
     assert_eq!(n, &node!("b"));
 }
 
+#[test]
+fn test_yaml_const() {
+    let ans = match parse(TEST_YAML_CONST) {
+        Ok(n) => n,
+        Err(e) => {
+            println!("{}", e);
+            panic!()
+        }
+    };
+    assert_eq!(ans[0], node!(Yaml::Null));
+}
 #[test]
 fn test_yaml_flow() {
     let ans = match parse(TEST_YAML_FLOW) {

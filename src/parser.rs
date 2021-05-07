@@ -122,9 +122,8 @@ where
     I: Fn() -> Parser<'a, u8, Id>,
 {
     let no_wrap = call(move || array(pos, level + 1)) | call(move || map(pos, level + 1));
-    let wrap =
-        nw() * (call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1)));
-    let sub = value() | no_wrap | wrap;
+    let wrap = call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1));
+    let sub = value() | no_wrap | nw() * wrap;
     let item = sym(b'-') * ws() * sub;
     let item = list(item, nw() + indent().repeat(level));
     let a = id() + nw() * item - nw();
@@ -137,12 +136,11 @@ where
     I: Fn() -> Parser<'a, u8, Id>,
 {
     let no_wrap = call(move || array(pos, level + 1)) | call(move || map(pos, level + 1));
-    let wrap =
-        nw() * (call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1)));
-    let sub = value() | no_wrap | wrap;
+    let wrap = call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1));
     let k1 = value();
     // TODO '?' key
-    let item = k1.name("key") - sym(b':') + sub.name("value");
+    let sub = value() | no_wrap | nw() * wrap;
+    let item = k1.name("key") - sym(b':') + sub;
     let item = list(item, nw() + indent().repeat(level));
     let m = id() + nw() * item - nw();
     let m = m.map(|((an, ty, pos), m)| node!(Yaml::from_iter(m), pos, an, ty));
@@ -186,12 +184,8 @@ fn doc<'a>() -> Parser<'a, u8, Node> {
 }
 
 fn yaml<'a>() -> Parser<'a, u8, Array> {
-    let one = seq(b"---\n").opt() * doc() - seq(b"...").opt();
-    let multi = (seq(b"---\n") * doc() - seq(b"...").opt()).repeat(0..);
-    let total = (one + multi).map(|(first, mut sec)| {
-        sec.insert(0, first);
-        sec
-    });
+    let total =
+        seq(b"---\n").opt() * list(doc() - seq(b"...").opt(), seq(b"...").opt() + seq(b"---\n"));
     ws_any() * total - end()
 }
 
