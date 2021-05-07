@@ -3,14 +3,19 @@ use linked_hash_map::LinkedHashMap;
 use std::fmt::Display;
 
 macro_rules! yaml_from_method {
-    ($(#[$meta:meta])* fn $id:ident = $ty:ident) => {
-        $(#[$meta])*
-        pub fn $id<T>(s: T) -> Self
-        where
-            T: Display,
-        {
-            Self::$ty(format!("{}", s))
+    ($from_ty1:ty $(| $from_ty2:ty)* as $ty:ident) => {
+        impl From<$from_ty1> for Yaml {
+            fn from(s: $from_ty1) -> Self {
+                Yaml::$ty(format!("{}", s))
+            }
         }
+        $(
+        impl From<$from_ty2> for Yaml {
+            fn from(s: $from_ty2) -> Self {
+                Yaml::$ty(format!("{}", s))
+            }
+        }
+        )*
     };
 }
 
@@ -19,7 +24,7 @@ pub type Array = Vec<Node>;
 /// The map data structure of YAML.
 pub type Map = LinkedHashMap<Node, Node>;
 
-/// Yaml data types.
+/// Yaml data types, can convert from primitive types by `From` and `Into` methods.
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub enum Yaml {
     /// Null
@@ -41,35 +46,23 @@ pub enum Yaml {
 }
 
 impl Yaml {
-    yaml_from_method! {
-        /// Create from integer.
-        fn int = Int
-    }
-    yaml_from_method! {
-        /// Create from float.
-        fn float = Float
-    }
-    yaml_from_method! {
-        /// Create from string.
-        fn string = Str
-    }
-    yaml_from_method! {
-        /// Create an inserted anchor, won't check.
-        fn anchor = Anchor
-    }
-
     /// Check the anchor is valid.
     pub fn is_valid_anchor<T>(s: T) -> bool
     where
         T: Display,
     {
         let s = format!("{}", s);
-        !s.contains(" ")
+        let ok = identifier().parse(s.as_bytes()).is_ok();
+        !ok
     }
 }
 
-impl From<&str> for Yaml {
-    fn from(s: &str) -> Self {
-        Yaml::Str(s.into())
+impl From<bool> for Yaml {
+    fn from(b: bool) -> Self {
+        Self::Bool(b)
     }
 }
+
+yaml_from_method! { &str | String | &String as Str }
+yaml_from_method! { u8 | u16 | u32 | u64 | u128 | i8 | i16 | i32 | i64 | i128 as Int }
+yaml_from_method! { f32 | f64 as Float }

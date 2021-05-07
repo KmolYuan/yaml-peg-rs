@@ -13,7 +13,7 @@ macro_rules! to_string {
     };
 }
 
-fn identifier<'a>() -> Parser<'a, u8, String> {
+pub(crate) fn identifier<'a>() -> Parser<'a, u8, String> {
     let id = is_a(alpha) + (is_a(alphanum) | one_of(b"_-")).repeat(0..);
     id.collect().map(|s| to_string!(s))
 }
@@ -104,7 +104,7 @@ fn map_flow<'a>() -> Parser<'a, u8, Map> {
     let m = sym(b'{') * ws_any() * list(member, sym(b',') - ws_any()) - ws_any() - sym(b'}');
     m.map(|v| {
         v.iter()
-            .map(|((pos, k), v)| (Node::new(Yaml::string(k)).pos(*pos), v.clone()))
+            .map(|((pos, k), v)| (node!(k.into(), *pos), v.clone()))
             .into_iter()
             .collect()
     })
@@ -135,7 +135,7 @@ where
 {
     let item1 = level() * sym(b'?') * value() - sym(b':') + value();
     let item2 = level() * empty().pos() + string_flow() - sym(b':') + value();
-    let item2 = item2.map(|((pos, k), v)| (Node::new(Yaml::string(k)).pos(pos), v));
+    let item2 = item2.map(|((pos, k), v)| (node!(k.into(), pos), v));
     let item = item1 | item2;
     let m = prefix() + nw() * item.repeat(1..).map(|v| v.into_iter().collect::<Map>()) - nw();
     m.map(|((an, ty, pos), m)| Node::new(Yaml::Map(m)).pos(pos).anchor(an).ty(ty))
