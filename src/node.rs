@@ -60,6 +60,8 @@ macro_rules! assert_method {
 /// assert_eq!(s.len(), 1);
 /// ```
 ///
+/// There is a convenient macro [`node!`] to create nodes literally.
+///
 /// Nodes can be indexing by `usize` or `&str`,
 /// but it will always return self if the index is not contained.
 ///

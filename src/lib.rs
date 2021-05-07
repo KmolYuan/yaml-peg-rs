@@ -22,13 +22,15 @@ macro_rules! err {
 
 /// Create [`Node`] items literally.
 ///
-/// Literals will be transformed to [`Yaml`] automatically.
+/// Literals will be transformed to [`Yaml`] automatically but variables need to convert manually.
 ///
 /// ```
 /// use yaml_pom::node;
 /// let k = "a";
 /// assert_eq!(node!(k.into()), node!("a"));
 /// ```
+///
+/// The members are ordered as `node!(yaml, pos, anchor, ty)`.
 #[macro_export]
 macro_rules! node {
     ($yaml:literal $(, $pos:expr $(, $anchor:literal $(, $ty:literal)?)?)?) => {
