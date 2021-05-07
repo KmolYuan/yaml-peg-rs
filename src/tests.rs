@@ -1,13 +1,23 @@
 use super::*;
 
+const TEST_JSON: &str = r#"
+{
+    "a": "b",
+    "c": [123, 321, 1234567]
+}
+"#;
+const TEST_YAML_FLOW: &str = r#"
+{a: &a !!t b c, def: 123}
+"#;
+
 #[test]
 fn test_json() {
-    let ans = parse_yaml(r#"{"a": "b", "c": 123}"#).unwrap();
+    let ans = parse_yaml(TEST_JSON).unwrap();
     assert_eq!(
         ans[0],
-        Node::new(yaml_map![
-            node!("a", 1) => node!("b", 6),
-            node!("c", 11) => node!(123, 16),
+        node!(yaml_map![
+            node!("a") => node!("b"),
+            node!("c") => node!(yaml_array![node!(123), node!(321), node!(1234567)]),
         ])
     );
     let n = ans[0].assert_get(&["a"], "").unwrap();
@@ -15,13 +25,10 @@ fn test_json() {
 }
 
 #[test]
-fn test_yaml() {
-    let ans = parse_yaml(r#"{a: &a !!t b c, def: 123}"#).unwrap();
+fn test_yaml_flow() {
+    let ans = parse_yaml(TEST_YAML_FLOW).unwrap();
     assert_eq!(
         ans[0],
-        Node::new(yaml_map![
-            node!("a", 1) => node!("b c", 11, "a", "t"),
-            node!("def", 16) => node!(123, 21),
-        ])
+        node!(yaml_map![node!("a") => node!("b c"), node!("def") => node!(123)])
     );
 }

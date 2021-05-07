@@ -100,14 +100,9 @@ fn array_flow<'a>() -> Parser<'a, u8, Array> {
 }
 
 fn map_flow<'a>() -> Parser<'a, u8, Map> {
-    let member = empty().pos() + string_flow() - sym(b':') + value();
+    let member = value() - sym(b':') + value();
     let m = sym(b'{') * ws_any() * list(member, sym(b',') - ws_any()) - ws_any() - sym(b'}');
-    m.map(|v| {
-        v.iter()
-            .map(|((pos, k), v)| (node!(k.into(), *pos), v.clone()))
-            .into_iter()
-            .collect()
-    })
+    m.map(|v| v.into_iter().collect())
 }
 
 fn array<'a, I: 'a>(id: I, level: usize) -> Parser<'a, u8, Node>
@@ -170,13 +165,18 @@ fn prefix<'a>() -> Parser<'a, u8, Id> {
     p.map(|((an, ty), pos)| (an, ty, pos))
 }
 
-fn documentation<'a>() -> Parser<'a, u8, Node> {
-    seq(b"---").opt() * (call(|| array(prefix, 0)) | call(|| map(prefix, 0)) | value())
-        - seq(b"...").opt()
+fn doc<'a>() -> Parser<'a, u8, Node> {
+    call(|| array(prefix, 0)) | call(|| map(prefix, 0)) | value()
 }
 
 fn yaml<'a>() -> Parser<'a, u8, Array> {
-    documentation().repeat(1..) - end()
+    let one = seq(b"---\n").opt() * doc() - seq(b"...").opt();
+    let multi = (seq(b"---\n") * doc() - seq(b"...").opt()).repeat(0..);
+    let total = (one + multi).map(|(first, mut sec)| {
+        sec.insert(0, first);
+        sec
+    });
+    ws_any() * total - end()
 }
 
 /// Parse YAML document.
