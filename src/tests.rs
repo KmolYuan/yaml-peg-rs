@@ -1,6 +1,7 @@
 use super::*;
 
 const TEST_JSON: &str = r#"
+---
 {
     "a": "b",
     "c": [123, 321, 1234567]
@@ -12,7 +13,13 @@ const TEST_YAML_FLOW: &str = r#"
 
 #[test]
 fn test_json() {
-    let ans = parse(TEST_JSON).unwrap();
+    let ans = match parse(TEST_JSON) {
+        Ok(n) => n,
+        Err(e) => {
+            println!("{}", e);
+            panic!()
+        }
+    };
     assert_eq!(
         ans[0],
         node!(yaml_map![
@@ -26,7 +33,13 @@ fn test_json() {
 
 #[test]
 fn test_yaml_flow() {
-    let ans = parse(TEST_YAML_FLOW).unwrap();
+    let ans = match parse(TEST_YAML_FLOW) {
+        Ok(n) => n,
+        Err(e) => {
+            println!("{}", e);
+            panic!()
+        }
+    };
     assert_eq!(
         ans[0],
         node!(yaml_map![node!("a") => node!("b c"), node!("def") => node!(123)])

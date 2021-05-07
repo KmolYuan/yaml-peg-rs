@@ -21,7 +21,7 @@ use pom::Error;
 pub fn indicated_msg(doc: &str, mut pos: usize) -> String {
     let mut show_line = String::new();
     for (line, str_line) in doc.split('\n').enumerate() {
-        let full_line = str_line.len();
+        let full_line = str_line.len() + 1;
         if full_line > pos {
             let column = pos;
             show_line = format!(
