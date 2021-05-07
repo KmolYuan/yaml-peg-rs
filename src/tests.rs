@@ -5,17 +5,13 @@ fn test_json() {
     let ans = parse_yaml(r#"{"a": "b", "c": 123}"#).unwrap();
     assert_eq!(
         ans[0],
-        Node::new(Yaml::Map(
-            vec![
-                ((1, "a".into()).into(), (6, "b".into()).into()),
-                ((11, "c".into()).into(), (16, Yaml::int(123)).into()),
-            ]
-            .into_iter()
-            .collect()
-        ))
+        Node::new(map![
+            node!("a", 1) => node!("b", 6),
+            node!("c", 11) => node!(Yaml::int(123), 16),
+        ])
     );
     let n = ans[0].assert_get(&["a"], "").unwrap();
-    assert_eq!(n, &"b".into());
+    assert_eq!(n, &node!("b"));
 }
 
 #[test]
@@ -23,13 +19,9 @@ fn test_yaml() {
     let ans = parse_yaml(r#"{a: &a !!t b c, def: 123}"#).unwrap();
     assert_eq!(
         ans[0],
-        Node::new(Yaml::Map(
-            vec![
-                ((1, "a".into()).into(), (11, "b c".into(), "a", "t").into()),
-                ((16, "def".into()).into(), (21, Yaml::int(123)).into()),
-            ]
-            .into_iter()
-            .collect()
-        ))
+        Node::new(map![
+            node!("a", 1) => node!("b c", 11, "a", "t"),
+            node!("def", 16) => node!(Yaml::int(123), 21),
+        ])
     );
 }

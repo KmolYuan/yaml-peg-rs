@@ -104,14 +104,14 @@ impl Node {
     }
 
     /// Builder function for type assertion.
-    pub fn ty(mut self, ty: Option<String>) -> Self {
-        self.ty = ty.unwrap_or("".into());
+    pub fn ty(mut self, ty: String) -> Self {
+        self.ty = ty;
         self
     }
 
     /// Builder function for anchor.
-    pub fn anchor(mut self, anchor: Option<String>) -> Self {
-        self.anchor = anchor.unwrap_or("".into());
+    pub fn anchor(mut self, anchor: String) -> Self {
+        self.anchor = anchor;
         self
     }
 
@@ -261,7 +261,7 @@ fn get_from_map<'a>(m: &'a Map, keys: &[&str]) -> Option<&'a Node> {
     if keys.is_empty() {
         panic!("invalid search!");
     }
-    let key = Node::from(keys[0]);
+    let key = node!(keys[0].into());
     if let Some(v) = m.get(&key) {
         match &v.yaml {
             Yaml::Map(m) => {
@@ -309,30 +309,9 @@ impl Index<&str> for Node {
 
     fn index(&self, index: &str) -> &Self::Output {
         if let Yaml::Map(m) = &self.yaml {
-            m.get(&index.into()).unwrap_or(self)
+            m.get(&node!(index.into())).unwrap_or(self)
         } else {
             self
         }
-    }
-}
-
-impl From<&str> for Node {
-    fn from(s: &str) -> Self {
-        Node::new(s.into())
-    }
-}
-
-impl From<(usize, Yaml)> for Node {
-    fn from((pos, yaml): (usize, Yaml)) -> Self {
-        Self::new(yaml).pos(pos)
-    }
-}
-
-impl From<(usize, Yaml, &str, &str)> for Node {
-    fn from((pos, yaml, a, ty): (usize, Yaml, &str, &str)) -> Self {
-        Self::new(yaml)
-            .pos(pos)
-            .anchor(Some(a.into()))
-            .ty(Some(ty.into()))
     }
 }

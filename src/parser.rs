@@ -5,7 +5,7 @@ use pom::{
 };
 use std::io::Result;
 
-type Id = (Option<String>, Option<String>, usize);
+type Id = (String, String, usize);
 
 macro_rules! to_string {
     ($e:expr) => {
@@ -160,11 +160,14 @@ fn value<'a>() -> Parser<'a, u8, Node> {
 
 fn pos<'a>() -> Parser<'a, u8, Id> {
     let p = ws() * empty().pos();
-    p.map(|pos| (Some("".into()), Some("".into()), pos))
+    p.map(|pos| ("".into(), "".into(), pos))
 }
 
 fn prefix<'a>() -> Parser<'a, u8, Id> {
-    let p = ws() * anchor().opt() - ws() + ty().opt() - ws() + empty().pos();
+    let p = ws() * anchor().opt().collect().map(|s| to_string!(s)) - ws()
+        + ty().opt().collect().map(|s| to_string!(s))
+        - ws()
+        + empty().pos();
     p.map(|((an, ty), pos)| (an, ty, pos))
 }
 
