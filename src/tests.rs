@@ -12,7 +12,7 @@ const TEST_YAML_FLOW: &str = r#"
 
 #[test]
 fn test_json() {
-    let ans = parse_yaml(TEST_JSON).unwrap();
+    let ans = parse(TEST_JSON).unwrap();
     assert_eq!(
         ans[0],
         node!(yaml_map![
@@ -26,7 +26,7 @@ fn test_json() {
 
 #[test]
 fn test_yaml_flow() {
-    let ans = parse_yaml(TEST_YAML_FLOW).unwrap();
+    let ans = parse(TEST_YAML_FLOW).unwrap();
     assert_eq!(
         ans[0],
         node!(yaml_map![node!("a") => node!("b c"), node!("def") => node!(123)])

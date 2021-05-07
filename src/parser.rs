@@ -180,7 +180,7 @@ fn yaml<'a>() -> Parser<'a, u8, Array> {
 }
 
 /// Parse YAML document.
-pub fn parse_yaml(doc: &str) -> Result<Array> {
+pub fn parse(doc: &str) -> Result<Array> {
     match yaml().parse(doc.as_bytes()) {
         Ok(e) => Ok(e),
         Err(e) => Err(error_indicator(e, doc)),
