@@ -1,6 +1,7 @@
 //! YAML parser implemented by Rust [POM](https://crates.io/crates/pom), a PEG parser combinators.
 //!
 //! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
+pub use crate::dumper::*;
 pub use crate::indicator::*;
 pub use crate::node::*;
 pub use crate::parser::*;
@@ -70,6 +71,7 @@ macro_rules! yaml_map {
     };
 }
 
+mod dumper;
 mod indicator;
 mod node;
 mod parser;
