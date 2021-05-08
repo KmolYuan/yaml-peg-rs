@@ -1,2 +1,3 @@
-# yaml-pom-rs
-A YAML parser using Rust POM.
+# yaml-peg
+
+A YAML parser using PEG algorithm.
