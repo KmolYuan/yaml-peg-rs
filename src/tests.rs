@@ -7,17 +7,17 @@ const TEST_JSON: &str = r#"
     "c": [123, 321, 1234567]
 }
 "#;
-const TEST_YAML_CONST: &str = "~";
+const TEST_YAML_CONST: &str = "12.3";
 const TEST_YAML_FLOW: &str = r#"
 ---
 a0 bb: val
 a1: &x
-  b1: 4
+  b1: 4.
   b2: d
 a2: !!t 4
 a3: [1, 2, 3]
 a4:
-  - [a1, a2]
+  - [a1, 中文]
   - 2
 a5: *x
 "#;
@@ -51,8 +51,9 @@ fn test_yaml_const() {
             panic!()
         }
     };
-    assert_eq!(ans[0], node!(Yaml::Null));
+    assert_eq!(ans[0], node!(12.3));
 }
+
 #[test]
 fn test_yaml_flow() {
     let ans = match Parser::new(TEST_YAML_FLOW).parse() {

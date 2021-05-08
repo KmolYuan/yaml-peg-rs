@@ -1,4 +1,4 @@
-use crate::*;
+use super::*;
 use std::io::Error;
 
 /// The error of parser handling.
@@ -22,8 +22,8 @@ impl PError {
     pub fn into_error(self, doc: &str) -> Error {
         err!(format!(
             "{}: \n\n{}",
-            indicated_msg(doc, self.pos),
-            self.msg
+            self.msg,
+            indicated_msg(doc, self.pos)
         ))
     }
 }

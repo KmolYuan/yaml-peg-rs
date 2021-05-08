@@ -5,7 +5,6 @@ pub use crate::dumper::*;
 pub use crate::indicator::*;
 pub use crate::node::*;
 pub use crate::parser::*;
-pub use crate::parser_error::*;
 pub use crate::yaml::*;
 
 /// Build [`std::io::Error`] with [`std::io::ErrorKind::InvalidData`] from strings.
@@ -76,7 +75,6 @@ mod dumper;
 mod indicator;
 mod node;
 mod parser;
-mod parser_error;
 #[cfg(test)]
 mod tests;
 mod yaml;
