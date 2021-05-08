@@ -48,7 +48,7 @@ impl Node {
 /// Dump the YAML data in to block format.
 ///
 /// ```
-/// use yaml_pom::{dump, yaml_map, node};
+/// use yaml_peg::{dump, yaml_map, node};
 /// let doc = dump(vec![node!(yaml_map!{
 ///     node!("a") => node!("b"),
 ///     node!("c") => node!("d"),

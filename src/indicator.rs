@@ -1,10 +1,8 @@
-use pom::Error;
-
 /// Indicate the position of the documentation.
 /// This function will show the line number and column number of the position.
 ///
 /// ```
-/// use yaml_pom::indicated_msg;
+/// use yaml_peg::indicated_msg;
 /// let doc = indicated_msg("{\"a\": \n[\"b\", \"c\", \"d\"]}", 12);
 /// assert_eq!(doc, "(2:7)\n[\"b\", \"c\", \"d\"]}\n~~~~~~^")
 /// ```
@@ -37,42 +35,4 @@ pub fn indicated_msg(doc: &str, mut pos: usize) -> String {
         }
     }
     show_line
-}
-
-pub(crate) fn error_indicator(e: Error, doc: &str) -> std::io::Error {
-    match e {
-        Error::Incomplete => err!("incomplete"),
-        Error::Mismatch { position, message } => {
-            err!(format!(
-                "mismatch error: {}\n\n{}",
-                indicated_msg(doc, position),
-                message
-            ))
-        }
-        Error::Conversion { position, message } => {
-            err!(format!(
-                "conversion error: {}\n\n{}",
-                indicated_msg(doc, position),
-                message
-            ))
-        }
-        Error::Expect {
-            position, message, ..
-        } => {
-            err!(format!(
-                "expect error: {}\n\n{}",
-                indicated_msg(doc, position),
-                message
-            ))
-        }
-        Error::Custom {
-            position, message, ..
-        } => {
-            err!(format!(
-                "custom error: {}\n\n{}",
-                indicated_msg(doc, position),
-                message
-            ))
-        }
-    }
 }

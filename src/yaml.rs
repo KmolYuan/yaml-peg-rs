@@ -1,3 +1,4 @@
+use crate::Parser;
 use crate::*;
 use linked_hash_map::LinkedHashMap;
 use std::{fmt::Display, iter::FromIterator};
@@ -27,7 +28,7 @@ pub type Map = LinkedHashMap<Node, Node>;
 /// YAML data types, can convert from primitive types by `From` and `Into` methods.
 ///
 /// ```
-/// use yaml_pom::Yaml;
+/// use yaml_peg::Yaml;
 /// assert_eq!(Yaml::Int("20".into()), 20.into());
 /// assert_eq!(Yaml::Float("0.001".into()), 1e-3.into());
 /// ```
@@ -35,7 +36,7 @@ pub type Map = LinkedHashMap<Node, Node>;
 /// Also, the iterators can turn into arrays and maps.
 ///
 /// ```
-/// use yaml_pom::{Yaml, yaml_array, yaml_map, node};
+/// use yaml_peg::{Yaml, yaml_array, yaml_map, node};
 /// use std::iter::FromIterator;
 /// let v = vec![node!(1), node!(2), node!(3)];
 /// assert_eq!(Yaml::from_iter(v), yaml_array![node!(1), node!(2), node!(3)]);
@@ -68,9 +69,7 @@ impl Yaml {
     where
         T: Display,
     {
-        let s = format!("{}", s);
-        let ok = identifier().parse(s.as_bytes()).is_ok();
-        !ok
+        Parser::new(&format!("{}", s)).identifier().is_ok()
     }
 }
 

@@ -52,7 +52,7 @@ macro_rules! assert_method {
 ///
 /// ```
 /// use std::collections::HashSet;
-/// use yaml_pom::Node;
+/// use yaml_peg::Node;
 /// let mut s = HashSet::new();
 /// s.insert(Node::new("a".into()).pos(0));
 /// s.insert(Node::new("a".into()).pos(1));
@@ -66,7 +66,7 @@ macro_rules! assert_method {
 /// but it will always return self if the index is not contained.
 ///
 /// ```
-/// use yaml_pom::{Yaml, Node};
+/// use yaml_peg::{Yaml, Node};
 /// let node = Node::new(Yaml::Null);
 /// assert_eq!(node["a"][0]["bc"], node);
 /// ```

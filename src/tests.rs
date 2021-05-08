@@ -24,7 +24,7 @@ a5: *x
 
 #[test]
 fn test_json() {
-    let ans = match parse(TEST_JSON) {
+    let ans = match Parser::new(TEST_JSON).parse() {
         Ok(n) => n,
         Err(e) => {
             println!("{}", e);
@@ -44,7 +44,7 @@ fn test_json() {
 
 #[test]
 fn test_yaml_const() {
-    let ans = match parse(TEST_YAML_CONST) {
+    let ans = match Parser::new(TEST_YAML_CONST).parse() {
         Ok(n) => n,
         Err(e) => {
             println!("{}", e);
@@ -55,7 +55,7 @@ fn test_yaml_const() {
 }
 #[test]
 fn test_yaml_flow() {
-    let ans = match parse(TEST_YAML_FLOW) {
+    let ans = match Parser::new(TEST_YAML_FLOW).parse() {
         Ok(n) => n,
         Err(e) => {
             println!("{}", e);

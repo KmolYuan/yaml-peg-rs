@@ -5,12 +5,13 @@ pub use crate::dumper::*;
 pub use crate::indicator::*;
 pub use crate::node::*;
 pub use crate::parser::*;
+pub use crate::parser_error::*;
 pub use crate::yaml::*;
 
 /// Build [`std::io::Error`] with [`std::io::ErrorKind::InvalidData`] from strings.
 ///
 /// ```
-/// use yaml_pom::err;
+/// use yaml_peg::err;
 /// Err::<(), std::io::Error>(err!("error message"));
 /// ```
 #[macro_export]
@@ -26,7 +27,7 @@ macro_rules! err {
 /// Literals will be transformed to [`Yaml`] automatically but variables need to convert manually.
 ///
 /// ```
-/// use yaml_pom::node;
+/// use yaml_peg::node;
 /// let k = "a";
 /// assert_eq!(node!(k.into()), node!("a"));
 /// ```
@@ -45,7 +46,7 @@ macro_rules! node {
 /// Create [`Yaml::Array`] items literally.
 ///
 /// ```
-/// use yaml_pom::{node, yaml_array};
+/// use yaml_peg::{node, yaml_array};
 /// yaml_array![node!("a"), node!("b"), node!("c")];
 /// ```
 #[macro_export]
@@ -58,7 +59,7 @@ macro_rules! yaml_array {
 /// Create [`Yaml::Map`] items literally.
 ///
 /// ```
-/// use yaml_pom::{node, yaml_map};
+/// use yaml_peg::{node, yaml_map};
 /// yaml_map!{
 ///     node!("a") => node!("b"),
 ///     node!("c") => node!("d"),
@@ -75,6 +76,7 @@ mod dumper;
 mod indicator;
 mod node;
 mod parser;
+mod parser_error;
 #[cfg(test)]
 mod tests;
 mod yaml;
