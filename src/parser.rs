@@ -41,8 +41,8 @@ fn nw<'a>() -> Parser<'a, u8, ()> {
     one_of(b"\r\n").discard().name("newline")
 }
 
-fn indent<'a>() -> Parser<'a, u8, ()> {
-    seq(b"  ").discard().name("indent")
+fn indent<'a>(level: usize) -> Parser<'a, u8, ()> {
+    seq(b"  ").repeat(level).discard().name("indent")
 }
 
 fn ws<'a>() -> Parser<'a, u8, ()> {
@@ -117,32 +117,56 @@ fn map_flow<'a>() -> Parser<'a, u8, Map> {
     m.name("flow map")
 }
 
-fn array<'a, I: 'a>(id: I, level: usize) -> Parser<'a, u8, Node>
-where
-    I: Fn() -> Parser<'a, u8, Id>,
-{
-    let no_wrap = call(move || array(pos, level + 1)) | call(move || map(pos, level + 1));
-    let wrap = call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1));
-    let sub = value() | no_wrap | nw() * wrap;
-    let item = sym(b'-') * ws() * sub;
-    let item = list(item, nw() + indent().repeat(level));
-    let a = id() + nw() * item - nw();
+fn gap<'a>() -> Parser<'a, u8, ()> {
+    nw() * (ws_any() * nw()).repeat(0..).discard()
+}
+
+fn array_item<'a>(level: usize) -> Parser<'a, u8, Node> {
+    let nest = call(move || array(false, level + 1))
+        | call(move || map(false, level + 1))
+        | call(move || array(true, level))
+        | call(move || array(true, level + 1))
+        | call(move || map(true, level + 1));
+    sym(b'-') * value() | ws() * nest
+}
+
+fn array<'a>(wrap: bool, level: usize) -> Parser<'a, u8, Node> {
+    let prefix = if wrap {
+        prefix() - gap() - indent(level)
+    } else {
+        pos()
+    };
+    let items = array_item(level) + (gap() * indent(level) * array_item(level)).repeat(0..) - gap();
+    let a = prefix
+        + items.map(|(first, mut second)| {
+            second.insert(0, first);
+            second
+        });
     let a = a.map(|((an, ty, pos), a)| node!(Yaml::from_iter(a), pos, an, ty));
     a.name("array")
 }
 
-fn map<'a, I: 'a>(id: I, level: usize) -> Parser<'a, u8, Node>
-where
-    I: Fn() -> Parser<'a, u8, Id>,
-{
-    let no_wrap = call(move || array(pos, level + 1)) | call(move || map(pos, level + 1));
-    let wrap = call(move || array(prefix, level + 1)) | call(move || map(prefix, level + 1));
-    let k1 = value();
+fn map_item<'a>(level: usize) -> Parser<'a, u8, (Node, Node)> {
+    let k1 = seq(b"? ").opt() * value();
+    let nest = call(move || array(true, level))
+        | call(move || array(true, level + 1))
+        | call(move || map(true, level + 1));
     // TODO '?' key
-    let sub = value() | no_wrap | nw() * wrap;
-    let item = k1.name("key") - sym(b':') + sub;
-    let item = list(item, nw() + indent().repeat(level));
-    let m = id() + nw() * item - nw();
+    k1 - sym(b':') + (value() | nw() * nest)
+}
+
+fn map<'a>(wrap: bool, level: usize) -> Parser<'a, u8, Node> {
+    let prefix = if wrap {
+        prefix() - gap() - indent(level)
+    } else {
+        pos()
+    };
+    let item = map_item(level) + (gap() * indent(level) * map_item(level)).repeat(0..) - gap();
+    let m = prefix
+        + item.map(|(first, mut second)| {
+            second.insert(0, first);
+            second
+        });
     let m = m.map(|((an, ty, pos), m)| node!(Yaml::from_iter(m), pos, an, ty));
     m.name("map")
 }
@@ -179,14 +203,18 @@ fn prefix<'a>() -> Parser<'a, u8, Id> {
 }
 
 fn doc<'a>() -> Parser<'a, u8, Node> {
-    let d = array(prefix, 0) | map(prefix, 0) | value();
+    let d = call(move || array(true, 0)) | call(move || map(true, 0)) | value();
     d.name("doc")
 }
 
 fn yaml<'a>() -> Parser<'a, u8, Array> {
-    let total =
-        seq(b"---\n").opt() * list(doc() - seq(b"...").opt(), seq(b"...").opt() + seq(b"---\n"));
-    ws_any() * total - end()
+    let doc = seq(b"---").opt() * call(doc) - seq(b"...").opt()
+        + (seq(b"---") * call(doc) - seq(b"...").opt()).repeat(0..);
+    let doc = doc.map(|(first, mut second)| {
+        second.insert(0, first);
+        second
+    });
+    ws_any() * doc - end()
 }
 
 /// Parse YAML document.
