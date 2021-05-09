@@ -5,26 +5,57 @@ use std::iter::FromIterator;
 mod error;
 mod grammar;
 
-/// A PEG parser with YAML grammar.
+/// A PEG parser with YAML grammar, support UTF-8 characters.
 ///
-/// Most of atom methods will move the cursor if matched.
+/// Grammar methods will move the cursor if matched.
+///
+/// + For matching methods:
+///     + Use `?` to match a condition.
+///     + Use [`Result::unwrap_or_default`] to match an optional condition.
+/// + Method [`Parser::eat`] is used to move on and get the matched string.
+/// + Method [`Parser::backward`] is used to get back if mismatched.
 pub struct Parser<'a> {
-    pub pos: usize,
     doc: &'a str,
+    /// Current position.
+    pub pos: usize,
+    /// Read position.
+    pub eaten: usize,
 }
 
 impl<'a> Parser<'a> {
     /// Create a PEG parser with the string.
     pub fn new(doc: &'a str) -> Self {
-        Self { pos: 0, doc }
+        Self {
+            doc,
+            pos: 0,
+            eaten: 0,
+        }
     }
 
-    /// Set the start point.
+    /// Set the starting point.
     pub fn with_cursor(mut self, pos: usize) -> Self {
         if self.doc.is_char_boundary(pos) {
             self.pos = pos;
+            self.eaten = pos;
         }
         self
+    }
+
+    /// Move the eaten cursor to the current position and return the string.
+    pub fn eat(&mut self) -> &'a str {
+        if self.eaten < self.pos {
+            let s = &self.doc[self.eaten..self.pos];
+            self.eaten = self.pos;
+            s
+        } else {
+            self.eaten = self.pos;
+            ""
+        }
+    }
+
+    /// Move the current position back.
+    pub fn backward(&mut self) {
+        self.pos = self.eaten;
     }
 
     /// YAML entry point, return entire doc if exist.
@@ -47,10 +78,13 @@ impl<'a> Parser<'a> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        let mut ret = node!(Yaml::Null, self.pos);
-        self.seq(b"---").unwrap_or(());
-        ret = self.value()?;
-        self.seq(b"...").unwrap_or(());
+        self.ws_any().unwrap_or_default();
+        self.seq(b"---").unwrap_or_default();
+        self.ws_any().unwrap_or_default();
+        self.eat();
+        let ret = self.value()?;
+        self.seq(b"...").unwrap_or_default();
+        self.eat();
         Ok(ret)
     }
 
@@ -65,11 +99,14 @@ impl<'a> Parser<'a> {
             Yaml::Bool(true)
         } else if self.seq(b"false").is_ok() {
             Yaml::Bool(false)
-        } else if let Ok(n) = self.float() {
-            Yaml::Float(self.slice(n).into())
-        } else if let Ok(n) = self.int() {
-            Yaml::Int(self.slice(n).into())
+        } else if self.float().is_ok() {
+            Yaml::Float(self.eat().into())
+        } else if self.int().is_ok() {
+            Yaml::Int(self.eat().into())
+        } else if self.quoted_string().is_ok() {
+            Yaml::Str(Self::escape(self.eat()))
         } else {
+            self.backward();
             return Err(PError::new(self.pos, "invalid value"));
         };
         Ok(node!(yaml, pos))
