@@ -3,13 +3,13 @@ use super::*;
 impl<'a> Parser<'a> {
     /// Match symbol.
     pub fn sym(&mut self, s: u8) -> Result<(), PError> {
-        if self.doc[self.pos..].as_bytes()[0] == s {
+        if self.food().as_bytes()[0] == s {
             self.pos += 1;
             Ok(())
         } else {
             Err(PError::new(
                 self.pos,
-                &format!("expect {}", String::from_utf8_lossy(&[s])),
+                &format!(": expect {}", String::from_utf8_lossy(&[s])),
             ))
         }
     }
@@ -19,7 +19,7 @@ impl<'a> Parser<'a> {
         let len = s.len();
         if self.pos + len <= self.doc.len() && {
             let mut b = true;
-            for (i, c) in self.doc[self.pos..].char_indices() {
+            for (i, c) in self.food().char_indices() {
                 if i >= len {
                     break;
                 }
@@ -35,7 +35,7 @@ impl<'a> Parser<'a> {
         } else {
             Err(PError::new(
                 self.pos,
-                &format!("expect {}", String::from_utf8_lossy(s)),
+                &format!(": expect {}", String::from_utf8_lossy(s)),
             ))
         }
     }
@@ -44,12 +44,12 @@ impl<'a> Parser<'a> {
     ///
     /// The argument `msg` can be `Option::None` if the string are empty allowed,
     /// otherwise there must be match at least one character.
-    pub fn take_while<F>(&mut self, f: F, msg: Option<&str>) -> Result<(), PError>
+    pub fn take_while<F>(&mut self, f: F, name: Option<&str>) -> Result<(), PError>
     where
         F: Fn(char) -> bool,
     {
         let mut pos = self.pos;
-        for (i, c) in self.doc[self.pos..].char_indices() {
+        for (i, c) in self.food().char_indices() {
             pos = self.pos + i + 1;
             if !f(c) {
                 pos -= 1;
@@ -57,8 +57,8 @@ impl<'a> Parser<'a> {
             }
         }
         if pos == self.pos {
-            if let Some(msg) = msg {
-                Err(PError::new(self.pos, msg))
+            if let Some(name) = name {
+                Err(PError::new(self.pos, name))
             } else {
                 Ok(())
             }
@@ -71,7 +71,7 @@ impl<'a> Parser<'a> {
     /// Match integer.
     pub fn int(&mut self) -> Result<(), PError> {
         self.sym(b'-').unwrap_or_default();
-        self.take_while(|c| c.is_ascii_digit(), Some("invalid integer"))?;
+        self.take_while(|c| c.is_ascii_digit(), Some("integer"))?;
         Ok(())
     }
 
@@ -79,24 +79,21 @@ impl<'a> Parser<'a> {
     pub fn float(&mut self) -> Result<(), PError> {
         self.int()?;
         self.sym(b'.')?;
-        self.take_while(|c| c.is_ascii_digit(), Some("invalid float"))?;
+        self.take_while(|c| c.is_ascii_digit(), Some("float"))?;
         Ok(())
     }
 
     /// Match quoted string.
     pub fn quoted_string(&mut self) -> Result<(), PError> {
         self.sym(b'\"')?;
-        self.take_while(|c| c.is_ascii_digit(), Some("invalid float"))?;
+        self.take_while(|c| c.is_ascii_digit(), Some("float"))?;
         self.sym(b'\"')?;
         Ok(())
     }
 
     /// Match valid YAML identifier.
     pub fn identifier(&mut self) -> Result<(), PError> {
-        self.take_while(
-            |c| c.is_alphanumeric() || c == '-',
-            Some("invalid identifier"),
-        )
+        self.take_while(|c| c.is_alphanumeric() || c == '-', Some("identifier"))
     }
 
     /// Match any invisible characters.

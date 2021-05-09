@@ -64,13 +64,17 @@ impl<'a> Parser<'a> {
         self.pos = self.eaten;
     }
 
+    /// Show the right hand side string.
+    pub fn food(&self) -> &'a str {
+        &self.doc[self.pos..]
+    }
+
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> std::io::Result<Array> {
         let mut v = vec![];
-        let mut ch = self.doc[self.pos..].char_indices();
+        let mut ch = self.food().char_indices();
         while let Some((i, _)) = ch.next() {
             self.pos = i;
-            dbg!(&self.doc[self.pos..]);
             v.push(match self.doc() {
                 Ok(n) => n,
                 Err(e) => return Err(e.into_error(self.doc)),
@@ -113,7 +117,7 @@ impl<'a> Parser<'a> {
             Yaml::Str(Self::escape(self.eat()))
         } else {
             self.backward();
-            return Err(PError::new(self.pos, "invalid value"));
+            return Err(PError::new(self.pos, "value"));
         };
         Ok(node!(yaml, pos))
         // TODO

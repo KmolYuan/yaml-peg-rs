@@ -6,23 +6,23 @@ use std::io::Error;
 /// Not recommended to use it at other times.
 pub struct PError {
     pos: usize,
-    msg: String,
+    name: String,
 }
 
 impl PError {
     /// Create an error.
-    pub fn new(pos: usize, msg: &str) -> Self {
+    pub fn new(pos: usize, name: &str) -> Self {
         Self {
             pos,
-            msg: msg.into(),
+            name: name.into(),
         }
     }
 
     /// Transform to IO error.
     pub fn into_error(self, doc: &str) -> Error {
         err!(format!(
-            "{}: \n\n{}",
-            self.msg,
+            "invalid {}: \n\n{}",
+            self.name,
             indicated_msg(doc, self.pos)
         ))
     }
