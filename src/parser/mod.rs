@@ -14,6 +14,12 @@ mod grammar;
 ///     + Use [`Result::unwrap_or_default`] to match an optional condition.
 /// + Method [`Parser::eat`] is used to move on and get the matched string.
 /// + Method [`Parser::backward`] is used to get back if mismatched.
+///
+/// ```
+/// use yaml_peg::{Parser, node};
+/// let n = Parser::new("true").parse().unwrap();
+/// assert_eq!(n, vec![node!(true)])
+/// ```
 pub struct Parser<'a> {
     doc: &'a str,
     /// Current position.

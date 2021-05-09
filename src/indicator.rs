@@ -3,7 +3,7 @@
 ///
 /// ```
 /// use yaml_peg::indicated_msg;
-/// let doc = indicated_msg("{\"a\": \n[\"b\", \"c\", \"d\"]}", 12);
+/// let doc = indicated_msg("{\"a\": \n[\"b\", \"c\", \"d\"]}", 13);
 /// assert_eq!(doc, "(2:7)\n[\"b\", \"c\", \"d\"]}\n~~~~~~^")
 /// ```
 ///
