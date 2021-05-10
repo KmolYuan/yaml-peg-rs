@@ -4,45 +4,57 @@ use super::*;
 pub enum TakeOpt {
     /// Match once.
     One,
-    /// Match until not matched, allow mismatched.
+    /// Match until mismatched, allow mismatched. Same as regex `*`.
+    If,
+    /// Match until mismatched, at least one. Same as regex `+`.
     Any,
-    /// Match until not matched, at least one.
-    All,
+    /// Match optional once. Same as regex `?`.
+    OneOpt,
 }
 
-/// The grammar implementation.
+/// The low level grammar implementation.
+///
+/// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
 impl<'a> Parser<'a> {
+    /// Move the eaten cursor to the current position and return the string.
+    pub fn eat(&mut self) -> &'a str {
+        if self.eaten < self.pos {
+            let s = &self.doc[self.eaten..self.pos];
+            self.eaten = self.pos;
+            s
+        } else {
+            self.eaten = self.pos;
+            ""
+        }
+    }
+
+    /// Move the current position back.
+    pub fn backward(&mut self) {
+        self.pos = self.eaten;
+    }
+
+    /// Show the right hand side string after the current cursor.
+    pub fn food(&self) -> &'a str {
+        &self.doc[self.pos..]
+    }
+
+    /// Match optional symbol.
+    pub fn opt(&mut self, s: u8) {
+        self.take_while(|c| c == char::from(s), TakeOpt::OneOpt)
+            .unwrap_or_default()
+    }
+
     /// Match symbol.
     pub fn sym(&mut self, s: u8) -> Result<(), ()> {
-        if self.food().as_bytes()[0] == s {
-            self.pos += 1;
-            Ok(())
-        } else {
-            Err(())
-        }
+        self.take_while(|c| c == char::from(s), TakeOpt::One)
     }
 
     /// Match sequence.
     pub fn seq(&mut self, s: &[u8]) -> Result<(), ()> {
-        let len = s.len();
-        if self.pos + len <= self.doc.len() && {
-            let mut b = true;
-            for (i, c) in self.food().char_indices() {
-                if i >= len {
-                    break;
-                }
-                if c != char::from(s[i]) {
-                    b = false;
-                    break;
-                }
-            }
-            b
-        } {
-            self.pos += len;
-            Ok(())
-        } else {
-            Err(())
+        for s in s {
+            self.sym(*s)?;
         }
+        Ok(())
     }
 
     /// Match until the condition failed.
@@ -59,14 +71,15 @@ impl<'a> Parser<'a> {
                 pos -= 1;
                 break;
             }
-            if let TakeOpt::One = opt {
+            if let TakeOpt::One | TakeOpt::OneOpt = opt {
                 break;
             }
         }
         if pos == self.pos {
-            if let TakeOpt::Any = opt {
+            if let TakeOpt::If | TakeOpt::OneOpt = opt {
                 Ok(())
             } else {
+                self.backward();
                 Err(())
             }
         } else {
@@ -88,6 +101,7 @@ impl<'a> Parser<'a> {
             self.eaten = pos;
             Ok(())
         } else {
+            self.backward();
             Err(())
         }
     }
@@ -97,14 +111,16 @@ impl<'a> Parser<'a> {
     where
         F: Fn(&mut Self) -> Result<(), ()>,
     {
-        let pos = (self.eaten, self.pos);
+        let eaten = self.eaten;
         f(self)?;
         let s = self.eat();
-        if self.ws().is_ok() {
+        if self.ws(TakeOpt::Any).is_ok() {
+            self.eat();
             Ok(s)
         } else {
-            self.eaten = pos.0;
-            self.pos = pos.1;
+            // backward
+            self.eaten = eaten;
+            self.pos = eaten;
             Err(())
         }
     }
@@ -112,7 +128,7 @@ impl<'a> Parser<'a> {
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::All)?;
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)?;
         Ok(())
     }
 
@@ -120,14 +136,14 @@ impl<'a> Parser<'a> {
     pub fn float(&mut self) -> Result<(), ()> {
         self.int()?;
         self.sym(b'.')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::All)?;
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)?;
         Ok(())
     }
 
     /// Match quoted string.
     pub fn quoted_string(&mut self) -> Result<(), ()> {
         self.sym(b'\"')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::All)?;
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)?;
         self.sym(b'\"')?;
         Ok(())
     }
@@ -135,7 +151,7 @@ impl<'a> Parser<'a> {
     /// Match valid YAML identifier.
     pub fn identifier(&mut self) -> Result<(), ()> {
         self.take_while(char::is_alphanumeric, TakeOpt::One)?;
-        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::Any)
+        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::If)
     }
 
     /// Match type assertion.
@@ -158,13 +174,20 @@ impl<'a> Parser<'a> {
     }
 
     /// Match a white space.
-    pub fn ws(&mut self) -> Result<(), ()> {
-        self.take_while(|c| c == ' ', TakeOpt::All)
+    pub fn ws(&mut self, opt: TakeOpt) -> Result<(), ()> {
+        self.take_while(|c| c == ' ', opt)
     }
 
     /// Match any optional invisible characters.
-    pub fn ws_any(&mut self) -> Result<(), ()> {
-        self.take_while(char::is_whitespace, TakeOpt::Any)
+    pub fn inv(&mut self, opt: TakeOpt) -> Result<(), ()> {
+        self.take_while(char::is_whitespace, opt)
+    }
+
+    /// Match any optional invisible characters between two lines.
+    pub fn gap(&mut self) -> Result<(), ()> {
+        // TODO
+        self.sym(b'\n')?;
+        self.inv(TakeOpt::If)
     }
 
     /// String escaping, return a new string.

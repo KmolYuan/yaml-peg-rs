@@ -37,6 +37,8 @@ pub struct Parser<'a> {
 }
 
 /// The basic implementation.
+///
+/// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
 impl<'a> Parser<'a> {
     /// Create a PEG parser with the string.
     pub fn new(doc: &'a str) -> Self {
@@ -56,28 +58,6 @@ impl<'a> Parser<'a> {
         self
     }
 
-    /// Move the eaten cursor to the current position and return the string.
-    pub fn eat(&mut self) -> &'a str {
-        if self.eaten < self.pos {
-            let s = &self.doc[self.eaten..self.pos];
-            self.eaten = self.pos;
-            s
-        } else {
-            self.eaten = self.pos;
-            ""
-        }
-    }
-
-    /// Move the current position back.
-    pub fn backward(&mut self) {
-        self.pos = self.eaten;
-    }
-
-    /// Show the right hand side string after the current cursor.
-    pub fn food(&self) -> &'a str {
-        &self.doc[self.pos..]
-    }
-
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> std::io::Result<Array> {
         let mut v = vec![];
@@ -88,18 +68,16 @@ impl<'a> Parser<'a> {
                 Ok(n) => n,
                 Err(e) => return Err(e.into_error(self.doc)),
             });
-            for _ in i..self.pos {
-                ch.next();
-            }
+            ch = self.food().char_indices();
         }
         Ok(v)
     }
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        self.ws_any().unwrap_or_default();
+        self.inv(TakeOpt::If).unwrap_or_default();
         self.seq(b"---").unwrap_or_default();
-        self.ws_any().unwrap_or_default();
+        self.gap().unwrap_or_default();
         self.eat();
         let ret = self.value()?;
         self.seq(b"...").unwrap_or_default();
@@ -129,8 +107,7 @@ impl<'a> Parser<'a> {
         } else if self.anchor_use().is_ok() {
             Yaml::Anchor(self.eat().into())
         } else {
-            self.backward();
-            return Err(PError::Terminal(self.pos, "value".into()));
+            return Err(PError::Terminate(self.pos, "value".into()));
         };
         Ok(node!(yaml, pos, anchor, ty))
     }

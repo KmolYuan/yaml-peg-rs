@@ -1,4 +1,4 @@
-//! A YAML parser using PEG algorithm.
+//! A YAML PEG parser using LALR algorithm.
 //!
 //! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
 pub use crate::dumper::*;
