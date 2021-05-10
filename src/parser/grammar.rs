@@ -185,9 +185,18 @@ impl<'a> Parser<'a> {
 
     /// Match any optional invisible characters between two lines.
     pub fn gap(&mut self) -> Result<(), ()> {
-        // TODO
+        let eaten = self.eaten;
         self.sym(b'\n')?;
-        self.inv(TakeOpt::If)
+        loop {
+            // Check point
+            self.eat();
+            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::If)
+                .unwrap_or_default();
+            if let Err(()) = self.sym(b'\n') {
+                self.eaten = eaten;
+                return Ok(());
+            }
+        }
     }
 
     /// String escaping, return a new string.
