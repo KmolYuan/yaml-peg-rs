@@ -79,15 +79,32 @@ impl<'a> Parser<'a> {
     ///
     /// This function will move the eaten cursor to the front if matched,
     /// so [`Parser::eat`] method will skip the suffix.
-    pub fn take_only<F, E>(&mut self, f: F) -> Result<(), ()>
+    pub fn take_from<F>(&mut self, f: F) -> Result<(), ()>
     where
-        F: Fn(&mut Self) -> Result<(), E>,
+        F: Fn(&mut Self) -> Result<(), ()>,
     {
         let pos = self.pos;
         if f(self).is_ok() {
             self.eaten = pos;
             Ok(())
         } else {
+            Err(())
+        }
+    }
+
+    /// Eat the matched string but require back boundary (spacing) for the matched parser.
+    pub fn token<F>(&mut self, f: F) -> Result<&'a str, ()>
+    where
+        F: Fn(&mut Self) -> Result<(), ()>,
+    {
+        let pos = (self.eaten, self.pos);
+        f(self)?;
+        let s = self.eat();
+        if self.ws().is_ok() {
+            Ok(s)
+        } else {
+            self.eaten = pos.0;
+            self.pos = pos.1;
             Err(())
         }
     }
@@ -125,19 +142,19 @@ impl<'a> Parser<'a> {
     pub fn ty(&mut self) -> Result<(), ()> {
         self.sym(b'!')?;
         self.sym(b'!').unwrap_or_default();
-        self.take_only(Self::identifier)
+        self.take_from(Self::identifier)
     }
 
     /// Match anchor definition.
     pub fn anchor(&mut self) -> Result<(), ()> {
         self.sym(b'&')?;
-        self.take_only(Self::identifier)
+        self.take_from(Self::identifier)
     }
 
     /// Match anchor used.
     pub fn anchor_use(&mut self) -> Result<(), ()> {
         self.sym(b'*')?;
-        self.take_only(Self::identifier)
+        self.take_from(Self::identifier)
     }
 
     /// Match a white space.
@@ -145,12 +162,12 @@ impl<'a> Parser<'a> {
         self.take_while(|c| c == ' ', TakeOpt::All)
     }
 
-    /// Match any invisible characters.
+    /// Match any optional invisible characters.
     pub fn ws_any(&mut self) -> Result<(), ()> {
         self.take_while(char::is_whitespace, TakeOpt::Any)
     }
 
-    /// String escaping.
+    /// String escaping, return a new string.
     pub fn escape(doc: &str) -> String {
         let mut s = String::new();
         let mut b = false;

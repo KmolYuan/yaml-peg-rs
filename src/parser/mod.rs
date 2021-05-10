@@ -9,19 +9,25 @@ mod grammar;
 
 /// A PEG parser with YAML grammar, support UTF-8 characters.
 ///
-/// Grammar methods will move the cursor if matched.
-///
-/// + For matching methods:
-///     + Use `?` to match a condition.
-///     + Use [`Result::unwrap_or_default`] to match an optional condition.
-/// + Method [`Parser::eat`] is used to move on and get the matched string.
-/// + Method [`Parser::backward`] is used to get back if mismatched.
+/// A simple example for parsing YAML only:
 ///
 /// ```
 /// use yaml_peg::{Parser, node};
 /// let n = Parser::new("true").parse().unwrap();
-/// assert_eq!(n, vec![node!(true)])
+/// assert_eq!(n, vec![node!(true)]);
 /// ```
+///
+/// For matching partial grammar, each methods are the sub-parser.
+/// The methods have some behaviers:
+///
+/// + They will move the current cursor if matched.
+/// + Returned value:
+///     + `Result<(), ()>` represents the sub-parser can be matched and mismatched.
+///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
+/// + Use `?` to match a condition.
+/// + Use [`Result::unwrap_or_default`] to match an optional condition.
+/// + Method [`Parser::eat`] is used to move on and get the matched string.
+/// + Method [`Parser::backward`] is used to get back if mismatched.
 pub struct Parser<'a> {
     doc: &'a str,
     /// Current position.
@@ -103,12 +109,8 @@ impl<'a> Parser<'a> {
 
     /// Match YAML value.
     pub fn value(&mut self) -> Result<Node, PError> {
-        self.ws().unwrap_or_default();
-        self.take_only(Self::anchor).unwrap_or_default();
-        let anchor = self.eat().into();
-        self.ws().unwrap_or_default();
-        self.take_only(Self::ty).unwrap_or_default();
-        let ty = self.eat().into();
+        let anchor = self.token(Self::anchor).unwrap_or_default().into();
+        let ty = self.token(Self::ty).unwrap_or_default().into();
         let pos = self.pos;
         let yaml = if self.sym(b'~').is_ok() {
             Yaml::Null
@@ -131,7 +133,6 @@ impl<'a> Parser<'a> {
             return Err(PError::Terminal(self.pos, "value".into()));
         };
         Ok(node!(yaml, pos, anchor, ty))
-        // TODO
     }
 }
 
