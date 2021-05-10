@@ -2,7 +2,7 @@
 pub use self::error::*;
 pub use self::grammar::*;
 use crate::*;
-use std::iter::FromIterator;
+use std::{io::Error, iter::FromIterator};
 
 mod error;
 mod grammar;
@@ -60,15 +60,31 @@ impl<'a> Parser<'a> {
     }
 
     /// YAML entry point, return entire doc if exist.
-    pub fn parse(&mut self) -> std::io::Result<Array> {
+    pub fn parse(&mut self) -> Result<Array, Error> {
+        match self.full_doc() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into_error(self.doc)),
+        }
+    }
+
+    /// Match full document.
+    pub fn full_doc(&mut self) -> Result<Array, PError> {
+        self.inv(TakeOpt::ZeroMore).unwrap_or_default();
+        self.seq(b"---").unwrap_or_default();
+        self.gap().unwrap_or_default();
+        self.eat();
         let mut v = vec![];
+        v.push(self.doc()?);
         let mut ch = self.food().char_indices();
         while let Some((i, _)) = ch.next() {
             self.pos += i;
-            v.push(match self.doc() {
-                Ok(n) => n,
-                Err(e) => return Err(e.into_error(self.doc)),
-            });
+            self.inv(TakeOpt::ZeroMore).unwrap_or_default();
+            if let Err(()) = self.seq(b"---") {
+                return Err(PError::Terminate(self.pos, "splitter".into()));
+            }
+            self.gap().unwrap_or_default();
+            self.eat();
+            v.push(self.doc()?);
             ch = self.food().char_indices();
         }
         Ok(v)
@@ -76,10 +92,6 @@ impl<'a> Parser<'a> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        self.inv(TakeOpt::ZeroMore).unwrap_or_default();
-        self.seq(b"---").unwrap_or_default();
-        self.gap().unwrap_or_default();
-        self.eat();
         let ret = self.scalar()?;
         self.seq(b"...").unwrap_or_default();
         self.eat();
