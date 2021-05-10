@@ -88,11 +88,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Take only matched string from parser `f`.
+    /// Select matched string from parser `f`.
     ///
     /// This function will move the eaten cursor to the front if matched,
     /// so [`Parser::eat`] method will skip the suffix.
-    pub fn take_from<F>(&mut self, f: F) -> Result<(), ()>
+    pub fn select<F>(&mut self, f: F) -> Result<(), ()>
     where
         F: Fn(&mut Self) -> Result<(), ()>,
     {
@@ -158,19 +158,19 @@ impl<'a> Parser<'a> {
     pub fn ty(&mut self) -> Result<(), ()> {
         self.sym(b'!')?;
         self.sym(b'!').unwrap_or_default();
-        self.take_from(Self::identifier)
+        self.select(Self::identifier)
     }
 
     /// Match anchor definition.
     pub fn anchor(&mut self) -> Result<(), ()> {
         self.sym(b'&')?;
-        self.take_from(Self::identifier)
+        self.select(Self::identifier)
     }
 
     /// Match anchor used.
     pub fn anchor_use(&mut self) -> Result<(), ()> {
         self.sym(b'*')?;
-        self.take_from(Self::identifier)
+        self.select(Self::identifier)
     }
 
     /// Match a white space.
