@@ -128,24 +128,43 @@ impl<'a> Parser<'a> {
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)?;
-        Ok(())
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)
     }
 
     /// Match float.
     pub fn float(&mut self) -> Result<(), ()> {
         self.int()?;
         self.sym(b'.')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)?;
-        Ok(())
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)
     }
 
     /// Match quoted string.
-    pub fn quoted_string(&mut self) -> Result<(), ()> {
-        self.sym(b'\"')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)?;
-        self.sym(b'\"')?;
-        Ok(())
+    pub fn quoted_string(&mut self, sym: u8) -> Result<&'a str, ()> {
+        let eaten = self.eaten;
+        self.sym(sym)?;
+        self.eat();
+        if let Err(()) = self.take_while(Self::not_in(&[sym, b'\n']), TakeOpt::Any) {
+            self.eaten = eaten;
+            return Err(());
+        }
+        let s = self.eat();
+        self.eaten = eaten;
+        if let Err(()) = self.sym(sym) {
+            Err(())
+        } else {
+            Ok(s)
+        }
+    }
+
+    /// Match flow string and return the content.
+    pub fn string_flow(&mut self) -> Result<&'a str, ()> {
+        if let Ok(s) = self.quoted_string(b'\'') {
+            Ok(s)
+        } else if let Ok(s) = self.quoted_string(b'"') {
+            Ok(s)
+        } else {
+            Err(())
+        }
     }
 
     /// Match valid YAML identifier.
@@ -196,6 +215,18 @@ impl<'a> Parser<'a> {
                 self.eaten = eaten;
                 return Ok(());
             }
+        }
+    }
+
+    /// A NOT detector for `char`.
+    pub fn not_in<'b>(s: &'b [u8]) -> impl Fn(char) -> bool + 'b {
+        move |c| {
+            for s in s {
+                if c == char::from(*s) {
+                    return false;
+                }
+            }
+            true
         }
     }
 

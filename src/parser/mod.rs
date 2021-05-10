@@ -39,6 +39,7 @@ pub struct Parser<'a> {
 /// The basic implementation.
 ///
 /// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
+/// Additionally, they should eat the string by themself.
 impl<'a> Parser<'a> {
     /// Create a PEG parser with the string.
     pub fn new(doc: &'a str) -> Self {
@@ -102,13 +103,14 @@ impl<'a> Parser<'a> {
             Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
-        } else if self.quoted_string().is_ok() {
-            Yaml::Str(Self::escape(self.eat()))
+        } else if let Ok(s) = self.string_flow() {
+            Yaml::Str(Self::escape(s))
         } else if self.anchor_use().is_ok() {
             Yaml::Anchor(self.eat().into())
         } else {
             return Err(PError::Terminate(self.pos, "value".into()));
         };
+        self.eat();
         Ok(node!(yaml, pos, anchor, ty))
     }
 }
