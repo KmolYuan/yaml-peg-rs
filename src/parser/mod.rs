@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
         let mut v = vec![];
         let mut ch = self.food().char_indices();
         while let Some((i, _)) = ch.next() {
-            self.pos = i;
+            self.pos += i;
             v.push(match self.doc() {
                 Ok(n) => n,
                 Err(e) => return Err(e.into_error(self.doc)),
@@ -76,7 +76,7 @@ impl<'a> Parser<'a> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        self.inv(TakeOpt::If).unwrap_or_default();
+        self.inv(TakeOpt::ZeroMore).unwrap_or_default();
         self.seq(b"---").unwrap_or_default();
         self.gap().unwrap_or_default();
         self.eat();
@@ -104,7 +104,7 @@ impl<'a> Parser<'a> {
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
         } else if let Ok(s) = self.string_flow() {
-            Yaml::Str(Self::escape(s))
+            Yaml::Str(Self::escape(&Self::merge_ws(s)))
         } else if self.anchor_use().is_ok() {
             Yaml::Anchor(self.eat().into())
         } else {

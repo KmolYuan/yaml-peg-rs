@@ -5,11 +5,11 @@ pub enum TakeOpt {
     /// Match once.
     One,
     /// Match until mismatched, allow mismatched. Same as regex `*`.
-    If,
+    ZeroMore,
     /// Match until mismatched, at least one. Same as regex `+`.
-    Any,
+    OneMore,
     /// Match optional once. Same as regex `?`.
-    OneOpt,
+    ZeroOne,
 }
 
 /// The low level grammar implementation.
@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
 
     /// Match optional symbol.
     pub fn opt(&mut self, s: u8) {
-        self.take_while(|c| c == char::from(s), TakeOpt::OneOpt)
+        self.take_while(|c| c == char::from(s), TakeOpt::ZeroOne)
             .unwrap_or_default()
     }
 
@@ -71,12 +71,12 @@ impl<'a> Parser<'a> {
                 pos -= 1;
                 break;
             }
-            if let TakeOpt::One | TakeOpt::OneOpt = opt {
+            if let TakeOpt::One | TakeOpt::ZeroOne = opt {
                 break;
             }
         }
         if pos == self.pos {
-            if let TakeOpt::If | TakeOpt::OneOpt = opt {
+            if let TakeOpt::ZeroMore | TakeOpt::ZeroOne = opt {
                 Ok(())
             } else {
                 self.backward();
@@ -114,7 +114,7 @@ impl<'a> Parser<'a> {
         let eaten = self.eaten;
         f(self)?;
         let s = self.eat();
-        if self.ws(TakeOpt::Any).is_ok() {
+        if self.ws(TakeOpt::OneMore).is_ok() {
             self.eat();
             Ok(s)
         } else {
@@ -128,39 +128,43 @@ impl<'a> Parser<'a> {
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::OneMore)
     }
 
     /// Match float.
     pub fn float(&mut self) -> Result<(), ()> {
         self.int()?;
         self.sym(b'.')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::Any)
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::OneMore)
     }
 
     /// Match quoted string.
-    pub fn quoted_string(&mut self, sym: u8) -> Result<&'a str, ()> {
+    pub fn string_quoted(&mut self, sym: u8) -> Result<&'a str, ()> {
         let eaten = self.eaten;
         self.sym(sym)?;
-        self.eat();
-        if let Err(()) = self.take_while(Self::not_in(&[sym, b'\n']), TakeOpt::Any) {
-            self.eaten = eaten;
-            return Err(());
-        }
+        self.select(|p| p.take_while(Self::not_in(&[sym]), TakeOpt::OneMore))?;
         let s = self.eat();
         self.eaten = eaten;
-        if let Err(()) = self.sym(sym) {
-            Err(())
-        } else {
-            Ok(s)
-        }
+        self.sym(sym)?;
+        Ok(s)
+    }
+
+    /// Match plain string.
+    pub fn string_plain(&mut self) -> Result<&'a str, ()> {
+        let eaten = self.eaten;
+        self.select(|p| p.take_while(Self::not_in(b"[]{},:"), TakeOpt::OneMore))?;
+        let s = self.eat();
+        self.eaten = eaten;
+        Ok(s)
     }
 
     /// Match flow string and return the content.
     pub fn string_flow(&mut self) -> Result<&'a str, ()> {
-        if let Ok(s) = self.quoted_string(b'\'') {
+        if let Ok(s) = self.string_quoted(b'\'') {
             Ok(s)
-        } else if let Ok(s) = self.quoted_string(b'"') {
+        } else if let Ok(s) = self.string_quoted(b'"') {
+            Ok(s)
+        } else if let Ok(s) = self.string_plain() {
             Ok(s)
         } else {
             Err(())
@@ -170,7 +174,7 @@ impl<'a> Parser<'a> {
     /// Match valid YAML identifier.
     pub fn identifier(&mut self) -> Result<(), ()> {
         self.take_while(char::is_alphanumeric, TakeOpt::One)?;
-        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::If)
+        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::ZeroMore)
     }
 
     /// Match type assertion.
@@ -209,7 +213,7 @@ impl<'a> Parser<'a> {
         loop {
             // Check point
             self.eat();
-            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::If)
+            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::ZeroMore)
                 .unwrap_or_default();
             if let Err(()) = self.sym(b'\n') {
                 self.eaten = eaten;
@@ -255,5 +259,10 @@ impl<'a> Parser<'a> {
             b = false;
         }
         s
+    }
+
+    /// Merge the white spaces of the given string.
+    pub fn merge_ws(doc: &str) -> String {
+        doc.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 }
