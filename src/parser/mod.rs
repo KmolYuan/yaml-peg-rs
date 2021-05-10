@@ -80,14 +80,14 @@ impl<'a> Parser<'a> {
         self.seq(b"---").unwrap_or_default();
         self.gap().unwrap_or_default();
         self.eat();
-        let ret = self.value()?;
+        let ret = self.scalar()?;
         self.seq(b"...").unwrap_or_default();
         self.eat();
         Ok(ret)
     }
 
-    /// Match YAML value.
-    pub fn value(&mut self) -> Result<Node, PError> {
+    /// Match YAML scalar.
+    pub fn scalar(&mut self) -> Result<Node, PError> {
         let anchor = self.token(Self::anchor).unwrap_or_default().into();
         let ty = self.token(Self::ty).unwrap_or_default().into();
         let pos = self.pos;
