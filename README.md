@@ -1,3 +1,3 @@
 # yaml-peg
 
-A YAML parser using PEG algorithm.
+A YAML PEG parser using LALR algorithm.
