@@ -4,7 +4,7 @@
 pub use crate::dumper::*;
 pub use crate::indicator::*;
 pub use crate::node::*;
-pub use crate::parser::*;
+pub use crate::parser::Parser;
 pub use crate::yaml::*;
 
 /// Build [`std::io::Error`] with [`std::io::ErrorKind::InvalidData`] from strings.
@@ -74,7 +74,7 @@ macro_rules! yaml_map {
 mod dumper;
 mod indicator;
 mod node;
-mod parser;
+pub mod parser;
 #[cfg(test)]
 mod tests;
 mod yaml;

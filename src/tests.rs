@@ -7,7 +7,7 @@ const TEST_JSON: &str = r#"
     "c": [123, 321, 1234567]
 }
 "#;
-const TEST_YAML_CONST: &str = "12.3";
+const TEST_YAML_CONST: &str = "-12.3";
 const TEST_YAML_FLOW: &str = r#"
 ---
 a0 bb: val
@@ -51,7 +51,7 @@ fn test_yaml_const() {
             panic!()
         }
     };
-    assert_eq!(ans[0], node!(12.3));
+    assert_eq!(ans[0], node!(-12.3));
 }
 
 #[test]

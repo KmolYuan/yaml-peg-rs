@@ -1,4 +1,6 @@
-use self::error::*;
+//! Parser components.
+pub use self::error::*;
+pub use self::grammar::*;
 use crate::*;
 use std::iter::FromIterator;
 
@@ -28,6 +30,7 @@ pub struct Parser<'a> {
     pub eaten: usize,
 }
 
+/// The basic implementation.
 impl<'a> Parser<'a> {
     /// Create a PEG parser with the string.
     pub fn new(doc: &'a str) -> Self {
@@ -64,7 +67,7 @@ impl<'a> Parser<'a> {
         self.pos = self.eaten;
     }
 
-    /// Show the right hand side string.
+    /// Show the right hand side string after the current cursor.
     pub fn food(&self) -> &'a str {
         &self.doc[self.pos..]
     }
@@ -100,6 +103,12 @@ impl<'a> Parser<'a> {
 
     /// Match YAML value.
     pub fn value(&mut self) -> Result<Node, PError> {
+        self.ws().unwrap_or_default();
+        self.take_only(Self::anchor).unwrap_or_default();
+        let anchor = self.eat().into();
+        self.ws().unwrap_or_default();
+        self.take_only(Self::ty).unwrap_or_default();
+        let ty = self.eat().into();
         let pos = self.pos;
         let yaml = if self.sym(b'~').is_ok() {
             Yaml::Null
@@ -115,11 +124,13 @@ impl<'a> Parser<'a> {
             Yaml::Int(self.eat().into())
         } else if self.quoted_string().is_ok() {
             Yaml::Str(Self::escape(self.eat()))
+        } else if self.anchor_use().is_ok() {
+            Yaml::Anchor(self.eat().into())
         } else {
             self.backward();
-            return Err(PError::new(self.pos, "value"));
+            return Err(PError::Terminal(self.pos, "value".into()));
         };
-        Ok(node!(yaml, pos))
+        Ok(node!(yaml, pos, anchor, ty))
         // TODO
     }
 }
