@@ -101,7 +101,6 @@ impl<'a> Parser<'a> {
             self.eaten = pos;
             Ok(())
         } else {
-            self.backward();
             Err(())
         }
     }
@@ -152,7 +151,7 @@ impl<'a> Parser<'a> {
     /// Match plain string.
     pub fn string_plain(&mut self) -> Result<&'a str, ()> {
         let eaten = self.eaten;
-        self.select(|p| p.take_while(Self::not_in(b"[]{},:"), TakeOpt::OneMore))?;
+        self.select(Self::plain_string_rule)?;
         let s = self.eat();
         self.eaten = eaten;
         Ok(s)
@@ -231,6 +230,38 @@ impl<'a> Parser<'a> {
                 }
             }
             true
+        }
+    }
+
+    /// The plain string rule.
+    pub fn plain_string_rule(&mut self) -> Result<(), ()> {
+        // Check point
+        self.eat();
+        let f = Self::not_in(b"[]{},");
+        let mut pos = self.pos;
+        let mut semi = false;
+        let mut comment = false;
+        for (i, c) in self.food().char_indices() {
+            pos = self.pos + i + 1;
+            if !f(c) || semi && c == ' ' || comment && c == '#' {
+                pos -= 1;
+                break;
+            }
+            match c {
+                ':' => semi = true,
+                ' ' => comment = true,
+                _ => {
+                    semi = false;
+                    comment = false;
+                }
+            }
+        }
+        if pos == self.pos {
+            self.backward();
+            Err(())
+        } else {
+            self.pos = pos;
+            Ok(())
         }
     }
 
