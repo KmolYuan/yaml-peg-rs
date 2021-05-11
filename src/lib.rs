@@ -57,8 +57,14 @@ macro_rules! node {
 /// ```
 #[macro_export]
 macro_rules! yaml_array {
+    () => {
+        $crate::Yaml::Array(vec![])
+    };
     ($v1:expr $(, $v2:expr)* $(,)?) => {
         $crate::Yaml::Array(vec![$v1 $(, $v2)*])
+    };
+    ($v1:expr; $v2:expr) => {
+        $crate::Yaml::Array(vec![$v1; $v2])
     };
 }
 
@@ -73,9 +79,13 @@ macro_rules! yaml_array {
 /// ```
 #[macro_export]
 macro_rules! yaml_map {
-    ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {
-        $crate::Yaml::Map(vec![($k1, $v1) $(, ($k2, $v2))*].into_iter().collect())
+    () => {
+        $crate::Yaml::Map($crate::Map::new())
     };
+    ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
+        use std::iter::FromIterator;
+        $crate::Yaml::from_iter(vec![($k1, $v1) $(, ($k2, $v2))*])
+    }};
 }
 
 pub mod dumper;

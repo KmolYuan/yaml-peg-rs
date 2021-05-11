@@ -5,6 +5,8 @@ pub enum TakeOpt {
     /// Match once.
     One,
     /// Match until mismatched, allow mismatched. Same as regex `*`.
+    ///
+    /// This option will never mismatch.
     ZeroMore,
     /// Match until mismatched, at least one. Same as regex `+`.
     OneMore,
@@ -235,9 +237,8 @@ impl<'a> Parser<'a> {
         loop {
             // Check point
             self.eat();
-            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::ZeroMore)
-                .unwrap_or_default();
-            if let Err(()) = self.sym(b'\n') {
+            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::ZeroMore)?;
+            if self.sym(b'\n').is_err() {
                 self.eaten = eaten;
                 return Ok(());
             }

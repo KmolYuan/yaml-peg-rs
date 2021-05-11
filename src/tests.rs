@@ -4,7 +4,8 @@ const TEST_JSON: &str = r#"
 ---
 {
     "a": "b",
-    "c": [123, 321, 1234567]
+    "c": [123, 321, 1234567],
+    "d": {}
 }
 "#;
 const TEST_YAML_CONST: &str = "&a !!float -12.3";
@@ -40,6 +41,7 @@ fn test_json() {
         node!(yaml_map![
             node!("a") => node!("b"),
             node!("c") => node!(yaml_array![node!(123), node!(321), node!(1234567)]),
+            node!("d") => node!(yaml_map![])
         ])
     );
     let n = ans[0].assert_get(&["a"], "").unwrap();

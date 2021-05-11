@@ -60,32 +60,24 @@ impl<'a> Parser<'a> {
     }
 
     /// YAML entry point, return entire doc if exist.
-    pub fn parse(&mut self) -> Result<Array, Error> {
-        match self.full_doc() {
-            Ok(v) => Ok(v),
-            Err(e) => Err(e.into_error(self.doc)),
-        }
-    }
-
-    /// Match full document.
-    pub fn full_doc(&mut self) -> Result<Array, PError> {
-        self.inv(TakeOpt::ZeroMore).unwrap_or_default();
+    pub fn parse(&mut self) -> Result<Array, PError> {
+        self.inv(TakeOpt::ZeroMore)?;
         self.seq(b"---").unwrap_or_default();
         self.gap().unwrap_or_default();
         self.eat();
         let mut v = vec![];
         v.push(self.doc()?);
-        let mut ch = self.food().char_indices();
-        while let Some((i, _)) = ch.next() {
-            self.pos += i;
-            self.inv(TakeOpt::ZeroMore).unwrap_or_default();
-            if let Err(()) = self.seq(b"---") {
+        loop {
+            self.inv(TakeOpt::ZeroMore)?;
+            if self.food().is_empty() {
+                break;
+            }
+            if self.seq(b"---").is_err() {
                 return Err(PError::Terminate(self.pos, "splitter".into()));
             }
             self.gap().unwrap_or_default();
             self.eat();
             v.push(self.doc()?);
-            ch = self.food().char_indices();
         }
         Ok(v)
     }
@@ -123,15 +115,98 @@ impl<'a> Parser<'a> {
             }
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
-        } else if let Ok(s) = self.string_flow() {
-            Yaml::Str(Self::escape(&Self::merge_ws(s)))
         } else if self.anchor_use().is_ok() {
             Yaml::Anchor(self.eat().into())
+        } else if let Ok(s) = self.string_flow() {
+            Yaml::Str(Self::escape(&Self::merge_ws(s)))
         } else {
-            return Err(PError::Terminate(self.pos, "value".into()));
+            match self.array_flow() {
+                Ok(a) => Yaml::from_iter(a),
+                Err(PError::Mismatch) => match self.map_flow() {
+                    Ok(m) => Yaml::from_iter(m),
+                    Err(PError::Mismatch) => {
+                        return Err(PError::Terminate(self.pos, "value".into()))
+                    }
+                    Err(e) => return Err(e),
+                },
+                Err(e) => return Err(e),
+            }
         };
         self.eat();
         Ok(node!(yaml, pos, anchor, ty))
+    }
+
+    /// Match flow array.
+    pub fn array_flow(&mut self) -> Result<Array, PError> {
+        self.sym(b'[')?;
+        let mut v = vec![];
+        loop {
+            self.inv(TakeOpt::ZeroMore)?;
+            self.eat();
+            if self.sym(b']').is_ok() {
+                break;
+            }
+            self.eat();
+            v.push(match self.scalar() {
+                Ok(v) => v,
+                Err(e) => match e {
+                    PError::Mismatch => break,
+                    e => return Err(e),
+                },
+            });
+            self.inv(TakeOpt::ZeroMore)?;
+            if self.sym(b',').is_err() {
+                self.inv(TakeOpt::ZeroMore)?;
+                self.sym(b']')?;
+                break;
+            }
+        }
+        self.eat();
+        Ok(v)
+    }
+
+    /// Match flow map.
+    pub fn map_flow(&mut self) -> Result<Vec<(Node, Node)>, PError> {
+        self.sym(b'{')?;
+        let mut m = vec![];
+        loop {
+            self.inv(TakeOpt::ZeroMore)?;
+            self.eat();
+            if self.sym(b'}').is_ok() {
+                break;
+            }
+            self.eat();
+            let k = match self.scalar() {
+                Ok(v) => v,
+                Err(e) => match e {
+                    PError::Mismatch => break,
+                    e => return Err(e),
+                },
+            };
+            self.inv(TakeOpt::ZeroMore)?;
+            if self.sym(b':').is_err() {
+                return Err(PError::Terminate(self.pos, "map".into()));
+            }
+            if self.inv(TakeOpt::OneMore).is_err() {
+                return Err(PError::Terminate(self.pos, "map".into()));
+            }
+            self.eat();
+            let v = match self.scalar() {
+                Ok(v) => v,
+                Err(e) => match e {
+                    PError::Mismatch => break,
+                    e => return Err(e),
+                },
+            };
+            m.push((k, v));
+            if self.sym(b',').is_err() {
+                self.inv(TakeOpt::ZeroMore)?;
+                self.sym(b'}')?;
+                break;
+            }
+        }
+        self.eat();
+        Ok(m)
     }
 }
 
@@ -142,6 +217,9 @@ impl<'a> Parser<'a> {
 /// let n = parse("true").unwrap();
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
-pub fn parse(doc: &str) -> std::io::Result<Array> {
-    Parser::new(doc).parse()
+pub fn parse(doc: &str) -> Result<Array, Error> {
+    match Parser::new(doc).parse() {
+        Ok(v) => Ok(v),
+        Err(e) => Err(e.into_error(doc)),
+    }
 }
