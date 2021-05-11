@@ -51,7 +51,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Set the starting point.
-    pub fn with_cursor(mut self, pos: usize) -> Self {
+    pub fn start_at(mut self, pos: usize) -> Self {
         if self.doc.is_char_boundary(pos) {
             self.pos = pos;
             self.eaten = pos;
@@ -73,7 +73,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             if self.seq(b"---").is_err() {
-                return Err(PError::Terminate(self.pos, "splitter".into()));
+                return self.err("splitter");
             }
             self.gap().unwrap_or_default();
             self.eat();
@@ -108,11 +108,7 @@ impl<'a> Parser<'a> {
         } else if self.nan().is_ok() {
             Yaml::Float("NaN".into())
         } else if let Ok(b) = self.inf() {
-            if b {
-                Yaml::Float("inf".into())
-            } else {
-                Yaml::Float("-inf".into())
-            }
+            Yaml::Float(if b { "inf" } else { "-inf" }.into())
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
         } else if self.anchor_use().is_ok() {
@@ -124,9 +120,7 @@ impl<'a> Parser<'a> {
                 Ok(a) => Yaml::from_iter(a),
                 Err(PError::Mismatch) => match self.map_flow() {
                     Ok(m) => Yaml::from_iter(m),
-                    Err(PError::Mismatch) => {
-                        return Err(PError::Terminate(self.pos, "value".into()))
-                    }
+                    Err(PError::Mismatch) => return self.err("value"),
                     Err(e) => return Err(e),
                 },
                 Err(e) => return Err(e),
@@ -185,10 +179,10 @@ impl<'a> Parser<'a> {
             };
             self.inv(TakeOpt::ZeroMore)?;
             if self.sym(b':').is_err() {
-                return Err(PError::Terminate(self.pos, "map".into()));
+                return self.err("map");
             }
             if self.inv(TakeOpt::OneMore).is_err() {
-                return Err(PError::Terminate(self.pos, "map".into()));
+                return self.err("map");
             }
             self.eat();
             let v = match self.scalar() {

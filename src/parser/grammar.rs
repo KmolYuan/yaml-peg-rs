@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
         Err(())
     }
 
-    /// Match inf.
+    /// Match inf, return true if the value is positive.
     pub fn inf(&mut self) -> Result<bool, ()> {
         let b = self.sym(b'-').is_err();
         self.sym(b'.')?;
@@ -323,5 +323,10 @@ impl<'a> Parser<'a> {
     /// Merge the white spaces of the given string.
     pub fn merge_ws(doc: &str) -> String {
         doc.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+
+    /// A short function to raise error.
+    pub fn err<R>(&self, msg: &str) -> Result<R, PError> {
+        Err(PError::Terminate(self.pos, msg.into()))
     }
 }
