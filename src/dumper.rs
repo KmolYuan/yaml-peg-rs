@@ -1,8 +1,21 @@
+//! Dumper components.
 use crate::*;
 
-impl Node {
+/// The interface for dumping data structure.
+pub trait Dumper {
+    fn dump(&self, level: usize, wrap: bool) -> String;
+}
+
+impl Dumper for Node {
     fn dump(&self, level: usize, wrap: bool) -> String {
-        match &self.yaml {
+        let mut doc = String::new();
+        if !self.anchor.is_empty() {
+            doc += &format!("&{} ", self.anchor);
+        }
+        if !self.ty.is_empty() {
+            doc += &format!("!!{} ", self.ty);
+        }
+        doc += &match &self.yaml {
             Yaml::Null => "null".into(),
             Yaml::Bool(b) => b.to_string(),
             Yaml::Int(n) | Yaml::Float(n) => n.clone(),
@@ -41,7 +54,8 @@ impl Node {
                 doc
             }
             Yaml::Anchor(anchor) => format!("*{}", anchor),
-        }
+        };
+        doc
     }
 }
 
@@ -55,9 +69,9 @@ impl Node {
 /// })]);
 /// assert_eq!(doc, "a: b\nc: d\n");
 /// ```
-pub fn dump<T>(nodes: T) -> String
+pub fn dump<I>(nodes: I) -> String
 where
-    T: IntoIterator<Item = Node>,
+    I: IntoIterator<Item = Node>,
 {
     nodes
         .into_iter()

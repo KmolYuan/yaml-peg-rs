@@ -12,7 +12,7 @@ mod grammar;
 /// A simple example for parsing YAML only:
 ///
 /// ```
-/// use yaml_peg::{Parser, node};
+/// use yaml_peg::{parser::Parser, node};
 /// let n = Parser::new("true").parse().unwrap();
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
@@ -113,6 +113,14 @@ impl<'a> Parser<'a> {
             Yaml::Bool(false)
         } else if self.float().is_ok() {
             Yaml::Float(self.eat().into())
+        } else if self.nan().is_ok() {
+            Yaml::Float("NaN".into())
+        } else if let Ok(b) = self.inf() {
+            if b {
+                Yaml::Float("inf".into())
+            } else {
+                Yaml::Float("-inf".into())
+            }
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
         } else if let Ok(s) = self.string_flow() {
@@ -128,6 +136,12 @@ impl<'a> Parser<'a> {
 }
 
 /// Parse YAML document.
+///
+/// ```
+/// use yaml_peg::{parse, node};
+/// let n = parse("true").unwrap();
+/// assert_eq!(n, vec![node!(true)]);
+/// ```
 pub fn parse(doc: &str) -> std::io::Result<Array> {
     Parser::new(doc).parse()
 }

@@ -1,4 +1,3 @@
-use crate::Parser;
 use crate::*;
 use linked_hash_map::LinkedHashMap;
 use std::{fmt::Display, iter::FromIterator};
@@ -69,7 +68,7 @@ impl Yaml {
     where
         T: Display,
     {
-        Parser::new(&format!("{}", s)).identifier().is_ok()
+        parser::Parser::new(&format!("{}", s)).identifier().is_ok()
     }
 }
 

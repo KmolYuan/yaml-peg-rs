@@ -15,7 +15,7 @@
 /// ~~~~~~^
 /// ```
 ///
-/// This may be what you need if you went to indicate an error on invalid data.
+/// This may be what you need if you went to indicate an error on the invalid data.
 pub fn indicated_msg(doc: &str, mut pos: usize) -> String {
     let mut show_line = String::new();
     for (line, str_line) in doc.split('\n').enumerate() {

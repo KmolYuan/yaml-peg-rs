@@ -137,6 +137,29 @@ impl<'a> Parser<'a> {
         self.take_while(|c| c.is_ascii_digit(), TakeOpt::OneMore)
     }
 
+    /// Match NaN.
+    pub fn nan(&mut self) -> Result<(), ()> {
+        self.sym(b'.')?;
+        for &s in &[b"nan", b"NaN", b"NAN"] {
+            if self.seq(s).is_ok() {
+                return Ok(());
+            }
+        }
+        Err(())
+    }
+
+    /// Match inf.
+    pub fn inf(&mut self) -> Result<bool, ()> {
+        let b = self.sym(b'-').is_err();
+        self.sym(b'.')?;
+        for &s in &[b"inf", b"Inf", b"INF"] {
+            if self.seq(s).is_ok() {
+                return Ok(b);
+            }
+        }
+        Err(())
+    }
+
     /// Match quoted string.
     pub fn string_quoted(&mut self, sym: u8) -> Result<&'a str, ()> {
         let eaten = self.eaten;
@@ -243,8 +266,12 @@ impl<'a> Parser<'a> {
         let mut comment = false;
         for (i, c) in self.food().char_indices() {
             pos = self.pos + i + 1;
-            if !f(c) || semi && c == ' ' || comment && c == '#' {
+            if !f(c) {
                 pos -= 1;
+                break;
+            }
+            if semi && c == ' ' || comment && c == '#' {
+                pos -= 2;
                 break;
             }
             match c {

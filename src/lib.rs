@@ -1,10 +1,17 @@
 //! A YAML PEG parser using LALR algorithm.
 //!
 //! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
-pub use crate::dumper::*;
+//!
+//! Function [`parse`] is used to parse YAML string into [`Node`] data structure.
+//! To get back as string, please use [`dump`] function.
+//!
+//! There are also have some macros for building [`Node`] structure from Rust data.
+//!
+//! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
+pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
-pub use crate::parser::Parser;
+pub use crate::parser::parse;
 pub use crate::yaml::*;
 
 /// Build [`std::io::Error`] with [`std::io::ErrorKind::InvalidData`] from strings.
@@ -71,7 +78,7 @@ macro_rules! yaml_map {
     };
 }
 
-mod dumper;
+pub mod dumper;
 mod indicator;
 mod node;
 pub mod parser;
