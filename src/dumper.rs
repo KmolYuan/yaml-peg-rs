@@ -3,6 +3,12 @@ use crate::*;
 
 /// The interface for dumping data structure.
 pub trait Dumper {
+    /// Generate indentation.
+    fn ind(level: usize) -> String {
+        "  ".repeat(level)
+    }
+
+    /// Recursive dump function.
     fn dump(&self, level: usize, wrap: bool) -> String;
 }
 
@@ -15,16 +21,15 @@ impl Dumper for Node {
         if !self.ty.is_empty() {
             doc += &format!("!!{} ", self.ty);
         }
+        let ind = Self::ind(level);
         doc += &match &self.yaml {
             Yaml::Null => "null".into(),
             Yaml::Bool(b) => b.to_string(),
             Yaml::Int(n) | Yaml::Float(n) => n.clone(),
             Yaml::Str(s) => {
                 if s.contains("\n") {
-                    let s = s
-                        .trim()
-                        .replace("\n", &(String::from("\n") + &"  ".repeat(level)));
-                    String::from("|\n") + &"  ".repeat(level) + &s
+                    let s = s.trim().replace("\n", &(String::from("\n") + &ind));
+                    String::from("|\n") + &ind + &s
                 } else {
                     s.clone()
                 }
@@ -32,11 +37,10 @@ impl Dumper for Node {
             Yaml::Array(a) => {
                 let mut doc = String::from(if level == 0 { "" } else { "\n" });
                 for (i, node) in a.iter().enumerate() {
-                    let mut s = format!("- {}\n", node.dump(level + 1, false));
                     if i != 0 || level != 0 {
-                        s = "  ".repeat(level) + &s;
+                        doc += &ind;
                     }
-                    doc += &s;
+                    doc += &format!("- {}\n", node.dump(level + 1, false));
                 }
                 doc.pop();
                 doc
@@ -44,11 +48,18 @@ impl Dumper for Node {
             Yaml::Map(m) => {
                 let mut doc = String::from(if wrap { "\n" } else { "" });
                 for (i, (k, v)) in m.iter().enumerate() {
-                    let mut s = k.dump(level + 1, false) + ": " + &v.dump(level + 1, true) + "\n";
                     if i != 0 || wrap {
-                        s = "  ".repeat(level) + &s;
+                        doc += &ind;
                     }
-                    doc += &s;
+                    let s = k.dump(level + 1, false);
+                    if let Yaml::Map(_) | Yaml::Array(_) = k.yaml {
+                        doc += "?\n";
+                        doc += &(Self::ind(level + 1) + "\n" + &s + "\n" + &ind);
+                    } else {
+                        doc += &s;
+                    }
+                    doc += ": ";
+                    doc += &(v.dump(level + 1, true) + "\n");
                 }
                 doc.pop();
                 doc
