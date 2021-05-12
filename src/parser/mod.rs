@@ -7,6 +7,16 @@ use std::{io::Error, iter::FromIterator};
 mod error;
 mod grammar;
 
+macro_rules! err_own {
+    ($e:expr, $then:expr $(, $trans:expr)?) => {
+        match $e {
+            Ok(v) => Ok($($trans)?(v)),
+            Err(PError::Mismatch) => $then,
+            Err(e) => Err(e),
+        }
+    };
+}
+
 /// A PEG parser with YAML grammar, support UTF-8 characters.
 ///
 /// A simple example for parsing YAML only:
@@ -116,15 +126,11 @@ impl<'a> Parser<'a> {
         } else if let Ok(s) = self.string_flow() {
             Yaml::Str(Self::escape(&Self::merge_ws(s)))
         } else {
-            match self.array_flow() {
-                Ok(a) => Yaml::from_iter(a),
-                Err(PError::Mismatch) => match self.map_flow() {
-                    Ok(m) => Yaml::from_iter(m),
-                    Err(PError::Mismatch) => return self.err("value"),
-                    Err(e) => return Err(e),
-                },
-                Err(e) => return Err(e),
-            }
+            err_own!(
+                self.array_flow(),
+                err_own!(self.map_flow(), self.err("value"), Yaml::from_iter),
+                Yaml::from_iter
+            )?
         };
         self.eat();
         Ok(node!(yaml, pos, anchor, ty))
@@ -141,13 +147,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            v.push(match self.scalar() {
-                Ok(v) => v,
-                Err(e) => match e {
-                    PError::Mismatch => break,
-                    e => return Err(e),
-                },
-            });
+            v.push(err_own!(self.scalar(), self.err("array"))?);
             self.inv(TakeOpt::ZeroMore)?;
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::ZeroMore)?;
@@ -170,28 +170,13 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            let k = match self.scalar() {
-                Ok(v) => v,
-                Err(e) => match e {
-                    PError::Mismatch => break,
-                    e => return Err(e),
-                },
-            };
+            let k = err_own!(self.scalar(), self.err("map"))?;
             self.inv(TakeOpt::ZeroMore)?;
-            if self.sym(b':').is_err() {
-                return self.err("map");
-            }
-            if self.inv(TakeOpt::OneMore).is_err() {
+            if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
                 return self.err("map");
             }
             self.eat();
-            let v = match self.scalar() {
-                Ok(v) => v,
-                Err(e) => match e {
-                    PError::Mismatch => break,
-                    e => return Err(e),
-                },
-            };
+            let v = err_own!(self.scalar(), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::ZeroMore)?;
