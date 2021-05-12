@@ -40,12 +40,6 @@ impl<'a> Parser<'a> {
         &self.doc[self.pos..]
     }
 
-    /// Match optional symbol.
-    pub fn opt(&mut self, s: u8) {
-        self.take_while(|c| c == char::from(s), TakeOpt::ZeroOne)
-            .unwrap_or_default()
-    }
-
     /// Match symbol.
     pub fn sym(&mut self, s: u8) -> Result<(), ()> {
         self.take_while(|c| c == char::from(s), TakeOpt::One)
