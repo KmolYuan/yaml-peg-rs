@@ -29,13 +29,7 @@ a5: *x
 
 #[test]
 fn test_json() {
-    let ans = match parse(TEST_JSON) {
-        Ok(n) => n,
-        Err(e) => {
-            println!("{}", e);
-            panic!()
-        }
-    };
+    let ans = parse(TEST_JSON).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(
         ans[0],
         node!(yaml_map![
@@ -50,25 +44,13 @@ fn test_json() {
 
 #[test]
 fn test_yaml_const() {
-    let ans = match parse(TEST_YAML_CONST) {
-        Ok(n) => n,
-        Err(e) => {
-            println!("{}", e);
-            panic!()
-        }
-    };
+    let ans = parse(TEST_YAML_CONST).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(ans[0], node!(-12.3));
 }
 
 #[test]
 fn test_yaml_flow() {
-    let ans = match parse(TEST_YAML_FLOW) {
-        Ok(n) => n,
-        Err(e) => {
-            println!("{}", e);
-            panic!()
-        }
-    };
+    let ans = parse(TEST_YAML_FLOW).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(
         ans[0],
         node!(yaml_map![node!("a") => node!("b c"), node!("def") => node!(123)])
