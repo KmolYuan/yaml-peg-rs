@@ -104,25 +104,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Eat the matched string but require back boundary (spacing) for the matched parser.
-    pub fn token<F>(&mut self, f: F) -> Result<&'a str, ()>
-    where
-        F: Fn(&mut Self) -> Result<(), ()>,
-    {
-        let eaten = self.eaten;
-        f(self)?;
-        let s = self.eat();
-        if self.ws(TakeOpt::OneMore).is_ok() {
-            self.eat();
-            Ok(s)
-        } else {
-            // backward
-            self.eaten = eaten;
-            self.pos = eaten;
-            Err(())
-        }
-    }
-
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
@@ -199,16 +180,18 @@ impl<'a> Parser<'a> {
     }
 
     /// Match type assertion.
-    pub fn ty(&mut self) -> Result<(), ()> {
+    pub fn ty(&mut self) -> Result<&'a str, ()> {
         self.sym(b'!')?;
         self.sym(b'!').unwrap_or_default();
-        self.select(Self::identifier)
+        self.select(Self::identifier)?;
+        Ok(self.eat())
     }
 
     /// Match anchor definition.
-    pub fn anchor(&mut self) -> Result<(), ()> {
+    pub fn anchor(&mut self) -> Result<&'a str, ()> {
         self.sym(b'&')?;
-        self.select(Self::identifier)
+        self.select(Self::identifier)?;
+        Ok(self.eat())
     }
 
     /// Match anchor used.
@@ -217,14 +200,14 @@ impl<'a> Parser<'a> {
         self.select(Self::identifier)
     }
 
-    /// Match a white space.
-    pub fn ws(&mut self, opt: TakeOpt) -> Result<(), ()> {
-        self.take_while(|c| c == ' ', opt)
-    }
-
     /// Match any optional invisible characters.
     pub fn inv(&mut self, opt: TakeOpt) -> Result<(), ()> {
         self.take_while(char::is_whitespace, opt)
+    }
+
+    /// Match indent.
+    pub fn indent(&mut self, level: usize) -> Result<(), ()> {
+        self.seq(&b"  ".repeat(level))
     }
 
     /// Match any optional invisible characters between two lines.
@@ -240,6 +223,12 @@ impl<'a> Parser<'a> {
                 return Ok(());
             }
         }
+    }
+
+    /// Match block prefix.
+    pub fn block_prefix(&mut self, level: usize) -> Result<(), ()> {
+        self.gap()?;
+        self.indent(level)
     }
 
     /// A NOT detector for `char`.

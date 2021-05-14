@@ -94,17 +94,44 @@ impl<'a> Parser<'a> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        let ret = self.scalar()?;
+        let ret = self.scalar(0)?;
         self.seq(b"...").unwrap_or_default();
         self.eat();
         Ok(ret)
     }
 
-    /// Match YAML scalar.
-    pub fn scalar(&mut self) -> Result<Node, PError> {
-        let anchor = self.token(Self::anchor).unwrap_or_default().into();
-        let ty = self.token(Self::ty).unwrap_or_default().into();
+    /// Match scalar.
+    pub fn scalar(&mut self, level: usize) -> Result<Node, PError> {
+        let anchor = self.anchor().unwrap_or_default();
+        self.inv(TakeOpt::ZeroMore)?;
+        let ty = self.ty().unwrap_or_default();
+        self.inv(TakeOpt::ZeroMore)?;
+        self.eat();
         let pos = self.pos;
+        let yaml = err_own!(
+            self.array(level),
+            err_own!(self.map(level), self.scalar_term(level), Yaml::from_iter),
+            Yaml::from_iter
+        )?;
+        self.eat();
+        Ok(node!(yaml, pos, anchor.into(), ty.into()))
+    }
+
+    /// Match flow scalar.
+    pub fn scalar_flow(&mut self, level: usize) -> Result<Node, PError> {
+        let anchor = self.anchor().unwrap_or_default();
+        self.inv(TakeOpt::ZeroMore)?;
+        let ty = self.ty().unwrap_or_default();
+        self.inv(TakeOpt::ZeroMore)?;
+        self.eat();
+        let pos = self.pos;
+        let yaml = self.scalar_term(level)?;
+        self.eat();
+        Ok(node!(yaml, pos, anchor.into(), ty.into()))
+    }
+
+    /// Match flow scalar terminal.
+    pub fn scalar_term(&mut self, level: usize) -> Result<Yaml, PError> {
         let yaml = if self.sym(b'~').is_ok() {
             Yaml::Null
         } else if self.seq(b"null").is_ok() {
@@ -113,12 +140,12 @@ impl<'a> Parser<'a> {
             Yaml::Bool(true)
         } else if self.seq(b"false").is_ok() {
             Yaml::Bool(false)
-        } else if self.float().is_ok() {
-            Yaml::Float(self.eat().into())
         } else if self.nan().is_ok() {
             Yaml::Float("NaN".into())
         } else if let Ok(b) = self.inf() {
             Yaml::Float(if b { "inf" } else { "-inf" }.into())
+        } else if self.float().is_ok() {
+            Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
         } else if self.anchor_use().is_ok() {
@@ -127,17 +154,16 @@ impl<'a> Parser<'a> {
             Yaml::Str(Self::escape(&Self::merge_ws(s)))
         } else {
             err_own!(
-                self.array_flow(),
-                err_own!(self.map_flow(), self.err("value"), Yaml::from_iter),
+                self.array_flow(level),
+                err_own!(self.map_flow(level), self.err("scalar"), Yaml::from_iter),
                 Yaml::from_iter
             )?
         };
-        self.eat();
-        Ok(node!(yaml, pos, anchor, ty))
+        Ok(yaml)
     }
 
     /// Match flow array.
-    pub fn array_flow(&mut self) -> Result<Array, PError> {
+    pub fn array_flow(&mut self, level: usize) -> Result<Array, PError> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -147,7 +173,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            v.push(err_own!(self.scalar(), self.err("array"))?);
+            v.push(err_own!(self.scalar(level + 1), self.err("flow array"))?);
             self.inv(TakeOpt::ZeroMore)?;
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::ZeroMore)?;
@@ -160,7 +186,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match flow map.
-    pub fn map_flow(&mut self) -> Result<Vec<(Node, Node)>, PError> {
+    pub fn map_flow(&mut self, level: usize) -> Result<Vec<(Node, Node)>, PError> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
@@ -170,19 +196,66 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            let k = err_own!(self.scalar(), self.err("map"))?;
+            // TODO '?' key
+            let k = err_own!(self.scalar(level + 1), self.err("flow map"))?;
             self.inv(TakeOpt::ZeroMore)?;
             if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
                 return self.err("map");
             }
             self.eat();
-            let v = err_own!(self.scalar(), self.err("map"))?;
+            let v = err_own!(self.scalar(level + 1), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::ZeroMore)?;
                 self.sym(b'}')?;
                 break;
             }
+        }
+        self.eat();
+        Ok(m)
+    }
+
+    /// Match array.
+    pub fn array(&mut self, level: usize) -> Result<Array, PError> {
+        self.block_prefix(level).unwrap_or_default();
+        let mut v = vec![];
+        loop {
+            self.eat();
+            if v.is_empty() {
+                // Mismatch
+                self.sym(b'-')?;
+                self.inv(TakeOpt::OneMore)?;
+            } else {
+                if self.gap().is_err() {
+                    return self.err("array");
+                }
+                if self.indent(level).is_err() {
+                    break;
+                }
+                if self.sym(b'-').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+                    return self.err("array");
+                }
+            }
+            v.push(err_own!(self.scalar(level + 1), self.err("array"))?);
+        }
+        self.eat();
+        Ok(v)
+    }
+
+    /// Match map.
+    pub fn map(&mut self, level: usize) -> Result<Vec<(Node, Node)>, PError> {
+        self.block_prefix(level).unwrap_or_default();
+        let mut m = vec![];
+        loop {
+            self.eat();
+            if m.is_empty() {
+                // Mismatch
+                // TODO
+            } else {
+                // TODO
+                // TODO '?' key
+            }
+            return Err(PError::Mismatch);
         }
         self.eat();
         Ok(m)
