@@ -62,11 +62,11 @@ impl<'a> Parser<'a> {
     {
         let mut pos = self.pos;
         for (i, c) in self.food().char_indices() {
-            pos = self.pos + i + 1;
+            pos = self.pos + i;
             if !f(c) {
-                pos -= 1;
                 break;
             }
+            pos += 1;
             if let TakeOpt::One | TakeOpt::ZeroOne = opt {
                 break;
             }
@@ -79,6 +79,9 @@ impl<'a> Parser<'a> {
                 Err(())
             }
         } else {
+            while !self.doc.is_char_boundary(pos) {
+                pos += 1;
+            }
             self.pos = pos;
             Ok(())
         }
@@ -257,31 +260,24 @@ impl<'a> Parser<'a> {
         self.eat();
         let f = Self::not_in(b"[]{},");
         let mut pos = self.pos;
-        let mut semi = false;
-        let mut comment = false;
         for (i, c) in self.food().char_indices() {
-            pos = self.pos + i + 1;
+            pos = self.pos + i;
             if !f(c) {
-                pos -= 1;
                 break;
             }
-            if semi && c == ' ' || comment && c == '#' {
-                pos -= 2;
+            pos += 1;
+            self.pos = pos;
+            if self.seq(b": ").is_ok() || self.seq(b" #").is_ok() {
                 break;
-            }
-            match c {
-                ':' => semi = true,
-                ' ' => comment = true,
-                _ => {
-                    semi = false;
-                    comment = false;
-                }
             }
         }
         if pos == self.pos {
             self.backward();
             Err(())
         } else {
+            while !self.doc.is_char_boundary(pos) {
+                pos += 1;
+            }
             self.pos = pos;
             Ok(())
         }
@@ -291,7 +287,7 @@ impl<'a> Parser<'a> {
     pub fn escape(doc: &str) -> String {
         let mut s = String::new();
         let mut b = false;
-        for (_, c) in doc.char_indices() {
+        for c in doc.chars() {
             if c == '\\' {
                 b = true;
                 continue;
