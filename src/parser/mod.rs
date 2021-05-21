@@ -144,8 +144,7 @@ impl<'a> Parser<'a> {
         } else if let Ok(b) = self.inf() {
             Yaml::Float(if b { "inf" } else { "-inf" }.into())
         } else if self.float().is_ok() {
-            let s = self.eat();
-            Yaml::Float(s.strip_suffix('.').unwrap_or(s).into())
+            Yaml::Float(self.eat().trim_end_matches(".0").into())
         } else if self.sci_float().is_ok() {
             Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {

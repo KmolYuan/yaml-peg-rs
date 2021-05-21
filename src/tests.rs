@@ -1,14 +1,12 @@
 use super::*;
 
 const TEST_JSON: &str = r#"
----
 {
     "a": "b",
     "c": [123, 321, 1234567],
     "d": {}
 }
 "#;
-const TEST_YAML_CONST: &str = "&a !!float -12.3";
 const TEST_YAML: &str = r#"
 ---
 a0 bb: val
@@ -41,12 +39,6 @@ fn test_json() {
     );
     let n = ans[0].assert_get(&["a"], "").unwrap();
     assert_eq!(n, &node!("b"));
-}
-
-#[test]
-fn test_yaml_const() {
-    let ans = parse(TEST_YAML_CONST).unwrap_or_else(|e| panic!("{}", e));
-    assert_eq!(ans[0], node!(-12.3));
 }
 
 #[test]

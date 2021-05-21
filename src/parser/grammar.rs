@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
 
     /// Match symbol.
     pub fn sym(&mut self, s: u8) -> Result<(), ()> {
-        self.take_while(|c| c == char::from(s), TakeOpt::One)
+        self.take_while(Self::is_in(&[s]), TakeOpt::One)
     }
 
     /// Match sequence.
@@ -171,12 +171,46 @@ impl<'a> Parser<'a> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self) -> Result<&'a str, ()> {
-        let eaten = self.eaten;
-        self.select(Self::plain_string_rule)?;
-        let s = self.eat();
-        self.eaten = eaten;
-        Ok(s)
+    pub fn string_plain(&mut self) -> Result<(), ()> {
+        // Check point
+        self.eat();
+        let f = Self::not_in(b"[]{},\n\r");
+        let mut colon = false;
+        let mut comment = false;
+        let mut pos = self.pos;
+        for (i, c) in self.food().char_indices() {
+            pos = self.pos + i;
+            if c == ':' {
+                colon = true;
+                comment = false;
+            } else if c.is_whitespace() {
+                if colon {
+                    pos -= 1;
+                    break;
+                }
+                colon = false;
+                comment = true;
+            } else if comment && c == '#' {
+                pos -= 1;
+                break;
+            } else {
+                colon = false;
+                comment = false;
+            }
+            if !f(c) {
+                break;
+            }
+        }
+        if pos == self.pos {
+            self.backward();
+            Err(())
+        } else {
+            while !self.doc.is_char_boundary(pos) {
+                pos += 1;
+            }
+            self.pos = pos;
+            Ok(())
+        }
     }
 
     /// Match flow string and return the content.
@@ -185,8 +219,8 @@ impl<'a> Parser<'a> {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"') {
             Ok(s)
-        } else if let Ok(s) = self.string_plain() {
-            Ok(s)
+        } else if self.string_plain().is_ok() {
+            Ok(self.eat())
         } else {
             Err(())
         }
@@ -270,35 +304,6 @@ impl<'a> Parser<'a> {
                 }
             }
             true
-        }
-    }
-
-    /// The plain string rule.
-    pub fn plain_string_rule(&mut self) -> Result<(), ()> {
-        // Check point
-        self.eat();
-        let f = Self::not_in(b"[]{},");
-        let mut pos = self.pos;
-        for (i, c) in self.food().char_indices() {
-            pos = self.pos + i;
-            self.pos = pos;
-            if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
-                break;
-            }
-            if !f(c) {
-                break;
-            }
-            pos += 1;
-        }
-        if pos == self.pos {
-            self.backward();
-            Err(())
-        } else {
-            while !self.doc.is_char_boundary(pos) {
-                pos += 1;
-            }
-            self.pos = pos;
-            Ok(())
         }
     }
 
