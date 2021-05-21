@@ -4,14 +4,11 @@ use super::*;
 pub enum TakeOpt {
     /// Match once.
     One,
-    /// Match until mismatched, allow mismatched. Same as regex `*`.
-    ///
-    /// This option will never mismatch.
-    ZeroMore,
-    /// Match until mismatched, at least one. Same as regex `+`.
-    OneMore,
-    /// Match optional once. Same as regex `?`.
-    ZeroOne,
+    /// Match in range. Same as regex `{a,b}`.
+    Range(usize, usize),
+    /// Match until mismatched.
+    /// `More(0)` is same as regex `*`, and `More(1)` is same as regex `?`.
+    More(usize),
 }
 
 /// The low level grammar implementation.
@@ -61,24 +58,38 @@ impl<'a> Parser<'a> {
         F: Fn(char) -> bool,
     {
         let mut pos = self.pos;
+        let mut counter = 0;
         for (i, c) in self.food().char_indices() {
             pos = self.pos + i;
             if !f(c) {
                 break;
             }
             pos += 1;
-            if let TakeOpt::One | TakeOpt::ZeroOne = opt {
+            counter += 1;
+            if let TakeOpt::One = opt {
                 break;
+            }
+            if let TakeOpt::Range(_, c) = opt {
+                if counter == c {
+                    break;
+                }
             }
         }
         if pos == self.pos {
-            if let TakeOpt::ZeroMore | TakeOpt::ZeroOne = opt {
-                Ok(())
-            } else {
-                self.backward();
-                Err(())
+            match opt {
+                TakeOpt::More(c) | TakeOpt::Range(c, _) if c == 0 => Ok(()),
+                _ => {
+                    self.backward();
+                    Err(())
+                }
             }
         } else {
+            if let TakeOpt::Range(c, _) | TakeOpt::More(c) = opt {
+                if counter < c {
+                    self.backward();
+                    return Err(());
+                }
+            }
             while !self.doc.is_char_boundary(pos) {
                 pos += 1;
             }
@@ -107,22 +118,22 @@ impl<'a> Parser<'a> {
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::OneMore)
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::More(1))
     }
 
     /// Match float.
     pub fn float(&mut self) -> Result<(), ()> {
         self.int()?;
         self.sym(b'.')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::ZeroMore)
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::More(0))
     }
 
     /// Match float with scientific notation.
     pub fn sci_float(&mut self) -> Result<(), ()> {
         self.int()?;
-        self.sym(b'e')?;
-        self.take_while(Self::is_in("+-"), TakeOpt::ZeroOne)?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::OneMore)
+        self.take_while(Self::is_in(b"eE"), TakeOpt::One)?;
+        self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::More(1))
     }
 
     /// Match NaN.
@@ -152,7 +163,7 @@ impl<'a> Parser<'a> {
     pub fn string_quoted(&mut self, sym: u8) -> Result<&'a str, ()> {
         let eaten = self.eaten;
         self.sym(sym)?;
-        self.select(|p| p.take_while(Self::not_in(&[sym]), TakeOpt::OneMore))?;
+        self.select(|p| p.take_while(Self::not_in(&[sym]), TakeOpt::More(1)))?;
         let s = self.eat();
         self.eaten = eaten;
         self.sym(sym)?;
@@ -184,13 +195,12 @@ impl<'a> Parser<'a> {
     /// Match valid YAML identifier.
     pub fn identifier(&mut self) -> Result<(), ()> {
         self.take_while(char::is_alphanumeric, TakeOpt::One)?;
-        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::ZeroMore)
+        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::More(0))
     }
 
     /// Match type assertion.
     pub fn ty(&mut self) -> Result<&'a str, ()> {
-        self.sym(b'!')?;
-        self.sym(b'!').unwrap_or_default();
+        self.take_while(Self::is_in(b"!"), TakeOpt::Range(1, 2))?;
         self.select(Self::identifier)?;
         Ok(self.eat())
     }
@@ -225,7 +235,7 @@ impl<'a> Parser<'a> {
         loop {
             // Check point
             self.eat();
-            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::ZeroMore)?;
+            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::More(0))?;
             if self.sym(b'\n').is_err() {
                 self.eaten = eaten;
                 return Ok(());
@@ -240,8 +250,15 @@ impl<'a> Parser<'a> {
     }
 
     /// A SET detector for `char`.
-    pub fn is_in<'b>(s: &'b str) -> impl Fn(char) -> bool + 'b {
-        move |c| s.contains(c)
+    pub fn is_in<'b>(s: &'b [u8]) -> impl Fn(char) -> bool + 'b {
+        move |c| {
+            for s in s {
+                if c != char::from(*s) {
+                    return false;
+                }
+            }
+            true
+        }
     }
 
     /// A NOT detector for `char`.
@@ -264,14 +281,14 @@ impl<'a> Parser<'a> {
         let mut pos = self.pos;
         for (i, c) in self.food().char_indices() {
             pos = self.pos + i;
+            self.pos = pos;
+            if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
+                break;
+            }
             if !f(c) {
                 break;
             }
             pos += 1;
-            self.pos = pos;
-            if self.seq(b": ").is_ok() || self.seq(b" #").is_ok() {
-                break;
-            }
         }
         if pos == self.pos {
             self.backward();

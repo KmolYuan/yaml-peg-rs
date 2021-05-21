@@ -71,14 +71,14 @@ impl<'a> Parser<'a> {
 
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Array, PError> {
-        self.inv(TakeOpt::ZeroMore)?;
+        self.inv(TakeOpt::More(0))?;
         self.seq(b"---").unwrap_or_default();
         self.gap().unwrap_or_default();
         self.eat();
         let mut v = vec![];
         v.push(self.doc()?);
         loop {
-            self.inv(TakeOpt::ZeroMore)?;
+            self.inv(TakeOpt::More(0))?;
             if self.food().is_empty() {
                 break;
             }
@@ -103,9 +103,9 @@ impl<'a> Parser<'a> {
     /// Match scalar.
     pub fn scalar(&mut self, level: usize) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
-        self.inv(TakeOpt::ZeroMore)?;
+        self.inv(TakeOpt::More(0))?;
         let ty = self.ty().unwrap_or_default();
-        self.inv(TakeOpt::ZeroMore)?;
+        self.inv(TakeOpt::More(0))?;
         self.eat();
         let pos = self.pos;
         let yaml = err_own!(
@@ -119,9 +119,9 @@ impl<'a> Parser<'a> {
     /// Match flow scalar.
     pub fn scalar_flow(&mut self, level: usize) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
-        self.inv(TakeOpt::ZeroMore)?;
+        self.inv(TakeOpt::More(0))?;
         let ty = self.ty().unwrap_or_default();
-        self.inv(TakeOpt::ZeroMore)?;
+        self.inv(TakeOpt::More(0))?;
         self.eat();
         let pos = self.pos;
         let yaml = self.scalar_term(level)?;
@@ -144,7 +144,8 @@ impl<'a> Parser<'a> {
         } else if let Ok(b) = self.inf() {
             Yaml::Float(if b { "inf" } else { "-inf" }.into())
         } else if self.float().is_ok() {
-            Yaml::Float(self.eat().into())
+            let s = self.eat();
+            Yaml::Float(s.strip_suffix('.').unwrap_or(s).into())
         } else if self.sci_float().is_ok() {
             Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {
@@ -167,7 +168,7 @@ impl<'a> Parser<'a> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
-            self.inv(TakeOpt::ZeroMore)?;
+            self.inv(TakeOpt::More(0))?;
             self.eat();
             if self.sym(b']').is_ok() {
                 break;
@@ -177,9 +178,9 @@ impl<'a> Parser<'a> {
                 self.scalar_flow(level + 1),
                 self.err("flow array")
             )?);
-            self.inv(TakeOpt::ZeroMore)?;
+            self.inv(TakeOpt::More(0))?;
             if self.sym(b',').is_err() {
-                self.inv(TakeOpt::ZeroMore)?;
+                self.inv(TakeOpt::More(0))?;
                 self.sym(b']')?;
                 break;
             }
@@ -193,7 +194,7 @@ impl<'a> Parser<'a> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
-            self.inv(TakeOpt::ZeroMore)?;
+            self.inv(TakeOpt::More(0))?;
             self.eat();
             if self.sym(b'}').is_ok() {
                 break;
@@ -201,15 +202,15 @@ impl<'a> Parser<'a> {
             self.eat();
             // TODO '?' key
             let k = err_own!(self.scalar_flow(level + 1), self.err("flow map"))?;
-            self.inv(TakeOpt::ZeroMore)?;
-            if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+            self.inv(TakeOpt::More(0))?;
+            if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                 return self.err("map");
             }
             self.eat();
             let v = err_own!(self.scalar_flow(level + 1), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
-                self.inv(TakeOpt::ZeroMore)?;
+                self.inv(TakeOpt::More(0))?;
                 self.sym(b'}')?;
                 break;
             }
@@ -227,18 +228,19 @@ impl<'a> Parser<'a> {
             if v.is_empty() {
                 // Mismatch
                 self.sym(b'-')?;
-                self.inv(TakeOpt::OneMore)?;
+                self.inv(TakeOpt::More(1))?;
             } else {
                 if self.gap().is_err() {
                     return self.err("array terminator");
                 }
-                if self.indent(level).is_err() {
+                if self.indent(level).is_err() || self.food().is_empty() {
                     break;
                 }
-                if self.sym(b'-').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+                if self.sym(b'-').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                     return self.err("array splitter");
                 }
             }
+            self.eat();
             v.push(err_own!(self.scalar(level + 1), self.err("array value"))?);
         }
         self.eat();
@@ -255,7 +257,7 @@ impl<'a> Parser<'a> {
             let k = if m.is_empty() {
                 // Mismatch
                 let k = self.scalar_flow(level + 1)?;
-                if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+                if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                     // Return key
                     return Ok(k.yaml);
                 }
@@ -264,11 +266,11 @@ impl<'a> Parser<'a> {
                 if self.gap().is_err() {
                     return self.err("map terminator");
                 }
-                if self.indent(level).is_err() {
+                if self.indent(level).is_err() || self.food().is_empty() {
                     break;
                 }
                 let k = err_own!(self.scalar_flow(level + 1), self.err("map key"))?;
-                if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+                if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                     return self.err("map splitter");
                 }
                 k

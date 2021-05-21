@@ -22,10 +22,10 @@ a2: !!t1 4.03
   - r
   - s
 : {1: 2, 3: 4}
-a4: !t2
-  - [a1, 中文]
+a3: !t2
+  - [d1, 中文]
   - ~
-a5: *x
+a4: *x
 "#;
 
 #[test]
@@ -50,10 +50,23 @@ fn test_yaml_const() {
 }
 
 #[test]
-fn test_yaml_flow() {
+fn test_yaml() {
     let ans = parse(TEST_YAML).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(
         ans[0],
-        node!(yaml_map![node!("a") => node!("b c"), node!("def") => node!(123)])
+        node!(yaml_map![
+            node!("a0 bb") => node!("val"),
+            node!("a1") => node!(yaml_map![
+                node!("b1") => node!(4.),
+                node!("b2") => node!(yaml_array![node!("c1")]),
+            ]),
+            node!("a2") => node!(4.03),
+            node!(yaml_array![node!("q"), node!("r"), node!("s")]) => node!(yaml_map![
+                node!(1) => node!(2),
+                node!(3) => node!(4),
+            ]),
+            node!("a3") => node!(yaml_array![node!(yaml_array![node!("d1"), node!("中文")]), node!(Yaml::Null)]),
+            node!("a4") => node!(Yaml::Anchor("x".into())),
+        ])
     );
 }
