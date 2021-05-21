@@ -8,9 +8,9 @@ mod error;
 mod grammar;
 
 macro_rules! err_own {
-    ($e:expr, $then:expr $(, $trans:expr)?) => {
+    ($e:expr, $then:expr) => {
         match $e {
-            Ok(v) => Ok($($trans)?(v)),
+            Ok(v) => Ok(v),
             Err(PError::Mismatch) => $then,
             Err(e) => Err(e),
         }
@@ -110,8 +110,7 @@ impl<'a> Parser<'a> {
         let pos = self.pos;
         let yaml = err_own!(
             self.array(level),
-            err_own!(self.map(level), self.scalar_term(level), Yaml::from_iter),
-            Yaml::from_iter
+            err_own!(self.map(level), self.scalar_term(level))
         )?;
         self.eat();
         Ok(node!(yaml, pos, anchor.into(), ty.into()))
@@ -146,6 +145,8 @@ impl<'a> Parser<'a> {
             Yaml::Float(if b { "inf" } else { "-inf" }.into())
         } else if self.float().is_ok() {
             Yaml::Float(self.eat().into())
+        } else if self.sci_float().is_ok() {
+            Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
         } else if self.anchor_use().is_ok() {
@@ -155,15 +156,14 @@ impl<'a> Parser<'a> {
         } else {
             err_own!(
                 self.array_flow(level),
-                err_own!(self.map_flow(level), self.err("scalar"), Yaml::from_iter),
-                Yaml::from_iter
+                err_own!(self.map_flow(level), self.err("scalar"))
             )?
         };
         Ok(yaml)
     }
 
     /// Match flow array.
-    pub fn array_flow(&mut self, level: usize) -> Result<Array, PError> {
+    pub fn array_flow(&mut self, level: usize) -> Result<Yaml, PError> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -173,7 +173,10 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            v.push(err_own!(self.scalar(level + 1), self.err("flow array"))?);
+            v.push(err_own!(
+                self.scalar_flow(level + 1),
+                self.err("flow array")
+            )?);
             self.inv(TakeOpt::ZeroMore)?;
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::ZeroMore)?;
@@ -182,11 +185,11 @@ impl<'a> Parser<'a> {
             }
         }
         self.eat();
-        Ok(v)
+        Ok(Yaml::from_iter(v))
     }
 
     /// Match flow map.
-    pub fn map_flow(&mut self, level: usize) -> Result<Vec<(Node, Node)>, PError> {
+    pub fn map_flow(&mut self, level: usize) -> Result<Yaml, PError> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
@@ -197,13 +200,13 @@ impl<'a> Parser<'a> {
             }
             self.eat();
             // TODO '?' key
-            let k = err_own!(self.scalar(level + 1), self.err("flow map"))?;
+            let k = err_own!(self.scalar_flow(level + 1), self.err("flow map"))?;
             self.inv(TakeOpt::ZeroMore)?;
             if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
                 return self.err("map");
             }
             self.eat();
-            let v = err_own!(self.scalar(level + 1), self.err("map"))?;
+            let v = err_own!(self.scalar_flow(level + 1), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::ZeroMore)?;
@@ -212,11 +215,11 @@ impl<'a> Parser<'a> {
             }
         }
         self.eat();
-        Ok(m)
+        Ok(Yaml::from_iter(m))
     }
 
     /// Match array.
-    pub fn array(&mut self, level: usize) -> Result<Array, PError> {
+    pub fn array(&mut self, level: usize) -> Result<Yaml, PError> {
         self.block_prefix(level).unwrap_or_default();
         let mut v = vec![];
         loop {
@@ -227,38 +230,55 @@ impl<'a> Parser<'a> {
                 self.inv(TakeOpt::OneMore)?;
             } else {
                 if self.gap().is_err() {
-                    return self.err("array");
+                    return self.err("array terminator");
                 }
                 if self.indent(level).is_err() {
                     break;
                 }
                 if self.sym(b'-').is_err() || self.inv(TakeOpt::OneMore).is_err() {
-                    return self.err("array");
+                    return self.err("array splitter");
                 }
             }
-            v.push(err_own!(self.scalar(level + 1), self.err("array"))?);
+            v.push(err_own!(self.scalar(level + 1), self.err("array value"))?);
         }
         self.eat();
-        Ok(v)
+        Ok(Yaml::from_iter(v))
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize) -> Result<Vec<(Node, Node)>, PError> {
+    pub fn map(&mut self, level: usize) -> Result<Yaml, PError> {
         self.block_prefix(level).unwrap_or_default();
         let mut m = vec![];
         loop {
             self.eat();
-            if m.is_empty() {
+            // TODO '?' key
+            let k = if m.is_empty() {
                 // Mismatch
-                // TODO
+                let k = self.scalar_flow(level + 1)?;
+                if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+                    // Return key
+                    return Ok(k.yaml);
+                }
+                k
             } else {
-                // TODO
-                // TODO '?' key
-            }
-            return Err(PError::Mismatch);
+                if self.gap().is_err() {
+                    return self.err("map terminator");
+                }
+                if self.indent(level).is_err() {
+                    break;
+                }
+                let k = err_own!(self.scalar_flow(level + 1), self.err("map key"))?;
+                if self.sym(b':').is_err() || self.inv(TakeOpt::OneMore).is_err() {
+                    return self.err("map splitter");
+                }
+                k
+            };
+            self.eat();
+            let v = err_own!(self.scalar(level + 1), self.err("map value"))?;
+            m.push((k, v));
         }
         self.eat();
-        Ok(m)
+        Ok(Yaml::from_iter(m))
     }
 }
 

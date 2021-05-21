@@ -9,12 +9,13 @@ const TEST_JSON: &str = r#"
 }
 "#;
 const TEST_YAML_CONST: &str = "&a !!float -12.3";
-const TEST_YAML_FLOW: &str = r#"
+const TEST_YAML: &str = r#"
 ---
 a0 bb: val
 a1: &x
   b1: 4.
-  b2: d
+  b2:
+    - c1
 a2: !!t1 4.03
 ?
   - q
@@ -50,7 +51,7 @@ fn test_yaml_const() {
 
 #[test]
 fn test_yaml_flow() {
-    let ans = parse(TEST_YAML_FLOW).unwrap_or_else(|e| panic!("{}", e));
+    let ans = parse(TEST_YAML).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(
         ans[0],
         node!(yaml_map![node!("a") => node!("b c"), node!("def") => node!(123)])

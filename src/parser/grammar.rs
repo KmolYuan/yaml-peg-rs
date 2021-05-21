@@ -114,6 +114,14 @@ impl<'a> Parser<'a> {
     pub fn float(&mut self) -> Result<(), ()> {
         self.int()?;
         self.sym(b'.')?;
+        self.take_while(|c| c.is_ascii_digit(), TakeOpt::ZeroMore)
+    }
+
+    /// Match float with scientific notation.
+    pub fn sci_float(&mut self) -> Result<(), ()> {
+        self.int()?;
+        self.sym(b'e')?;
+        self.take_while(Self::is_in("+-"), TakeOpt::ZeroOne)?;
         self.take_while(|c| c.is_ascii_digit(), TakeOpt::OneMore)
     }
 
@@ -229,6 +237,11 @@ impl<'a> Parser<'a> {
     pub fn block_prefix(&mut self, level: usize) -> Result<(), ()> {
         self.gap()?;
         self.indent(level)
+    }
+
+    /// A SET detector for `char`.
+    pub fn is_in<'b>(s: &'b str) -> impl Fn(char) -> bool + 'b {
+        move |c| s.contains(c)
     }
 
     /// A NOT detector for `char`.
