@@ -4,6 +4,7 @@ use std::io::Error;
 /// The error of parser handling.
 ///
 /// Not recommended to use it at other times.
+#[derive(Debug)]
 pub enum PError {
     /// If parser mismatched, just choose another one.
     Mismatch,

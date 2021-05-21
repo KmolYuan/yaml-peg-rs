@@ -31,11 +31,11 @@ fn test_json() {
     let ans = parse(TEST_JSON).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(
         ans[0],
-        node!(yaml_map![
+        node!({
             node!("a") => node!("b"),
-            node!("c") => node!(yaml_array![node!(123), node!(321), node!(1234567)]),
-            node!("d") => node!(yaml_map![])
-        ])
+            node!("c") => node!([node!(123), node!(321), node!(1234567)]),
+            node!("d") => node!({})
+        })
     );
     let n = ans[0].assert_get(&["a"], "").unwrap();
     assert_eq!(n, &node!("b"));
@@ -46,19 +46,19 @@ fn test_yaml() {
     let ans = parse(TEST_YAML).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(
         ans[0],
-        node!(yaml_map![
+        node!({
             node!("a0 bb") => node!("val"),
-            node!("a1") => node!(yaml_map![
+            node!("a1") => node!({
                 node!("b1") => node!(4.),
-                node!("b2") => node!(yaml_array![node!("c1")]),
-            ]),
+                node!("b2") => node!([node!("c1")]),
+            }),
             node!("a2") => node!(4.03),
-            node!(yaml_array![node!("q"), node!("r"), node!("s")]) => node!(yaml_map![
+            node!([node!("q"), node!("r"), node!("s")]) => node!({
                 node!(1) => node!(2),
                 node!(3) => node!(4),
-            ]),
-            node!("a3") => node!(yaml_array![node!(yaml_array![node!("d1"), node!("中文")]), node!(Yaml::Null)]),
+            }),
+            node!("a3") => node!([node!([node!("d1"), node!("中文")]), node!(Yaml::Null)]),
             node!("a4") => node!(Yaml::Anchor("x".into())),
-        ])
+        })
     );
 }

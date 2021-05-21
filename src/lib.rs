@@ -39,8 +39,22 @@ macro_rules! err {
 /// ```
 ///
 /// The members are ordered as `node!(yaml, pos, anchor, ty)`.
+///
+/// Also, arrays and maps can be create from this macro directly through brackets (`[]`, `{}`).
+///
+/// ```
+/// use yaml_peg::{node, yaml_array, yaml_map};
+/// assert_eq!(node!([node!(1), node!(2)]), node!(yaml_array![node!(1), node!(2)]));
+/// assert_eq!(node!({node!(1) => node!(2)}), node!(yaml_map![node!(1) => node!(2)]));
+/// ```
 #[macro_export]
 macro_rules! node {
+    ([$($token:tt)*]) => {
+        $crate::node!($crate::yaml_array![$($token)*])
+    };
+    ({$($token:tt)*}) => {
+        $crate::node!($crate::yaml_map![$($token)*])
+    };
     ($yaml:literal $(, $pos:expr $(, $anchor:literal $(, $ty:literal)?)?)?) => {
         $crate::Node::new($yaml.into())$(.pos($pos)$(.anchor($anchor.into())$(.ty($ty.into()))?)?)?
     };
@@ -57,14 +71,8 @@ macro_rules! node {
 /// ```
 #[macro_export]
 macro_rules! yaml_array {
-    () => {
-        $crate::Yaml::Array(vec![])
-    };
-    ($v1:expr $(, $v2:expr)* $(,)?) => {
-        $crate::Yaml::Array(vec![$v1 $(, $v2)*])
-    };
-    ($v1:expr; $v2:expr) => {
-        $crate::Yaml::Array(vec![$v1; $v2])
+    ($($token:tt)*) => {
+        $crate::Yaml::Array(vec![$($token)*])
     };
 }
 
