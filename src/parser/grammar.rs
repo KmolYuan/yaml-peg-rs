@@ -117,6 +117,12 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Match complex mapping indicator (`?`).
+    pub fn complex_mapping(&mut self) -> Result<(), ()> {
+        self.sym(b'?')?;
+        self.inv(TakeOpt::More(1))
+    }
+
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
@@ -173,21 +179,25 @@ impl<'a> Parser<'a> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self) -> Result<(), ()> {
+    pub fn string_plain(&mut self) -> Result<&'a str, ()> {
         let eaten = self.eaten;
-        self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(1))?;
         loop {
+            self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(0))?;
             self.eat();
             if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
                 self.pos -= 2;
             } else if self.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
-                self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(0))?;
                 continue;
             }
             break;
         }
         self.eaten = eaten;
-        Ok(())
+        let s = self.eat().trim_end();
+        if s.is_empty() {
+            Err(())
+        } else {
+            Ok(s)
+        }
     }
 
     /// Match flow string and return the content.
@@ -196,11 +206,21 @@ impl<'a> Parser<'a> {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"') {
             Ok(s)
-        } else if self.string_plain().is_ok() {
-            Ok(self.eat().trim_end())
+        } else if let Ok(s) = self.string_plain() {
+            Ok(s)
         } else {
             Err(())
         }
+    }
+
+    /// Match literal string.
+    pub fn string_literal(&mut self, _level: usize) -> Result<&'a str, ()> {
+        todo!()
+    }
+
+    /// Match folded string.
+    pub fn string_folded(&mut self, _level: usize) -> Result<&'a str, ()> {
+        todo!()
     }
 
     /// Match valid YAML identifier.

@@ -202,10 +202,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            let k = if self.sym(b'?').is_ok() {
-                if self.inv(TakeOpt::More(1)).is_err() {
-                    return self.err("complex mapping key");
-                }
+            let k = if self.complex_mapping().is_ok() {
                 self.eat();
                 let k = err_own!(self.scalar(level + 1), self.err("flow map"))?;
                 if self.gap().is_ok() {
@@ -273,10 +270,7 @@ impl<'a> Parser<'a> {
                     self.indent(level)?;
                 }
                 self.eat();
-                let k = if self.sym(b'?').is_ok() {
-                    if self.inv(TakeOpt::More(1)).is_err() {
-                        return self.err("complex mapping key");
-                    }
+                let k = if self.complex_mapping().is_ok() {
                     self.eat();
                     let k = err_own!(self.scalar(level + 1), self.err("map key"))?;
                     if self.gap().is_ok() {
@@ -299,10 +293,7 @@ impl<'a> Parser<'a> {
                     break;
                 }
                 self.eat();
-                let k = if self.sym(b'?').is_ok() {
-                    if self.inv(TakeOpt::More(1)).is_err() {
-                        return self.err("complex mapping key");
-                    }
+                let k = if self.complex_mapping().is_ok() {
                     self.eat();
                     let k = err_own!(self.scalar(level + 1), self.err("map key"))?;
                     if self.gap().is_ok() {
