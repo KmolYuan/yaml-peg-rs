@@ -1,5 +1,6 @@
 use crate::*;
 use std::{
+    fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::Result,
     ops::Index,
@@ -76,7 +77,7 @@ macro_rules! assert_method {
 ///
 /// In another hand, using `assert_*` methods to convert the YAML types with **error** returns.
 /// The `assert_*` methods are support to use `null` as empty option (for user inputs).
-#[derive(Eq, Debug, Clone)]
+#[derive(Eq, Clone)]
 pub struct Node {
     /// Document position
     pub pos: usize,
@@ -277,6 +278,12 @@ fn get_from_map<'a>(m: &'a Map, keys: &[&str]) -> Option<&'a Node> {
         }
     } else {
         None
+    }
+}
+
+impl Debug for Node {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.debug_tuple("Node").field(&self.yaml).finish()
     }
 }
 

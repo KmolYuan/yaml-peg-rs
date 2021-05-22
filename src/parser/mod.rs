@@ -108,6 +108,7 @@ impl<'a> Parser<'a> {
         self.inv(TakeOpt::More(0))?;
         self.eat();
         let pos = self.pos;
+        // TODO: wrapped string
         let yaml = err_own!(
             self.array(level),
             err_own!(self.map(level), self.scalar_term(level))
@@ -144,7 +145,12 @@ impl<'a> Parser<'a> {
         } else if let Ok(b) = self.inf() {
             Yaml::Float(if b { "inf" } else { "-inf" }.into())
         } else if self.float().is_ok() {
-            Yaml::Float(self.eat().trim_end_matches(".0").into())
+            Yaml::Float(
+                self.eat()
+                    .trim_end_matches("0")
+                    .trim_end_matches(".")
+                    .into(),
+            )
         } else if self.sci_float().is_ok() {
             Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {
@@ -173,10 +179,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            v.push(err_own!(
-                self.scalar_flow(level + 1),
-                self.err("flow array")
-            )?);
+            v.push(err_own!(self.scalar(level + 1), self.err("flow array"))?);
             self.inv(TakeOpt::More(0))?;
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;
@@ -199,14 +202,25 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            // TODO '?' key
-            let k = err_own!(self.scalar_flow(level + 1), self.err("flow map"))?;
+            let k = if self.sym(b'?').is_ok() {
+                if self.inv(TakeOpt::More(1)).is_err() {
+                    return self.err("complex mapping key");
+                }
+                self.eat();
+                let k = err_own!(self.scalar(level + 1), self.err("flow map"))?;
+                if self.gap().is_ok() {
+                    self.indent(level)?;
+                }
+                k
+            } else {
+                err_own!(self.scalar_flow(level + 1), self.err("flow map"))?
+            };
             self.inv(TakeOpt::More(0))?;
             if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                 return self.err("map");
             }
             self.eat();
-            let v = err_own!(self.scalar_flow(level + 1), self.err("map"))?;
+            let v = err_own!(self.scalar(level + 1), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;
@@ -252,10 +266,21 @@ impl<'a> Parser<'a> {
         let mut m = vec![];
         loop {
             self.eat();
-            // TODO '?' key
             let k = if m.is_empty() {
                 // Mismatch
-                let k = self.scalar_flow(level + 1)?;
+                let k = if self.sym(b'?').is_ok() {
+                    if self.inv(TakeOpt::More(1)).is_err() {
+                        return self.err("complex mapping key");
+                    }
+                    self.eat();
+                    let k = err_own!(self.scalar(level + 1), self.err("map key"))?;
+                    if self.gap().is_ok() {
+                        self.indent(level)?;
+                    }
+                    k
+                } else {
+                    self.scalar_flow(level + 1)?
+                };
                 if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                     // Return key
                     return Ok(k.yaml);
@@ -268,7 +293,19 @@ impl<'a> Parser<'a> {
                 if self.indent(level).is_err() || self.food().is_empty() {
                     break;
                 }
-                let k = err_own!(self.scalar_flow(level + 1), self.err("map key"))?;
+                let k = if self.sym(b'?').is_ok() {
+                    if self.inv(TakeOpt::More(1)).is_err() {
+                        return self.err("complex mapping key");
+                    }
+                    self.eat();
+                    let k = err_own!(self.scalar(level + 1), self.err("map key"))?;
+                    if self.gap().is_ok() {
+                        self.indent(level)?;
+                    }
+                    k
+                } else {
+                    err_own!(self.scalar_flow(level + 1), self.err("map key"))?
+                };
                 if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
                     return self.err("map splitter");
                 }
