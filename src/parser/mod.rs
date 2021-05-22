@@ -112,11 +112,16 @@ impl<'a> Parser<'a> {
         }
         self.eat();
         let pos = self.pos;
-        // TODO: wrapped string
-        let yaml = err_own!(
-            self.array(level),
-            err_own!(self.map(level), self.scalar_term(level))
-        )?;
+        let yaml = if let Ok(s) = self.string_literal(level) {
+            Yaml::Str(Self::escape(&s))
+        } else if let Ok(s) = self.string_folded(level) {
+            Yaml::Str(Self::escape(&s))
+        } else {
+            err_own!(
+                self.array(level),
+                err_own!(self.map(level), self.scalar_term(level))
+            )?
+        };
         self.eat();
         Ok(node!(yaml, pos, anchor.into(), ty.into()))
     }

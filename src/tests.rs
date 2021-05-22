@@ -28,6 +28,14 @@ a0 bb: val
 ? &y
   a4:
 : -30
+a5: |
+  aaa
+  bbb
+    ccc
+a6: >
+  aaa
+  bbb
+    ccc
 "#;
 
 #[test]
@@ -68,6 +76,8 @@ fn test_yaml() {
                 node!(Yaml::Null),
             ]),
             node!({node!("a4") => node!(Yaml::Null)}) => node!(-30),
+            node!("a5") => node!("aaa\nbbb\n  ccc"),
+            node!("a6") => node!("aaa bbb   ccc"),
         })
     );
 }

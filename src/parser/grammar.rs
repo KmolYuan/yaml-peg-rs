@@ -222,13 +222,37 @@ impl<'a> Parser<'a> {
     }
 
     /// Match literal string.
-    pub fn string_literal(&mut self, _level: usize) -> Result<&'a str, ()> {
-        todo!()
+    pub fn string_literal(&mut self, level: usize) -> Result<String, ()> {
+        self.sym(b'|')?;
+        let s = self.string_wrapped(level, "\n")?;
+        Ok(s)
     }
 
     /// Match folded string.
-    pub fn string_folded(&mut self, _level: usize) -> Result<&'a str, ()> {
-        todo!()
+    pub fn string_folded(&mut self, level: usize) -> Result<String, ()> {
+        self.sym(b'>')?;
+        let s = self.string_wrapped(level, " ")?;
+        Ok(s)
+    }
+
+    /// Match wrapped string.
+    pub fn string_wrapped(&mut self, level: usize, sep: &str) -> Result<String, ()> {
+        let eaten = self.eaten;
+        let mut v = vec![];
+        loop {
+            self.bound()?;
+            self.inv(TakeOpt::One)?;
+            self.eat();
+            if self.indent(level).is_err() {
+                break;
+            }
+            self.eat();
+            self.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))?;
+            v.push(self.eat());
+        }
+        self.pos -= 1;
+        self.eaten = eaten;
+        Ok(v.join(sep))
     }
 
     /// Match valid YAML identifier.
