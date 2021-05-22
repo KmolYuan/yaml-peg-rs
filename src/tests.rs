@@ -19,11 +19,15 @@ a0 bb: val
   - q
   - r  # Test comment after plain string...
   - s
-: {1: 2, 3: 4}  # Test comment after wrapped! (3)
-?a3: !t2
+: {!!t2 1: 2, 3: 4}  # Test comment after wrapped! (3)
+?a3: !t3
+  - *x
   - [d1, 中文]
   - ~
-a4: *x
+  -
+? &y
+  a4:
+: -30
 "#;
 
 #[test]
@@ -57,8 +61,13 @@ fn test_yaml() {
                 node!(1) => node!(2),
                 node!(3) => node!(4),
             }),
-            node!("?a3") => node!([node!([node!("d1"), node!("中文")]), node!(Yaml::Null)]),
-            node!("a4") => node!(Yaml::Anchor("x".into())),
+            node!("?a3") => node!([
+                node!(Yaml::Anchor("x".into())),
+                node!([node!("d1"), node!("中文")]),
+                node!(Yaml::Null),
+                node!(Yaml::Null),
+            ]),
+            node!({node!("a4") => node!(Yaml::Null)}) => node!(-30),
         })
     );
 }

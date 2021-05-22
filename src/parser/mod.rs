@@ -170,7 +170,7 @@ impl<'a> Parser<'a> {
         } else {
             err_own!(
                 self.array_flow(level),
-                err_own!(self.map_flow(level), self.err("scalar"))
+                err_own!(self.map_flow(level), Ok(Yaml::Null))
             )?
         };
         Ok(yaml)
