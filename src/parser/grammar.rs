@@ -117,10 +117,18 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Match invisible boundaries and keep the gaps. (must matched once)
+    pub fn bound(&mut self) -> Result<(), ()> {
+        self.inv(TakeOpt::One)?;
+        self.pos -= 1;
+        self.ws(TakeOpt::More(0))?;
+        Ok(())
+    }
+
     /// Match complex mapping indicator (`?`).
     pub fn complex_mapping(&mut self) -> Result<(), ()> {
         self.sym(b'?')?;
-        self.inv(TakeOpt::More(1))
+        self.bound()
     }
 
     /// Match integer.
@@ -249,6 +257,11 @@ impl<'a> Parser<'a> {
         self.select(Self::identifier)
     }
 
+    /// Match any optional invisible characters except newline.
+    pub fn ws(&mut self, opt: TakeOpt) -> Result<(), ()> {
+        self.take_while(|c| c.is_whitespace() && !"\n\r".contains(c), opt)
+    }
+
     /// Match any optional invisible characters.
     pub fn inv(&mut self, opt: TakeOpt) -> Result<(), ()> {
         self.take_while(char::is_whitespace, opt)
@@ -268,7 +281,7 @@ impl<'a> Parser<'a> {
         loop {
             // Check point
             self.eat();
-            self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::More(0))?;
+            self.ws(TakeOpt::More(0))?;
             if self.sym(b'\n').is_err() {
                 self.eaten = eaten;
                 return Ok(());
@@ -278,7 +291,7 @@ impl<'a> Parser<'a> {
 
     /// Match comment.
     pub fn comment(&mut self) -> Result<(), ()> {
-        self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::More(0))?;
+        self.ws(TakeOpt::More(0))?;
         self.sym(b'#')?;
         self.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))
     }

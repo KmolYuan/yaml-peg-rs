@@ -78,7 +78,7 @@ impl<'a> Parser<'a> {
         let mut v = vec![];
         v.push(self.doc()?);
         loop {
-            self.inv(TakeOpt::More(0))?;
+            self.gap().unwrap_or_default();
             if self.food().is_empty() {
                 break;
             }
@@ -103,9 +103,13 @@ impl<'a> Parser<'a> {
     /// Match scalar.
     pub fn scalar(&mut self, level: usize) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
-        self.inv(TakeOpt::More(0))?;
+        if !anchor.is_empty() {
+            self.bound()?;
+        }
         let ty = self.ty().unwrap_or_default();
-        self.inv(TakeOpt::More(0))?;
+        if !ty.is_empty() {
+            self.bound()?;
+        }
         self.eat();
         let pos = self.pos;
         // TODO: wrapped string
@@ -120,9 +124,13 @@ impl<'a> Parser<'a> {
     /// Match flow scalar.
     pub fn scalar_flow(&mut self, level: usize) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
-        self.inv(TakeOpt::More(0))?;
+        if !anchor.is_empty() {
+            self.bound()?;
+        }
         let ty = self.ty().unwrap_or_default();
-        self.inv(TakeOpt::More(0))?;
+        if !ty.is_empty() {
+            self.bound()?;
+        }
         self.eat();
         let pos = self.pos;
         let yaml = self.scalar_term(level)?;
@@ -212,8 +220,7 @@ impl<'a> Parser<'a> {
             } else {
                 err_own!(self.scalar_flow(level + 1), self.err("flow map"))?
             };
-            self.inv(TakeOpt::More(0))?;
-            if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
+            if self.sym(b':').is_err() || self.bound().is_err() {
                 return self.err("map");
             }
             self.eat();
@@ -240,7 +247,7 @@ impl<'a> Parser<'a> {
                     self.indent(level)?;
                 }
                 self.sym(b'-')?;
-                self.inv(TakeOpt::More(1))?;
+                self.bound()?;
             } else {
                 if self.gap().is_err() {
                     return self.err("array terminator");
@@ -248,7 +255,7 @@ impl<'a> Parser<'a> {
                 if self.indent(level).is_err() || self.food().is_empty() {
                     break;
                 }
-                if self.sym(b'-').is_err() || self.inv(TakeOpt::More(1)).is_err() {
+                if self.sym(b'-').is_err() || self.bound().is_err() {
                     return self.err("array splitter");
                 }
             }
@@ -280,7 +287,7 @@ impl<'a> Parser<'a> {
                 } else {
                     self.scalar_flow(level + 1)?
                 };
-                if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
+                if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
                     return Ok(k.yaml);
                 }
@@ -303,7 +310,7 @@ impl<'a> Parser<'a> {
                 } else {
                     err_own!(self.scalar_flow(level + 1), self.err("map key"))?
                 };
-                if self.sym(b':').is_err() || self.inv(TakeOpt::More(1)).is_err() {
+                if self.sym(b':').is_err() || self.bound().is_err() {
                     return self.err("map splitter");
                 }
                 k
