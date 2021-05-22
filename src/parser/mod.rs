@@ -158,7 +158,7 @@ impl<'a> Parser<'a> {
         } else if self.anchor_use().is_ok() {
             Yaml::Anchor(self.eat().into())
         } else if let Ok(s) = self.string_flow() {
-            Yaml::Str(Self::escape(&Self::merge_ws(s)))
+            Yaml::Str(Self::escape(s))
         } else {
             err_own!(
                 self.array_flow(level),
@@ -234,12 +234,14 @@ impl<'a> Parser<'a> {
 
     /// Match array.
     pub fn array(&mut self, level: usize) -> Result<Yaml, PError> {
-        self.block_prefix(level).unwrap_or_default();
         let mut v = vec![];
         loop {
             self.eat();
             if v.is_empty() {
                 // Mismatch
+                if self.gap().is_ok() {
+                    self.indent(level)?;
+                }
                 self.sym(b'-')?;
                 self.inv(TakeOpt::More(1))?;
             } else {
@@ -262,12 +264,14 @@ impl<'a> Parser<'a> {
 
     /// Match map.
     pub fn map(&mut self, level: usize) -> Result<Yaml, PError> {
-        self.block_prefix(level).unwrap_or_default();
         let mut m = vec![];
         loop {
             self.eat();
             let k = if m.is_empty() {
                 // Mismatch
+                if self.gap().is_ok() {
+                    self.indent(level)?;
+                }
                 let k = if self.sym(b'?').is_ok() {
                     if self.inv(TakeOpt::More(1)).is_err() {
                         return self.err("complex mapping key");

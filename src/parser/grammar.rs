@@ -84,17 +84,19 @@ impl<'a> Parser<'a> {
                 }
             }
         } else {
-            if let TakeOpt::Range(c, _) | TakeOpt::More(c) = opt {
-                if counter < c {
+            match opt {
+                TakeOpt::Range(c, _) | TakeOpt::More(c) if counter < c => {
                     self.backward();
-                    return Err(());
+                    Err(())
+                }
+                _ => {
+                    while !self.doc.is_char_boundary(pos) {
+                        pos += 1;
+                    }
+                    self.pos = pos;
+                    Ok(())
                 }
             }
-            while !self.doc.is_char_boundary(pos) {
-                pos += 1;
-            }
-            self.pos = pos;
-            Ok(())
         }
     }
 
@@ -172,45 +174,19 @@ impl<'a> Parser<'a> {
 
     /// Match plain string.
     pub fn string_plain(&mut self) -> Result<(), ()> {
-        // Check point
-        self.eat();
-        let f = Self::not_in(b"[]{},\n\r");
-        let mut colon = false;
-        let mut comment = false;
-        let mut pos = self.pos;
-        for (i, c) in self.food().char_indices() {
-            pos = self.pos + i;
-            if c == ':' {
-                colon = true;
-                comment = false;
-            } else if c.is_whitespace() {
-                if colon {
-                    pos -= 1;
-                    break;
-                }
-                colon = false;
-                comment = true;
-            } else if comment && c == '#' {
-                pos -= 1;
-                break;
-            } else {
-                colon = false;
-                comment = false;
+        let eaten = self.eaten;
+        loop {
+            self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(1))?;
+            self.eat();
+            if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
+                self.pos -= 2;
+            } else if self.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
+                continue;
             }
-            if !f(c) {
-                break;
-            }
+            break;
         }
-        if pos == self.pos {
-            self.backward();
-            Err(())
-        } else {
-            while !self.doc.is_char_boundary(pos) {
-                pos += 1;
-            }
-            self.pos = pos;
-            Ok(())
-        }
+        self.eaten = eaten;
+        Ok(())
     }
 
     /// Match flow string and return the content.
@@ -277,22 +253,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Match block prefix.
-    pub fn block_prefix(&mut self, level: usize) -> Result<(), ()> {
-        self.gap()?;
-        self.indent(level)
-    }
-
     /// A SET detector for `char`.
     pub fn is_in<'b>(s: &'b [u8]) -> impl Fn(char) -> bool + 'b {
-        move |c| {
-            for s in s {
-                if c != char::from(*s) {
-                    return false;
-                }
-            }
-            true
-        }
+        move |c| !Self::not_in(s)(c)
     }
 
     /// A NOT detector for `char`.
@@ -332,11 +295,6 @@ impl<'a> Parser<'a> {
             b = false;
         }
         s
-    }
-
-    /// Merge the white spaces of the given string.
-    pub fn merge_ws(doc: &str) -> String {
-        doc.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 
     /// A short function to raise error.
