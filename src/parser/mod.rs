@@ -187,7 +187,10 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.eat();
-            v.push(err_own!(self.scalar(level + 1), self.err("flow array"))?);
+            v.push(err_own!(
+                self.scalar(level + 1),
+                self.err("flow array item")
+            )?);
             self.inv(TakeOpt::More(0))?;
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;
@@ -212,13 +215,13 @@ impl<'a> Parser<'a> {
             self.eat();
             let k = if self.complex_mapping().is_ok() {
                 self.eat();
-                let k = err_own!(self.scalar(level + 1), self.err("flow map"))?;
+                let k = err_own!(self.scalar(level + 1), self.err("flow map key"))?;
                 if self.gap().is_ok() {
                     self.indent(level)?;
                 }
                 k
             } else {
-                err_own!(self.scalar_flow(level + 1), self.err("flow map"))?
+                err_own!(self.scalar_flow(level + 1), self.err("flow map value"))?
             };
             if self.sym(b':').is_err() || self.bound().is_err() {
                 return self.err("map");
