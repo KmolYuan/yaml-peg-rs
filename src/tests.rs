@@ -10,16 +10,16 @@ const TEST_JSON: &str = r#"
 const TEST_YAML: &str = r#"
 ---
 a0 bb: val
-a1: &x
+a1: &x  # Test comment after wrapped! (1)
   b1: 4.
   b2:
     - c1
-a2: !!t1 4.03
-?
+a2: !!t1 4.03  # Test comment after normal scalars~
+?  # Test comment after wrapped! (2)
   - q
-  - r
+  - r  # Test comment after plain string...
   - s
-: {1: 2, 3: 4}
+: {1: 2, 3: 4}  # Test comment after wrapped! (3)
 a3: !t2
   - [d1, 中文]
   - ~

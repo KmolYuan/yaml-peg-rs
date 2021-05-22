@@ -272,6 +272,7 @@ impl<'a> Parser<'a> {
                 if self.gap().is_ok() {
                     self.indent(level)?;
                 }
+                self.eat();
                 let k = if self.sym(b'?').is_ok() {
                     if self.inv(TakeOpt::More(1)).is_err() {
                         return self.err("complex mapping key");
@@ -297,6 +298,7 @@ impl<'a> Parser<'a> {
                 if self.indent(level).is_err() || self.food().is_empty() {
                     break;
                 }
+                self.eat();
                 let k = if self.sym(b'?').is_ok() {
                     if self.inv(TakeOpt::More(1)).is_err() {
                         return self.err("complex mapping key");

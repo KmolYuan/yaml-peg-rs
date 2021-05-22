@@ -175,12 +175,13 @@ impl<'a> Parser<'a> {
     /// Match plain string.
     pub fn string_plain(&mut self) -> Result<(), ()> {
         let eaten = self.eaten;
+        self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(1))?;
         loop {
-            self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(1))?;
             self.eat();
             if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
                 self.pos -= 2;
             } else if self.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
+                self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(0))?;
                 continue;
             }
             break;
@@ -196,7 +197,7 @@ impl<'a> Parser<'a> {
         } else if let Ok(s) = self.string_quoted(b'"') {
             Ok(s)
         } else if self.string_plain().is_ok() {
-            Ok(self.eat())
+            Ok(self.eat().trim_end())
         } else {
             Err(())
         }
@@ -241,6 +242,8 @@ impl<'a> Parser<'a> {
     /// Match any optional invisible characters between two lines.
     pub fn gap(&mut self) -> Result<(), ()> {
         let eaten = self.eaten;
+        self.eat();
+        self.comment().unwrap_or_default();
         self.sym(b'\n')?;
         loop {
             // Check point
@@ -251,6 +254,13 @@ impl<'a> Parser<'a> {
                 return Ok(());
             }
         }
+    }
+
+    /// Match comment.
+    pub fn comment(&mut self) -> Result<(), ()> {
+        self.take_while(|c| c.is_whitespace() && c != '\n', TakeOpt::More(0))?;
+        self.sym(b'#')?;
+        self.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))
     }
 
     /// A SET detector for `char`.
