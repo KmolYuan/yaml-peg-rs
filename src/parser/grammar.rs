@@ -247,26 +247,28 @@ impl<'a> Parser<'a> {
     /// Match literal string.
     pub fn string_literal(&mut self, level: usize) -> Result<String, ()> {
         self.sym(b'|')?;
+        let chomp = self.chomp();
         let s = self.string_wrapped(level, '\n', true)?;
-        Ok(self.chomp(s))
+        Ok(chomp(s))
     }
 
     /// Match folded string.
     pub fn string_folded(&mut self, level: usize) -> Result<String, ()> {
         self.sym(b'>')?;
+        let chomp = self.chomp();
         let s = self.string_wrapped(level, ' ', false)?;
-        Ok(self.chomp(s))
+        Ok(chomp(s))
     }
 
     /// Match chomping option.
-    pub fn chomp(&mut self, s: String) -> String {
+    pub fn chomp(&mut self) -> impl Fn(String) -> String {
         self.context(|p| {
             if p.sym(b'-').is_ok() {
-                s.trim_end().to_owned()
+                |s: String| s.trim_end().to_owned()
             } else if p.sym(b'+').is_ok() {
-                s.to_owned()
+                |s: String| s.to_owned()
             } else {
-                s.trim_end().to_owned() + "\n"
+                |s: String| s.trim_end().to_owned() + "\n"
             }
         })
     }
@@ -309,7 +311,7 @@ impl<'a> Parser<'a> {
             }
             // Keep the last wrap
             p.back(1);
-            Ok(v)
+            Ok(v + "\n")
         })
     }
 
