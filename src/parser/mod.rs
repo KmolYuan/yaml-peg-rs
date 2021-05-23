@@ -94,14 +94,14 @@ impl<'a> Parser<'a> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        let ret = self.scalar(0)?;
+        let ret = self.scalar(0, false)?;
         self.seq(b"...").unwrap_or_default();
         self.eat();
         Ok(ret)
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize) -> Result<Node, PError> {
+    pub fn scalar(&mut self, level: usize, use_sep: bool) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
             self.bound()?;
@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
         } else {
             err_own!(
                 self.array(level),
-                err_own!(self.map(level), self.scalar_term(level))
+                err_own!(self.map(level, use_sep), self.scalar_term(level, use_sep))
             )?
         };
         self.eat();
@@ -127,7 +127,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match flow scalar.
-    pub fn scalar_flow(&mut self, level: usize) -> Result<Node, PError> {
+    pub fn scalar_flow(&mut self, level: usize, use_sep: bool) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
             self.bound()?;
@@ -138,13 +138,13 @@ impl<'a> Parser<'a> {
         }
         self.eat();
         let pos = self.pos;
-        let yaml = self.scalar_term(level)?;
+        let yaml = self.scalar_term(level, use_sep)?;
         self.eat();
         Ok(node!(yaml, pos, anchor.into(), ty.into()))
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize) -> Result<Yaml, PError> {
+    pub fn scalar_term(&mut self, level: usize, use_sep: bool) -> Result<Yaml, PError> {
         let yaml = if self.sym(b'~').is_ok() {
             Yaml::Null
         } else if self.seq(b"null").is_ok() {
@@ -170,7 +170,7 @@ impl<'a> Parser<'a> {
             Yaml::Int(self.eat().into())
         } else if self.anchor_use().is_ok() {
             Yaml::Anchor(self.eat().into())
-        } else if let Ok(s) = self.string_flow() {
+        } else if let Ok(s) = self.string_flow(use_sep) {
             Yaml::Str(Self::escape(s))
         } else {
             err_own!(
@@ -193,7 +193,7 @@ impl<'a> Parser<'a> {
             }
             self.eat();
             v.push(err_own!(
-                self.scalar(level + 1),
+                self.scalar(level + 1, true),
                 self.err("flow array item")
             )?);
             self.inv(TakeOpt::More(0))?;
@@ -220,19 +220,22 @@ impl<'a> Parser<'a> {
             self.eat();
             let k = if self.complex_mapping().is_ok() {
                 self.eat();
-                let k = err_own!(self.scalar(level + 1), self.err("flow map key"))?;
+                let k = err_own!(self.scalar(level + 1, true), self.err("flow map key"))?;
                 if self.gap().is_ok() {
                     self.indent(level)?;
                 }
                 k
             } else {
-                err_own!(self.scalar_flow(level + 1), self.err("flow map value"))?
+                err_own!(
+                    self.scalar_flow(level + 1, true),
+                    self.err("flow map value")
+                )?
             };
             if self.sym(b':').is_err() || self.bound().is_err() {
                 return self.err("map");
             }
             self.eat();
-            let v = err_own!(self.scalar(level + 1), self.err("map"))?;
+            let v = err_own!(self.scalar(level + 1, true), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;
@@ -268,14 +271,17 @@ impl<'a> Parser<'a> {
                 }
             }
             self.eat();
-            v.push(err_own!(self.scalar(level + 1), self.err("array value"))?);
+            v.push(err_own!(
+                self.scalar(level + 1, false),
+                self.err("array item")
+            )?);
         }
         self.eat();
         Ok(Yaml::from_iter(v))
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize) -> Result<Yaml, PError> {
+    pub fn map(&mut self, level: usize, use_sep: bool) -> Result<Yaml, PError> {
         let mut m = vec![];
         loop {
             self.eat();
@@ -287,13 +293,13 @@ impl<'a> Parser<'a> {
                 self.eat();
                 let k = if self.complex_mapping().is_ok() {
                     self.eat();
-                    let k = err_own!(self.scalar(level + 1), self.err("map key"))?;
+                    let k = err_own!(self.scalar(level + 1, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.indent(level)?;
                     }
                     k
                 } else {
-                    self.scalar_flow(level + 1)?
+                    self.scalar_flow(level + 1, use_sep)?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
@@ -310,13 +316,13 @@ impl<'a> Parser<'a> {
                 self.eat();
                 let k = if self.complex_mapping().is_ok() {
                     self.eat();
-                    let k = err_own!(self.scalar(level + 1), self.err("map key"))?;
+                    let k = err_own!(self.scalar(level + 1, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.indent(level)?;
                     }
                     k
                 } else {
-                    err_own!(self.scalar_flow(level + 1), self.err("map key"))?
+                    err_own!(self.scalar_flow(level + 1, use_sep), self.err("map key"))?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     return self.err("map splitter");
@@ -324,7 +330,7 @@ impl<'a> Parser<'a> {
                 k
             };
             self.eat();
-            let v = err_own!(self.scalar(level + 1), self.err("map value"))?;
+            let v = err_own!(self.scalar(level + 1, false), self.err("map value"))?;
             m.push((k, v));
         }
         self.eat();

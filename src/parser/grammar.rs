@@ -187,10 +187,14 @@ impl<'a> Parser<'a> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self) -> Result<&'a str, ()> {
+    pub fn string_plain(&mut self, use_sep: bool) -> Result<&'a str, ()> {
         let eaten = self.eaten;
+        let mut p = b"[]{}: \n\r".iter().cloned().collect::<Vec<_>>();
+        if use_sep {
+            p.push(b',');
+        }
         loop {
-            self.take_while(Self::not_in(b"[]{},: \n\r"), TakeOpt::More(0))?;
+            self.take_while(Self::not_in(&p), TakeOpt::More(0))?;
             self.eat();
             if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
                 self.pos -= 2;
@@ -209,12 +213,12 @@ impl<'a> Parser<'a> {
     }
 
     /// Match flow string and return the content.
-    pub fn string_flow(&mut self) -> Result<&'a str, ()> {
+    pub fn string_flow(&mut self, use_sep: bool) -> Result<&'a str, ()> {
         if let Ok(s) = self.string_quoted(b'\'') {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"') {
             Ok(s)
-        } else if let Ok(s) = self.string_plain() {
+        } else if let Ok(s) = self.string_plain(use_sep) {
             Ok(s)
         } else {
             Err(())
