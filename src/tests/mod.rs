@@ -1,42 +1,7 @@
 use super::*;
 
-const TEST_JSON: &str = r#"
-{
-    "a": "b",
-    "c": [123, 321, 1234567],
-    "d": {}
-}
-"#;
-const TEST_YAML: &str = r#"
----
-a0 bb: val
-::a1: &x  # Test comment after wrapped! (1)
-  b1: 4.
-  b2:
-    - c1
--a2: !!t1 4.03  # Test comment after normal scalars~
-?  # Test comment after wrapped! (2)
-  - q
-  - r  # Test comment after plain string...
-  - s
-: {!!t2 1: 2, 3: 4}  # Test comment after wrapped! (3)
-?a3: !t3
-  - *x
-  - [d1, 中文]
-  - ~
-  -
-? &y
-  a4:
-: -30
-a5, a6: |
-  aaa
-  bbb
-    ccc
-a7: >
-  aaa
-  bbb
-    ccc
-"#;
+const TEST_JSON: &str = include_str!("test.json");
+const TEST_YAML: &str = include_str!("test.yaml");
 
 #[test]
 fn test_json() {

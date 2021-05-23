@@ -94,14 +94,14 @@ impl<'a> Parser<'a> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
-        let ret = self.scalar(0, false)?;
+        let ret = self.scalar(0, false, false)?;
         self.seq(b"...").unwrap_or_default();
         self.eat();
         Ok(ret)
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize, use_sep: bool) -> Result<Node, PError> {
+    pub fn scalar(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Node, PError> {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
             self.bound()?;
@@ -119,7 +119,10 @@ impl<'a> Parser<'a> {
         } else {
             err_own!(
                 self.array(level),
-                err_own!(self.map(level, use_sep), self.scalar_term(level, use_sep))
+                err_own!(
+                    self.map(level, nest, use_sep),
+                    self.scalar_term(level, use_sep)
+                )
             )?
         };
         self.eat();
@@ -193,7 +196,7 @@ impl<'a> Parser<'a> {
             }
             self.eat();
             v.push(err_own!(
-                self.scalar(level + 1, true),
+                self.scalar(level + 1, false, true),
                 self.err("flow array item")
             )?);
             self.inv(TakeOpt::More(0))?;
@@ -220,7 +223,10 @@ impl<'a> Parser<'a> {
             self.eat();
             let k = if self.complex_mapping().is_ok() {
                 self.eat();
-                let k = err_own!(self.scalar(level + 1, true), self.err("flow map key"))?;
+                let k = err_own!(
+                    self.scalar(level + 1, false, true),
+                    self.err("flow map key")
+                )?;
                 if self.gap().is_ok() {
                     self.indent(level)?;
                 }
@@ -235,7 +241,7 @@ impl<'a> Parser<'a> {
                 return self.err("map");
             }
             self.eat();
-            let v = err_own!(self.scalar(level + 1, true), self.err("map"))?;
+            let v = err_own!(self.scalar(level + 1, false, true), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;
@@ -272,7 +278,7 @@ impl<'a> Parser<'a> {
             }
             self.eat();
             v.push(err_own!(
-                self.scalar(level + 1, false),
+                self.scalar(level + 1, false, false),
                 self.err("array item")
             )?);
         }
@@ -281,19 +287,22 @@ impl<'a> Parser<'a> {
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, use_sep: bool) -> Result<Yaml, PError> {
+    pub fn map(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Yaml, PError> {
         let mut m = vec![];
         loop {
             self.eat();
             let k = if m.is_empty() {
                 // Mismatch
-                if self.gap().is_ok() {
+                if nest {
+                    self.gap()?;
+                    self.indent(level)?;
+                } else if self.gap().is_ok() {
                     self.indent(level)?;
                 }
                 self.eat();
                 let k = if self.complex_mapping().is_ok() {
                     self.eat();
-                    let k = err_own!(self.scalar(level + 1, use_sep), self.err("map key"))?;
+                    let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.indent(level)?;
                     }
@@ -316,7 +325,7 @@ impl<'a> Parser<'a> {
                 self.eat();
                 let k = if self.complex_mapping().is_ok() {
                     self.eat();
-                    let k = err_own!(self.scalar(level + 1, use_sep), self.err("map key"))?;
+                    let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.indent(level)?;
                     }
@@ -330,7 +339,7 @@ impl<'a> Parser<'a> {
                 k
             };
             self.eat();
-            let v = err_own!(self.scalar(level + 1, false), self.err("map value"))?;
+            let v = err_own!(self.scalar(level + 1, true, false), self.err("map value"))?;
             m.push((k, v));
         }
         self.eat();
