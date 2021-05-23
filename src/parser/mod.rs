@@ -103,9 +103,26 @@ impl<'a> Parser<'a> {
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
         let ret = self.scalar(0, false, false)?;
+        self.gap().unwrap_or_default();
         self.seq(b"...").unwrap_or_default();
         self.eat();
         Ok(ret)
+    }
+
+    /// Match doc end.
+    pub fn doc_end(&mut self) -> bool {
+        if self.food().is_empty() {
+            true
+        } else {
+            let eaten = self.eaten;
+            self.eat();
+            let b = self.seq(b"---").is_ok() || self.seq(b"...").is_ok();
+            if b {
+                self.pos -= 4;
+            }
+            self.eaten = eaten;
+            b
+        }
     }
 
     /// Match scalar.
@@ -286,7 +303,7 @@ impl<'a> Parser<'a> {
                 } else {
                     break;
                 }
-                if self.food().is_empty() || self.sym(b'-').is_err() || self.bound().is_err() {
+                if self.doc_end() || self.sym(b'-').is_err() || self.bound().is_err() {
                     break;
                 }
             }
@@ -333,7 +350,7 @@ impl<'a> Parser<'a> {
                 if self.gap().is_err() {
                     return self.err("map terminator");
                 }
-                if self.ind(level).is_err() || self.food().is_empty() {
+                if self.ind(level).is_err() || self.doc_end() {
                     break;
                 }
                 self.eat();
