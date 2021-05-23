@@ -118,7 +118,7 @@ impl<'a> Parser<'a> {
             Yaml::Str(Self::escape(&s))
         } else {
             err_own!(
-                self.array(level),
+                self.array(level, nest),
                 err_own!(
                     self.map(level, nest, use_sep),
                     self.scalar_term(level, use_sep)
@@ -254,13 +254,16 @@ impl<'a> Parser<'a> {
     }
 
     /// Match array.
-    pub fn array(&mut self, level: usize) -> Result<Yaml, PError> {
+    pub fn array(&mut self, level: usize, nest: bool) -> Result<Yaml, PError> {
         let mut v = vec![];
         loop {
             self.eat();
             if v.is_empty() {
                 // Mismatch
-                if self.gap().is_ok() {
+                if nest {
+                    self.gap()?;
+                    self.indent(level)?;
+                } else if self.gap().is_ok() {
                     self.indent(level)?;
                 }
                 self.sym(b'-')?;
