@@ -32,6 +32,11 @@ impl<'a> Parser<'a> {
         self.pos = self.eaten;
     }
 
+    /// Move back current cursor.
+    pub fn back(&mut self, n: usize) {
+        self.pos -= n;
+    }
+
     /// Show the right hand side string after the current cursor.
     pub fn food(&self) -> &'a str {
         &self.doc[self.pos..]
@@ -132,7 +137,7 @@ impl<'a> Parser<'a> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), ()> {
         self.inv(TakeOpt::One)?;
-        self.pos -= 1;
+        self.back(1);
         self.ws(TakeOpt::More(0))?;
         Ok(())
     }
@@ -211,7 +216,7 @@ impl<'a> Parser<'a> {
             self.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
             self.eat();
             if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
-                self.pos -= 2;
+                self.back(2);
             } else if self.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
                 continue;
             }
@@ -303,7 +308,7 @@ impl<'a> Parser<'a> {
                 }
             }
             // Keep the last wrap
-            p.pos -= 1;
+            p.back(1);
             Ok(v)
         })
     }

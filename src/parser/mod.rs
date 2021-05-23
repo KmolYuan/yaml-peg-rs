@@ -117,7 +117,7 @@ impl<'a> Parser<'a> {
             self.context(|p| {
                 let b = p.seq(b"---").is_ok() || p.seq(b"...").is_ok();
                 if b {
-                    p.pos -= 4;
+                    p.back(4);
                 }
                 b
             })
