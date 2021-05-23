@@ -242,11 +242,13 @@ impl<'a> Parser<'a> {
     /// Match wrapped string.
     pub fn string_wrapped(&mut self, level: usize, sep: &str) -> Result<String, ()> {
         let eaten = self.eaten;
+        // TODO: Chomping option (+-)
         let mut v = vec![];
         loop {
             self.bound()?;
             self.inv(TakeOpt::One)?;
             self.eat();
+            // TODO: support blank line no indent
             if self.ind(level).is_err() {
                 break;
             }
