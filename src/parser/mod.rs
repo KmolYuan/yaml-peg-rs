@@ -126,35 +126,29 @@ impl<'a> Parser<'a> {
 
     /// Match scalar.
     pub fn scalar(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Node, PError> {
-        let anchor = self.anchor().unwrap_or_default();
-        if !anchor.is_empty() {
-            self.bound()?;
-        }
-        let ty = self.ty().unwrap_or_default();
-        if !ty.is_empty() {
-            self.bound()?;
-        }
-        self.eat();
-        let pos = self.pos;
-        let yaml = if let Ok(s) = self.string_literal(level) {
-            Yaml::Str(Self::escape(&s))
-        } else if let Ok(s) = self.string_folded(level) {
-            Yaml::Str(Self::escape(&s))
-        } else {
-            err_own!(
-                self.array(level, nest),
+        self.scalar_inner(|p| {
+            if let Ok(s) = p.string_literal(level) {
+                Ok(Yaml::Str(Self::escape(&s)))
+            } else if let Ok(s) = p.string_folded(level) {
+                Ok(Yaml::Str(Self::escape(&s)))
+            } else {
                 err_own!(
-                    self.map(level, nest, use_sep),
-                    self.scalar_term(level, use_sep)
+                    p.array(level, nest),
+                    err_own!(p.map(level, nest, use_sep), p.scalar_term(level, use_sep))
                 )
-            )?
-        };
-        self.eat();
-        Ok(node!(yaml, pos, anchor.into(), ty.into()))
+            }
+        })
     }
 
     /// Match flow scalar.
     pub fn scalar_flow(&mut self, level: usize, use_sep: bool) -> Result<Node, PError> {
+        self.scalar_inner(|p| p.scalar_term(level, use_sep))
+    }
+
+    fn scalar_inner<F>(&mut self, f: F) -> Result<Node, PError>
+    where
+        F: Fn(&mut Self) -> Result<Yaml, PError>,
+    {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
             self.bound()?;
@@ -165,7 +159,7 @@ impl<'a> Parser<'a> {
         }
         self.eat();
         let pos = self.pos;
-        let yaml = self.scalar_term(level, use_sep)?;
+        let yaml = f(self)?;
         self.eat();
         Ok(node!(yaml, pos, anchor.into(), ty.into()))
     }
