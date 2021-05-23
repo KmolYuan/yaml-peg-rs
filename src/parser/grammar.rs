@@ -247,12 +247,13 @@ impl<'a> Parser<'a> {
             self.bound()?;
             self.inv(TakeOpt::One)?;
             self.eat();
-            if self.indent(level).is_err() {
+            if self.ind(level).is_err() {
                 break;
             }
             self.eat();
             self.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))?;
-            v.push(self.eat());
+            let s = self.eat();
+            v.push(if s.is_empty() { "\n" } else { s });
         }
         self.pos -= 1;
         self.eaten = eaten;
@@ -296,8 +297,23 @@ impl<'a> Parser<'a> {
     }
 
     /// Match indent.
-    pub fn indent(&mut self, level: usize) -> Result<(), ()> {
-        self.seq(&b"  ".repeat(level))
+    pub fn ind(&mut self, level: usize) -> Result<(), ()> {
+        self.seq(&b" ".repeat(self.indent * level))
+    }
+
+    /// Match indent with previous level.
+    pub fn unind(&mut self, level: usize) -> Result<bool, ()> {
+        if level > 0 {
+            let eaten = self.eaten;
+            self.ind(level - 1)?;
+            self.eat();
+            let r = Ok(self.ind(1).is_ok());
+            self.eaten = eaten;
+            r
+        } else {
+            self.ind(level)?;
+            Ok(false)
+        }
     }
 
     /// Match any optional invisible characters between two lines.

@@ -283,7 +283,7 @@ fn get_from_map<'a>(m: &'a Map, keys: &[&str]) -> Option<&'a Node> {
 
 impl Debug for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.debug_tuple("Node").field(&self.yaml).finish()
+        f.write_fmt(format_args!("Node{:?}", &self.yaml))
     }
 }
 

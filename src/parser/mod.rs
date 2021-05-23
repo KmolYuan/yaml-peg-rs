@@ -40,6 +40,7 @@ macro_rules! err_own {
 /// + Method [`Parser::backward`] is used to get back if mismatched.
 pub struct Parser<'a> {
     doc: &'a str,
+    indent: usize,
     /// Current position.
     pub pos: usize,
     /// Read position.
@@ -55,13 +56,20 @@ impl<'a> Parser<'a> {
     pub fn new(doc: &'a str) -> Self {
         Self {
             doc,
+            indent: 2,
             pos: 0,
             eaten: 0,
         }
     }
 
-    /// Set the starting point.
-    pub fn start_at(mut self, pos: usize) -> Self {
+    /// Builder method for setting indent.
+    pub fn indent(mut self, indent: usize) -> Self {
+        self.indent = indent;
+        self
+    }
+
+    /// Set the starting point if character boundary is valid.
+    pub fn pos(mut self, pos: usize) -> Self {
         if self.doc.is_char_boundary(pos) {
             self.pos = pos;
             self.eaten = pos;
@@ -228,7 +236,7 @@ impl<'a> Parser<'a> {
                     self.err("flow map key")
                 )?;
                 if self.gap().is_ok() {
-                    self.indent(level)?;
+                    self.ind(level)?;
                 }
                 k
             } else {
@@ -258,13 +266,14 @@ impl<'a> Parser<'a> {
         let mut v = vec![];
         loop {
             self.eat();
+            let mut downgrade = false;
             if v.is_empty() {
                 // Mismatch
                 if nest {
                     self.gap()?;
-                    self.indent(level)?;
+                    downgrade = self.unind(level)?;
                 } else if self.gap().is_ok() {
-                    self.indent(level)?;
+                    downgrade = self.unind(level)?;
                 }
                 self.sym(b'-')?;
                 self.bound()?;
@@ -272,16 +281,18 @@ impl<'a> Parser<'a> {
                 if self.gap().is_err() {
                     return self.err("array terminator");
                 }
-                if self.indent(level).is_err() || self.food().is_empty() {
+                if let Ok(b) = self.unind(level) {
+                    downgrade = b
+                } else {
                     break;
                 }
-                if self.sym(b'-').is_err() || self.bound().is_err() {
-                    return self.err("array splitter");
+                if self.food().is_empty() || self.sym(b'-').is_err() || self.bound().is_err() {
+                    break;
                 }
             }
             self.eat();
             v.push(err_own!(
-                self.scalar(level + 1, false, false),
+                self.scalar(if downgrade { level } else { level + 1 }, false, false),
                 self.err("array item")
             )?);
         }
@@ -298,16 +309,16 @@ impl<'a> Parser<'a> {
                 // Mismatch
                 if nest {
                     self.gap()?;
-                    self.indent(level)?;
+                    self.ind(level)?;
                 } else if self.gap().is_ok() {
-                    self.indent(level)?;
+                    self.ind(level)?;
                 }
                 self.eat();
                 let k = if self.complex_mapping().is_ok() {
                     self.eat();
                     let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
-                        self.indent(level)?;
+                        self.ind(level)?;
                     }
                     k
                 } else {
@@ -322,7 +333,7 @@ impl<'a> Parser<'a> {
                 if self.gap().is_err() {
                     return self.err("map terminator");
                 }
-                if self.indent(level).is_err() || self.food().is_empty() {
+                if self.ind(level).is_err() || self.food().is_empty() {
                     break;
                 }
                 self.eat();
@@ -330,7 +341,7 @@ impl<'a> Parser<'a> {
                     self.eat();
                     let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
-                        self.indent(level)?;
+                        self.ind(level)?;
                     }
                     k
                 } else {
