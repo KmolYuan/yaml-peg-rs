@@ -117,6 +117,18 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// A wrapper for saving local checkpoint.
+    pub fn context<F, R>(&mut self, f: F) -> R
+    where
+        F: Fn(&mut Self) -> R,
+    {
+        let eaten = self.eaten;
+        self.eat();
+        let r = f(self);
+        self.eaten = eaten;
+        r
+    }
+
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), ()> {
         self.inv(TakeOpt::One)?;
@@ -177,24 +189,26 @@ impl<'a> Parser<'a> {
 
     /// Match quoted string.
     pub fn string_quoted(&mut self, sym: u8) -> Result<&'a str, ()> {
-        let eaten = self.eaten;
-        self.sym(sym)?;
-        self.select(|p| p.take_while(Self::not_in(&[sym]), TakeOpt::More(1)))?;
-        let s = self.eat();
-        self.eaten = eaten;
+        // FIXME: escaping
+        let s = self.context(|p| {
+            p.sym(sym)?;
+            p.select(|p| p.take_while(Self::not_in(&[sym]), TakeOpt::More(1)))?;
+            Ok(p.eat())
+        })?;
         self.sym(sym)?;
         Ok(s)
     }
 
     /// Match plain string.
     pub fn string_plain(&mut self, use_sep: bool) -> Result<&'a str, ()> {
+        // FIXME: multiline
         let eaten = self.eaten;
-        let mut p = b"[]{}: \n\r".iter().cloned().collect::<Vec<_>>();
+        let mut patt = b"[]{}: \n\r".iter().cloned().collect::<Vec<_>>();
         if use_sep {
-            p.push(b',');
+            patt.push(b',');
         }
         loop {
-            self.take_while(Self::not_in(&p), TakeOpt::More(0))?;
+            self.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
             self.eat();
             if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
                 self.pos -= 2;
@@ -228,38 +242,70 @@ impl<'a> Parser<'a> {
     /// Match literal string.
     pub fn string_literal(&mut self, level: usize) -> Result<String, ()> {
         self.sym(b'|')?;
-        let s = self.string_wrapped(level, "\n")?;
-        Ok(s)
+        let s = self.string_wrapped(level, '\n', true)?;
+        Ok(self.chomp(s))
     }
 
     /// Match folded string.
     pub fn string_folded(&mut self, level: usize) -> Result<String, ()> {
         self.sym(b'>')?;
-        let s = self.string_wrapped(level, " ")?;
-        Ok(s)
+        let s = self.string_wrapped(level, ' ', false)?;
+        Ok(self.chomp(s))
+    }
+
+    /// Match chomping option.
+    pub fn chomp(&mut self, s: String) -> String {
+        self.context(|p| {
+            if p.sym(b'-').is_ok() {
+                s.trim_end().to_owned()
+            } else if p.sym(b'+').is_ok() {
+                s.to_owned()
+            } else {
+                s.trim_end().to_owned() + "\n"
+            }
+        })
     }
 
     /// Match wrapped string.
-    pub fn string_wrapped(&mut self, level: usize, sep: &str) -> Result<String, ()> {
-        let eaten = self.eaten;
-        // TODO: Chomping option (+-)
-        let mut v = vec![];
-        loop {
-            self.bound()?;
-            self.inv(TakeOpt::One)?;
-            self.eat();
-            // TODO: support blank line no indent
-            if self.ind(level).is_err() {
-                break;
+    pub fn string_wrapped(&mut self, level: usize, sep: char, leading: bool) -> Result<String, ()> {
+        self.context(|p| {
+            let mut v = String::new();
+            loop {
+                p.bound()?;
+                p.inv(TakeOpt::One)?;
+                p.eat();
+                if p.ind(level).is_err() {
+                    if let Ok(t) = p.gap() {
+                        for _ in 0..t {
+                            v.push('\n');
+                        }
+                        if p.ind(level).is_err() {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                p.eat();
+                p.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))?;
+                let s = p.eat();
+                if leading {
+                    if !v.is_empty() {
+                        v.push(sep);
+                    }
+                    v.push_str(s);
+                } else {
+                    let s = s.trim_start();
+                    if !v.is_empty() && !v.ends_with(char::is_whitespace) {
+                        v.push(sep);
+                    }
+                    v.push_str(s);
+                }
             }
-            self.eat();
-            self.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))?;
-            let s = self.eat();
-            v.push(if s.is_empty() { "\n" } else { s });
-        }
-        self.pos -= 1;
-        self.eaten = eaten;
-        Ok(v.join(sep))
+            // Keep the last wrap
+            p.pos -= 1;
+            Ok(v)
+        })
     }
 
     /// Match valid YAML identifier.
@@ -288,12 +334,12 @@ impl<'a> Parser<'a> {
         self.select(Self::identifier)
     }
 
-    /// Match any optional invisible characters except newline.
+    /// Match any invisible characters except newline.
     pub fn ws(&mut self, opt: TakeOpt) -> Result<(), ()> {
         self.take_while(|c| c.is_whitespace() && !"\n\r".contains(c), opt)
     }
 
-    /// Match any optional invisible characters.
+    /// Match any invisible characters.
     pub fn inv(&mut self, opt: TakeOpt) -> Result<(), ()> {
         self.take_while(char::is_whitespace, opt)
     }
@@ -306,12 +352,8 @@ impl<'a> Parser<'a> {
     /// Match indent with previous level.
     pub fn unind(&mut self, level: usize) -> Result<bool, ()> {
         if level > 0 {
-            let eaten = self.eaten;
             self.ind(level - 1)?;
-            self.eat();
-            let r = Ok(self.ind(1).is_ok());
-            self.eaten = eaten;
-            r
+            self.context(|p| Ok(p.ind(1).is_ok()))
         } else {
             self.ind(level)?;
             Ok(false)
@@ -319,20 +361,21 @@ impl<'a> Parser<'a> {
     }
 
     /// Match any optional invisible characters between two lines.
-    pub fn gap(&mut self) -> Result<(), ()> {
-        let eaten = self.eaten;
-        self.eat();
-        self.comment().unwrap_or_default();
-        self.sym(b'\n')?;
-        loop {
-            // Check point
-            self.eat();
-            self.ws(TakeOpt::More(0))?;
-            if self.sym(b'\n').is_err() {
-                self.eaten = eaten;
-                return Ok(());
+    pub fn gap(&mut self) -> Result<usize, ()> {
+        self.context(|p| {
+            p.comment().unwrap_or_default();
+            p.sym(b'\n')?;
+            let mut t = 1;
+            loop {
+                // Check point
+                p.eat();
+                p.ws(TakeOpt::More(0))?;
+                if p.sym(b'\n').is_err() {
+                    return Ok(t);
+                }
+                t += 1;
             }
-        }
+        })
     }
 
     /// Match comment.

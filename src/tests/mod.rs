@@ -41,8 +41,8 @@ fn test_yaml() {
                 node!(Yaml::Null),
             ]),
             node!({node!("a4") => node!(Yaml::Null)}) => node!(-30),
-            node!(Yaml::Anchor("y".into())) => node!("aaa bbb   ccc"),
-            node!("a5, a6") => node!("aaa\nbbb\n  ccc"),
+            node!(Yaml::Anchor("y".into())) => node!("aaa bbb ccc\nddd\n"),
+            node!("a5, a6") => node!("aaa\nbbb\n  ccc\n\n  ddd\n"),
         })
     );
 }

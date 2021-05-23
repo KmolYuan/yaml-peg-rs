@@ -114,14 +114,13 @@ impl<'a> Parser<'a> {
         if self.food().is_empty() {
             true
         } else {
-            let eaten = self.eaten;
-            self.eat();
-            let b = self.seq(b"---").is_ok() || self.seq(b"...").is_ok();
-            if b {
-                self.pos -= 4;
-            }
-            self.eaten = eaten;
-            b
+            self.context(|p| {
+                let b = p.seq(b"---").is_ok() || p.seq(b"...").is_ok();
+                if b {
+                    p.pos -= 4;
+                }
+                b
+            })
         }
     }
 

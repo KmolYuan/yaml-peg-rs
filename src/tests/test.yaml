@@ -23,8 +23,12 @@ a0 bb: val
   aaa
   bbb
     ccc
+
+    ddd
 a5, a6: |
   aaa
   bbb
     ccc
+
+    ddd
 ...
