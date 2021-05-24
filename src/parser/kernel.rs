@@ -17,14 +17,13 @@ pub enum TakeOpt {
 impl<'a> Parser<'a> {
     /// Move the eaten cursor to the current position and return the string.
     pub fn eat(&mut self) -> &'a str {
-        if self.eaten < self.pos {
-            let s = &self.doc[self.eaten..self.pos];
-            self.eaten = self.pos;
-            s
+        let s = if self.eaten < self.pos {
+            &self.doc[self.eaten..self.pos]
         } else {
-            self.eaten = self.pos;
             ""
-        }
+        };
+        self.eaten = self.pos;
+        s
     }
 
     /// Move the current position back.
@@ -160,18 +159,15 @@ impl<'a> Parser<'a> {
                 b = true;
                 continue;
             }
-            s += match &c {
+            let mut buff = [0; 4];
+            s += match c {
                 '\\' if b => "\\",
                 'n' if b => "\\n",
                 'r' if b => "\\r",
                 't' if b => "\\t",
                 'b' if b => "\x08",
                 'f' if b => "\x0C",
-                v => {
-                    s += &v.to_string();
-                    b = false;
-                    continue;
-                }
+                c => c.encode_utf8(&mut buff),
             };
             b = false;
         }
