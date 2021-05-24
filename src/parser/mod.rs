@@ -1,11 +1,13 @@
 //! Parser components.
 pub use self::error::*;
 pub use self::grammar::*;
+pub use self::kernel::*;
 use crate::*;
 use std::{io::Error, iter::FromIterator};
 
 mod error;
 mod grammar;
+mod kernel;
 
 macro_rules! err_own {
     ($e:expr, $then:expr) => {
@@ -75,6 +77,11 @@ impl<'a> Parser<'a> {
             self.eaten = pos;
         }
         self
+    }
+
+    /// A short function to raise error.
+    pub fn err<R>(&self, msg: &str) -> Result<R, PError> {
+        Err(PError::Terminate(self.pos, msg.into()))
     }
 
     /// YAML entry point, return entire doc if exist.
