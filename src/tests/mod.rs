@@ -14,7 +14,7 @@ fn test_json() {
             node!("d") => node!({})
         })
     );
-    let n = ans[0].assert_get(&["a"], "").unwrap();
+    let n = ans[0].except_get(&["a"], "").unwrap();
     assert_eq!(n, &node!("b"));
 }
 

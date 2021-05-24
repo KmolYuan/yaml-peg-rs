@@ -3,7 +3,7 @@ pub use self::error::*;
 pub use self::grammar::*;
 pub use self::kernel::*;
 use crate::*;
-use std::{io::Error, iter::FromIterator};
+use std::iter::FromIterator;
 
 mod error;
 mod grammar;
@@ -385,9 +385,6 @@ impl<'a> Parser<'a> {
 /// let n = parse("true").unwrap();
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
-pub fn parse(doc: &str) -> Result<Array, Error> {
-    match Parser::new(doc).parse() {
-        Ok(v) => Ok(v),
-        Err(e) => Err(e.into_error(doc)),
-    }
+pub fn parse(doc: &str) -> Result<Array, PError> {
+    Parser::new(doc).parse()
 }

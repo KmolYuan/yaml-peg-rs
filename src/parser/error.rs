@@ -1,5 +1,5 @@
 use super::*;
-use std::io::Error;
+use std::fmt::{Display, Formatter, Result};
 
 /// The error of parser handling.
 ///
@@ -14,11 +14,11 @@ pub enum PError {
 
 impl PError {
     /// Transform to IO error.
-    pub fn into_error(self, doc: &str) -> Error {
+    pub fn into_error(self, doc: &str) -> String {
         match self {
-            Self::Mismatch => err!("not matched"),
+            Self::Mismatch => String::from("not matched"),
             Self::Terminate(pos, name) => {
-                err!(format!("invalid {}: \n\n{}", name, indicated_msg(doc, pos)))
+                format!("invalid {}: \n\n{}", name, indicated_msg(doc, pos))
             }
         }
     }
@@ -27,5 +27,11 @@ impl PError {
 impl From<()> for PError {
     fn from(_: ()) -> Self {
         Self::Mismatch
+    }
+}
+
+impl Display for PError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.write_fmt(format_args!("{:?}", self))
     }
 }

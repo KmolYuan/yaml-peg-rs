@@ -26,7 +26,7 @@ macro_rules! as_method {
     };
 }
 
-macro_rules! assert_method {
+macro_rules! except_method {
     {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
         $(#[$meta])*
         pub fn $id<E, N>(&self, e: E) -> Result<N>
@@ -75,8 +75,8 @@ macro_rules! assert_method {
 /// There are `as_*` methods provide `Option` returns,
 /// default options can be created by [`Option::unwrap_or`].
 ///
-/// In another hand, using `assert_*` methods to convert the YAML types with **error** returns.
-/// The `assert_*` methods are support to use `null` as empty option (for user inputs).
+/// In another hand, using `except_*` methods to convert the YAML types with **error** returns.
+/// The `except_*` methods are support to use `null` as empty option (for user inputs).
 #[derive(Eq, Clone)]
 pub struct Node {
     /// Document position
@@ -170,7 +170,7 @@ impl Node {
     }
 
     /// Assert the data is boolean.
-    pub fn assert_bool<E>(&self, e: E) -> Result<bool>
+    pub fn except_bool<E>(&self, e: E) -> Result<bool>
     where
         E: AsRef<str>,
     {
@@ -180,23 +180,23 @@ impl Node {
         }
     }
 
-    assert_method! {
+    except_method! {
         /// Assert the data is integer.
         ///
         /// If get failed, returns [`std::io::Error`].
-        fn assert_int = Int
+        fn except_int = Int
     }
-    assert_method! {
+    except_method! {
         /// Assert the data is float.
         ///
         /// If get failed, returns [`std::io::Error`].
-        fn assert_float = Float
+        fn except_float = Float
     }
-    assert_method! {
+    except_method! {
         /// Assert the data is float.
         ///
         /// If get failed, returns [`std::io::Error`].
-        fn assert_number = Int | Float
+        fn except_number = Int | Float
     }
 
     /// Assert the data is string reference.
@@ -204,7 +204,7 @@ impl Node {
     /// If get failed, returns [`std::io::Error`].
     /// Null value will generate an empty string.
     /// Warn: The object ownership will be took.
-    pub fn assert_str<E>(&self, e: E) -> Result<&str>
+    pub fn except_str<E>(&self, e: E) -> Result<&str>
     where
         E: AsRef<str>,
     {
@@ -219,7 +219,7 @@ impl Node {
     ///
     /// If get failed, returns [`std::io::Error`].
     /// Null value will generate an empty string.
-    pub fn assert_string<E>(&self, e: E) -> Result<String>
+    pub fn except_string<E>(&self, e: E) -> Result<String>
     where
         E: AsRef<str>,
     {
@@ -234,7 +234,7 @@ impl Node {
     ///
     /// If get failed, returns [`std::io::Error`].
     /// Null value will generate an empty array.
-    pub fn assert_array<E>(&self, e: E) -> Result<(usize, Iter<Node>)>
+    pub fn except_array<E>(&self, e: E) -> Result<(usize, Iter<Node>)>
     where
         E: AsRef<str>,
     {
@@ -248,7 +248,7 @@ impl Node {
     /// Assert the data is map and try to get the value by keys.
     ///
     /// If get failed, returns [`std::io::Error`].
-    pub fn assert_get<E>(&self, keys: &[&str], e: E) -> Result<&Self>
+    pub fn except_get<E>(&self, keys: &[&str], e: E) -> Result<&Self>
     where
         E: AsRef<str>,
     {
