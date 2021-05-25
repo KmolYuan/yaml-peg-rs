@@ -2,7 +2,7 @@ use super::*;
 
 /// The low level grammar implementation for YAML.
 ///
-/// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
+/// These sub-parser returns `Result<R, ()>`, and calling [`Parser::backward`] if mismatched.
 impl<'a> Parser<'a> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), ()> {
@@ -18,25 +18,32 @@ impl<'a> Parser<'a> {
         self.bound()
     }
 
-    /// Match integer.
-    pub fn int(&mut self) -> Result<(), ()> {
+    fn num_prefix(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
         self.take_while(u8::is_ascii_digit, TakeOpt::More(1))
     }
 
+    /// Match integer.
+    pub fn int(&mut self) -> Result<&'a str, ()> {
+        self.num_prefix()?;
+        Ok(self.text())
+    }
+
     /// Match float.
-    pub fn float(&mut self) -> Result<(), ()> {
-        self.int()?;
+    pub fn float(&mut self) -> Result<&'a str, ()> {
+        self.num_prefix()?;
         self.sym(b'.')?;
-        self.take_while(u8::is_ascii_digit, TakeOpt::More(0))
+        self.take_while(u8::is_ascii_digit, TakeOpt::More(0))?;
+        Ok(self.text())
     }
 
     /// Match float with scientific notation.
-    pub fn sci_float(&mut self) -> Result<(), ()> {
-        self.int()?;
+    pub fn sci_float(&mut self) -> Result<&'a str, ()> {
+        self.num_prefix()?;
         self.take_while(Self::is_in(b"eE"), TakeOpt::One)?;
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
-        self.take_while(u8::is_ascii_digit, TakeOpt::More(1))
+        self.take_while(u8::is_ascii_digit, TakeOpt::More(1))?;
+        Ok(self.text())
     }
 
     /// Match NaN.
@@ -68,7 +75,7 @@ impl<'a> Parser<'a> {
         self.sym(sym)?;
         let s = self.context(|p| {
             p.take_while(Self::not_in(&[sym]), TakeOpt::More(0))?;
-            Ok(p.eat())
+            Ok(p.text())
         })?;
         self.sym(sym)?;
         Ok(s)
@@ -93,7 +100,7 @@ impl<'a> Parser<'a> {
             break;
         }
         self.eaten = eaten;
-        let s = self.eat().trim_end();
+        let s = self.text().trim_end();
         if s.is_empty() {
             Err(())
         } else {
@@ -165,7 +172,7 @@ impl<'a> Parser<'a> {
                 }
                 p.forward();
                 p.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))?;
-                let s = p.eat();
+                let s = p.text();
                 if leading {
                     if !v.is_empty() {
                         v.push(sep);
@@ -199,7 +206,7 @@ impl<'a> Parser<'a> {
         self.take_while(Self::is_in(b"!"), TakeOpt::Range(1, 2))?;
         self.context(|p| {
             p.identifier()?;
-            Ok(p.eat())
+            Ok(p.text())
         })
     }
 
@@ -208,7 +215,7 @@ impl<'a> Parser<'a> {
         self.sym(b'&')?;
         self.context(|p| {
             p.identifier()?;
-            Ok(p.eat())
+            Ok(p.text())
         })
     }
 
@@ -217,7 +224,7 @@ impl<'a> Parser<'a> {
         self.sym(b'*')?;
         self.context(|p| {
             p.identifier()?;
-            Ok(p.eat())
+            Ok(p.text())
         })
     }
 

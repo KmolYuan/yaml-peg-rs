@@ -16,15 +16,13 @@ pub enum TakeOpt {
 ///
 /// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
 impl<'a> Parser<'a> {
-    /// Move the eaten cursor to the current position and return the string.
-    pub fn eat(&mut self) -> &'a str {
-        let s = if self.eaten < self.pos {
+    /// Get the text from the eaten cursor to the current position.
+    pub fn text(&mut self) -> &'a str {
+        if self.eaten < self.pos {
             &self.doc[self.eaten..self.pos]
         } else {
             ""
-        };
-        self.forward();
-        s
+        }
     }
 
     /// Consume the eaten part.

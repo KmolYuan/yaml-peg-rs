@@ -191,17 +191,12 @@ impl<'a> Parser<'a> {
             Yaml::Float("NaN".into())
         } else if let Ok(b) = self.inf() {
             Yaml::Float(if b { "inf" } else { "-inf" }.into())
-        } else if self.float().is_ok() {
-            Yaml::Float(
-                self.eat()
-                    .trim_end_matches("0")
-                    .trim_end_matches(".")
-                    .into(),
-            )
-        } else if self.sci_float().is_ok() {
-            Yaml::Float(self.eat().into())
-        } else if self.int().is_ok() {
-            Yaml::Int(self.eat().into())
+        } else if let Ok(s) = self.float() {
+            Yaml::Float(s.trim_end_matches(|c| ".0".contains(c)).into())
+        } else if let Ok(s) = self.sci_float() {
+            Yaml::Float(s.into())
+        } else if let Ok(s) = self.int() {
+            Yaml::Int(s.into())
         } else if let Ok(s) = self.anchor_use() {
             Yaml::Anchor(s.into())
         } else if let Ok(s) = self.string_flow(use_sep) {
