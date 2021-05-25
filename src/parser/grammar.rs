@@ -65,9 +65,9 @@ impl<'a> Parser<'a> {
     /// Match quoted string.
     pub fn string_quoted(&mut self, sym: u8) -> Result<&'a str, ()> {
         // FIXME: escaping
+        self.sym(sym)?;
         let s = self.context(|p| {
-            p.sym(sym)?;
-            p.select(|p| p.take_while(Self::not_in(&[sym]), TakeOpt::More(1)))?;
+            p.take_while(Self::not_in(&[sym]), TakeOpt::More(0))?;
             Ok(p.eat())
         })?;
         self.sym(sym)?;
@@ -197,21 +197,28 @@ impl<'a> Parser<'a> {
     /// Match type assertion.
     pub fn ty(&mut self) -> Result<&'a str, ()> {
         self.take_while(Self::is_in(b"!"), TakeOpt::Range(1, 2))?;
-        self.select(Self::identifier)?;
-        Ok(self.eat())
+        self.context(|p| {
+            p.identifier()?;
+            Ok(p.eat())
+        })
     }
 
     /// Match anchor definition.
     pub fn anchor(&mut self) -> Result<&'a str, ()> {
         self.sym(b'&')?;
-        self.select(Self::identifier)?;
-        Ok(self.eat())
+        self.context(|p| {
+            p.identifier()?;
+            Ok(p.eat())
+        })
     }
 
     /// Match anchor used.
-    pub fn anchor_use(&mut self) -> Result<(), ()> {
+    pub fn anchor_use(&mut self) -> Result<&'a str, ()> {
         self.sym(b'*')?;
-        self.select(Self::identifier)
+        self.context(|p| {
+            p.identifier()?;
+            Ok(p.eat())
+        })
     }
 
     /// Match any invisible characters except newline.

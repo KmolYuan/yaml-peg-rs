@@ -77,7 +77,7 @@ impl<'a> Parser<'a> {
     /// If the position is not a char boundary.
     pub fn pos(mut self, pos: usize) -> Self {
         if !self.doc.is_char_boundary(pos) {
-            panic!(format_args!("not a char boundary: {}", pos))
+            panic!("not a char boundary: {}", pos)
         }
         self.pos = pos;
         self.eaten = pos;
@@ -99,7 +99,7 @@ impl<'a> Parser<'a> {
         v.push(self.doc()?);
         loop {
             self.gap().unwrap_or_default();
-            if self.food().is_empty() {
+            if self.food().peekable().peek().is_none() {
                 break;
             }
             if self.seq(b"---").is_err() {
@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
 
     /// Match doc end.
     pub fn doc_end(&mut self) -> bool {
-        if self.food().is_empty() {
+        if self.food().peekable().peek().is_none() {
             true
         } else {
             self.context(|p| {
@@ -165,6 +165,7 @@ impl<'a> Parser<'a> {
         if !anchor.is_empty() {
             self.bound()?;
         }
+        self.forward();
         let ty = self.ty().unwrap_or_default();
         if !ty.is_empty() {
             self.bound()?;
@@ -201,8 +202,8 @@ impl<'a> Parser<'a> {
             Yaml::Float(self.eat().into())
         } else if self.int().is_ok() {
             Yaml::Int(self.eat().into())
-        } else if self.anchor_use().is_ok() {
-            Yaml::Anchor(self.eat().into())
+        } else if let Ok(s) = self.anchor_use() {
+            Yaml::Anchor(s.into())
         } else if let Ok(s) = self.string_flow(use_sep) {
             Yaml::Str(Self::escape(s))
         } else {
@@ -390,6 +391,6 @@ impl<'a> Parser<'a> {
 /// let n = parse("true").unwrap();
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
-pub fn parse(doc: &str) -> Result<Array, PError> {
-    Parser::new(doc).parse()
+pub fn parse(doc: &str) -> Result<Array, String> {
+    Parser::new(doc).parse().map_err(|e| e.into_error(doc))
 }

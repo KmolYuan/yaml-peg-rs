@@ -1,4 +1,5 @@
 use super::*;
+use std::str::Bytes;
 
 /// The option of [`Parser::take_while`].
 pub enum TakeOpt {
@@ -22,7 +23,7 @@ impl<'a> Parser<'a> {
         } else {
             ""
         };
-        self.eaten = self.pos;
+        self.forward();
         s
     }
 
@@ -42,8 +43,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Show the right hand side string after the current cursor.
-    pub fn food(&self) -> &'a str {
-        &self.doc[self.pos..]
+    pub fn food(&self) -> Bytes<'a> {
+        self.doc[self.pos..].bytes()
     }
 
     /// Match symbol.
@@ -68,7 +69,7 @@ impl<'a> Parser<'a> {
     {
         let pos = self.pos;
         let mut counter = 0;
-        for c in self.food().bytes() {
+        for c in self.food() {
             if !f(&c) {
                 break;
             }
@@ -99,23 +100,6 @@ impl<'a> Parser<'a> {
                 }
             }
             Ok(())
-        }
-    }
-
-    /// Select matched string from parser `f`.
-    ///
-    /// This function will move the eaten cursor to the front if matched,
-    /// so [`Parser::eat`] method will skip the suffix.
-    pub fn select<F>(&mut self, f: F) -> Result<(), ()>
-    where
-        F: Fn(&mut Self) -> Result<(), ()>,
-    {
-        let pos = self.pos;
-        if f(self).is_ok() {
-            self.eaten = pos;
-            Ok(())
-        } else {
-            Err(())
         }
     }
 
