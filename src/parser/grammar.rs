@@ -21,14 +21,14 @@ impl<'a> Parser<'a> {
     /// Match integer.
     pub fn int(&mut self) -> Result<(), ()> {
         self.sym(b'-').unwrap_or_default();
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::More(1))
+        self.take_while(u8::is_ascii_digit, TakeOpt::More(1))
     }
 
     /// Match float.
     pub fn float(&mut self) -> Result<(), ()> {
         self.int()?;
         self.sym(b'.')?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::More(0))
+        self.take_while(u8::is_ascii_digit, TakeOpt::More(0))
     }
 
     /// Match float with scientific notation.
@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
         self.int()?;
         self.take_while(Self::is_in(b"eE"), TakeOpt::One)?;
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
-        self.take_while(|c| c.is_ascii_digit(), TakeOpt::More(1))
+        self.take_while(u8::is_ascii_digit, TakeOpt::More(1))
     }
 
     /// Match NaN.
@@ -84,7 +84,7 @@ impl<'a> Parser<'a> {
         }
         loop {
             self.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
-            self.eat();
+            self.forward();
             if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
                 self.back(2);
             } else if self.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
             loop {
                 p.bound()?;
                 p.inv(TakeOpt::One)?;
-                p.eat();
+                p.forward();
                 if p.ind(level).is_err() {
                     if let Ok(t) = p.gap() {
                         for _ in 0..t {
@@ -163,7 +163,7 @@ impl<'a> Parser<'a> {
                         break;
                     }
                 }
-                p.eat();
+                p.forward();
                 p.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))?;
                 let s = p.eat();
                 if leading {
@@ -187,8 +187,11 @@ impl<'a> Parser<'a> {
 
     /// Match valid YAML identifier.
     pub fn identifier(&mut self) -> Result<(), ()> {
-        self.take_while(char::is_alphanumeric, TakeOpt::One)?;
-        self.take_while(|c| c.is_alphanumeric() || c == '-', TakeOpt::More(0))
+        self.take_while(u8::is_ascii_alphanumeric, TakeOpt::One)?;
+        self.take_while(
+            |c| c.is_ascii_alphanumeric() || *c == b'-',
+            TakeOpt::More(0),
+        )
     }
 
     /// Match type assertion.
@@ -213,12 +216,15 @@ impl<'a> Parser<'a> {
 
     /// Match any invisible characters except newline.
     pub fn ws(&mut self, opt: TakeOpt) -> Result<(), ()> {
-        self.take_while(|c| c.is_whitespace() && !"\n\r".contains(c), opt)
+        self.take_while(
+            |c| c.is_ascii_whitespace() && *c != b'\n' && *c != b'\r',
+            opt,
+        )
     }
 
     /// Match any invisible characters.
     pub fn inv(&mut self, opt: TakeOpt) -> Result<(), ()> {
-        self.take_while(char::is_whitespace, opt)
+        self.take_while(u8::is_ascii_whitespace, opt)
     }
 
     /// Match indent.
@@ -245,7 +251,7 @@ impl<'a> Parser<'a> {
             let mut t = 1;
             loop {
                 // Check point
-                p.eat();
+                p.forward();
                 p.ws(TakeOpt::More(0))?;
                 if p.sym(b'\n').is_err() {
                     return Ok(t);

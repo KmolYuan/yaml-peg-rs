@@ -26,6 +26,11 @@ impl<'a> Parser<'a> {
         s
     }
 
+    /// Consume the eaten part.
+    pub fn forward(&mut self) {
+        self.eaten = self.pos;
+    }
+
     /// Move the current position back.
     pub fn backward(&mut self) {
         self.pos = self.eaten;
@@ -59,16 +64,15 @@ impl<'a> Parser<'a> {
     /// The argument `opt` matches different terminate requirement.
     pub fn take_while<F>(&mut self, f: F, opt: TakeOpt) -> Result<(), ()>
     where
-        F: Fn(char) -> bool,
+        F: Fn(&u8) -> bool,
     {
-        let mut pos = self.pos;
+        let pos = self.pos;
         let mut counter = 0;
-        for (i, c) in self.food().char_indices() {
-            pos = self.pos + i;
-            if !f(c) {
+        for c in self.food().bytes() {
+            if !f(&c) {
                 break;
             }
-            pos += 1;
+            self.pos += 1;
             counter += 1;
             if let TakeOpt::One = opt {
                 break;
@@ -80,27 +84,21 @@ impl<'a> Parser<'a> {
             }
         }
         if pos == self.pos {
-            match opt {
-                TakeOpt::More(c) | TakeOpt::Range(c, _) if c == 0 => Ok(()),
-                _ => {
-                    self.backward();
-                    Err(())
+            if let TakeOpt::More(c) | TakeOpt::Range(c, _) = opt {
+                if c == 0 {
+                    return Ok(());
                 }
             }
+            self.backward();
+            Err(())
         } else {
-            match opt {
-                TakeOpt::Range(c, _) | TakeOpt::More(c) if counter < c => {
+            if let TakeOpt::More(c) | TakeOpt::Range(c, _) = opt {
+                if counter < c {
                     self.backward();
-                    Err(())
-                }
-                _ => {
-                    while !self.doc.is_char_boundary(pos) {
-                        pos += 1;
-                    }
-                    self.pos = pos;
-                    Ok(())
+                    return Err(());
                 }
             }
+            Ok(())
         }
     }
 
@@ -127,22 +125,22 @@ impl<'a> Parser<'a> {
         F: Fn(&mut Self) -> R,
     {
         let eaten = self.eaten;
-        self.eat();
+        self.forward();
         let r = f(self);
         self.eaten = eaten;
         r
     }
 
-    /// A SET detector for `char`.
-    pub fn is_in<'b>(s: &'b [u8]) -> impl Fn(char) -> bool + 'b {
+    /// A SET detector.
+    pub fn is_in<'b>(s: &'b [u8]) -> impl Fn(&u8) -> bool + 'b {
         move |c| !Self::not_in(s)(c)
     }
 
-    /// A NOT detector for `char`.
-    pub fn not_in<'b>(s: &'b [u8]) -> impl Fn(char) -> bool + 'b {
+    /// A NOT detector.
+    pub fn not_in<'b>(s: &'b [u8]) -> impl Fn(&u8) -> bool + 'b {
         move |c| {
             for s in s {
-                if c == char::from(*s) {
+                if c == s {
                     return false;
                 }
             }

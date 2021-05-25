@@ -71,11 +71,16 @@ impl<'a> Parser<'a> {
     }
 
     /// Set the starting point if character boundary is valid.
+    ///
+    /// # Panic
+    ///
+    /// If the position is not a char boundary.
     pub fn pos(mut self, pos: usize) -> Self {
-        if self.doc.is_char_boundary(pos) {
-            self.pos = pos;
-            self.eaten = pos;
+        if !self.doc.is_char_boundary(pos) {
+            panic!(format_args!("not a char boundary: {}", pos))
         }
+        self.pos = pos;
+        self.eaten = pos;
         self
     }
 
@@ -89,7 +94,7 @@ impl<'a> Parser<'a> {
         self.inv(TakeOpt::More(0))?;
         self.seq(b"---").unwrap_or_default();
         self.gap().unwrap_or_default();
-        self.eat();
+        self.forward();
         let mut v = vec![];
         v.push(self.doc()?);
         loop {
@@ -101,7 +106,7 @@ impl<'a> Parser<'a> {
                 return self.err("splitter");
             }
             self.gap().unwrap_or_default();
-            self.eat();
+            self.forward();
             v.push(self.doc()?);
         }
         Ok(v)
@@ -112,7 +117,7 @@ impl<'a> Parser<'a> {
         let ret = self.scalar(0, false, false)?;
         self.gap().unwrap_or_default();
         self.seq(b"...").unwrap_or_default();
-        self.eat();
+        self.forward();
         Ok(ret)
     }
 
@@ -164,10 +169,10 @@ impl<'a> Parser<'a> {
         if !ty.is_empty() {
             self.bound()?;
         }
-        self.eat();
+        self.forward();
         let pos = self.pos;
         let yaml = f(self)?;
-        self.eat();
+        self.forward();
         Ok(node!(yaml, pos, anchor.into(), ty.into()))
     }
 
@@ -215,11 +220,11 @@ impl<'a> Parser<'a> {
         let mut v = vec![];
         loop {
             self.inv(TakeOpt::More(0))?;
-            self.eat();
+            self.forward();
             if self.sym(b']').is_ok() {
                 break;
             }
-            self.eat();
+            self.forward();
             v.push(err_own!(
                 self.scalar(level + 1, false, true),
                 self.err("flow array item")
@@ -231,7 +236,7 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        self.eat();
+        self.forward();
         Ok(Yaml::from_iter(v))
     }
 
@@ -241,13 +246,13 @@ impl<'a> Parser<'a> {
         let mut m = vec![];
         loop {
             self.inv(TakeOpt::More(0))?;
-            self.eat();
+            self.forward();
             if self.sym(b'}').is_ok() {
                 break;
             }
-            self.eat();
+            self.forward();
             let k = if self.complex_mapping().is_ok() {
-                self.eat();
+                self.forward();
                 let k = err_own!(
                     self.scalar(level + 1, false, true),
                     self.err("flow map key")
@@ -265,7 +270,7 @@ impl<'a> Parser<'a> {
             if self.sym(b':').is_err() || self.bound().is_err() {
                 return self.err("map");
             }
-            self.eat();
+            self.forward();
             let v = err_own!(self.scalar(level + 1, false, true), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
@@ -274,7 +279,7 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        self.eat();
+        self.forward();
         Ok(Yaml::from_iter(m))
     }
 
@@ -282,7 +287,7 @@ impl<'a> Parser<'a> {
     pub fn array(&mut self, level: usize, nest: bool) -> Result<Yaml, PError> {
         let mut v = vec![];
         loop {
-            self.eat();
+            self.forward();
             let mut downgrade = false;
             if v.is_empty() {
                 // Mismatch
@@ -307,13 +312,13 @@ impl<'a> Parser<'a> {
                     break;
                 }
             }
-            self.eat();
+            self.forward();
             v.push(err_own!(
                 self.scalar(if downgrade { level } else { level + 1 }, false, false),
                 self.err("array item")
             )?);
         }
-        self.eat();
+        self.forward();
         Ok(Yaml::from_iter(v))
     }
 
@@ -321,7 +326,7 @@ impl<'a> Parser<'a> {
     pub fn map(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Yaml, PError> {
         let mut m = vec![];
         loop {
-            self.eat();
+            self.forward();
             let k = if m.is_empty() {
                 // Mismatch
                 if nest {
@@ -330,9 +335,9 @@ impl<'a> Parser<'a> {
                 } else if self.gap().is_ok() {
                     self.ind(level)?;
                 }
-                self.eat();
+                self.forward();
                 let k = if self.complex_mapping().is_ok() {
-                    self.eat();
+                    self.forward();
                     let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.ind(level)?;
@@ -353,9 +358,9 @@ impl<'a> Parser<'a> {
                 if self.ind(level).is_err() || self.doc_end() {
                     break;
                 }
-                self.eat();
+                self.forward();
                 let k = if self.complex_mapping().is_ok() {
-                    self.eat();
+                    self.forward();
                     let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.ind(level)?;
@@ -369,11 +374,11 @@ impl<'a> Parser<'a> {
                 }
                 k
             };
-            self.eat();
+            self.forward();
             let v = err_own!(self.scalar(level + 1, true, false), self.err("map value"))?;
             m.push((k, v));
         }
-        self.eat();
+        self.forward();
         Ok(Yaml::from_iter(m))
     }
 }
