@@ -80,7 +80,7 @@ macro_rules! except_method {
 #[derive(Eq, Clone)]
 pub struct Node {
     /// Document position
-    pub pos: usize,
+    pub pos: u64,
     /// Type assertion
     pub ty: String,
     /// Anchor reference
@@ -101,7 +101,7 @@ impl Node {
     }
 
     /// Builder function for position.
-    pub fn pos(mut self, pos: usize) -> Self {
+    pub fn pos(mut self, pos: u64) -> Self {
         self.pos = pos;
         self
     }

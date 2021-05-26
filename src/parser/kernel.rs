@@ -1,5 +1,4 @@
 use super::*;
-use std::str::Bytes;
 
 /// The option of [`Parser::take_while`].
 pub enum TakeOpt {
@@ -17,12 +16,22 @@ pub enum TakeOpt {
 /// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
 impl<'a> Parser<'a> {
     /// Get the text from the eaten cursor to the current position.
-    pub fn text(&mut self) -> &'a str {
+    pub fn text(&mut self) -> String {
         if self.eaten < self.pos {
-            &self.doc[self.eaten..self.pos]
+            String::from(String::from_utf8_lossy(
+                self.doc[self.eaten..self.pos].as_bytes(),
+            ))
         } else {
-            ""
+            String::new()
         }
+    }
+
+    /// Consume and move the pointer.
+    pub fn consume(&mut self) {
+        self.forward();
+        self.consumed += self.eaten as u64;
+        self.eaten = 0;
+        self.backward();
     }
 
     /// Consume the eaten part.
@@ -41,8 +50,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Show the right hand side string after the current cursor.
-    pub fn food(&self) -> Bytes<'a> {
-        self.doc[self.pos..].bytes()
+    pub fn food(&self) -> &'a [u8] {
+        self.doc[self.pos..].as_bytes()
     }
 
     /// Match symbol.

@@ -24,13 +24,13 @@ impl<'a> Parser<'a> {
     }
 
     /// Match integer.
-    pub fn int(&mut self) -> Result<&'a str, ()> {
+    pub fn int(&mut self) -> Result<String, ()> {
         self.num_prefix()?;
         Ok(self.text())
     }
 
     /// Match float.
-    pub fn float(&mut self) -> Result<&'a str, ()> {
+    pub fn float(&mut self) -> Result<String, ()> {
         self.num_prefix()?;
         self.sym(b'.')?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(0))?;
@@ -38,7 +38,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match float with scientific notation.
-    pub fn sci_float(&mut self) -> Result<&'a str, ()> {
+    pub fn sci_float(&mut self) -> Result<String, ()> {
         self.num_prefix()?;
         self.take_while(Self::is_in(b"eE"), TakeOpt::One)?;
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
@@ -70,7 +70,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match quoted string.
-    pub fn string_quoted(&mut self, sym: u8) -> Result<&'a str, ()> {
+    pub fn string_quoted(&mut self, sym: u8) -> Result<String, ()> {
         // FIXME: escaping
         self.sym(sym)?;
         let s = self.context(|p| {
@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self, use_sep: bool) -> Result<&'a str, ()> {
+    pub fn string_plain(&mut self, use_sep: bool) -> Result<String, ()> {
         // FIXME: multiline
         let eaten = self.eaten;
         let mut patt = b"[]{}: \n\r".iter().cloned().collect::<Vec<_>>();
@@ -100,16 +100,16 @@ impl<'a> Parser<'a> {
             break;
         }
         self.eaten = eaten;
-        let s = self.text().trim_end();
+        let s = self.text().trim_end().to_owned();
         if s.is_empty() {
             Err(())
         } else {
-            Ok(s)
+            Ok(s.to_owned())
         }
     }
 
     /// Match flow string and return the content.
-    pub fn string_flow(&mut self, use_sep: bool) -> Result<&'a str, ()> {
+    pub fn string_flow(&mut self, use_sep: bool) -> Result<String, ()> {
         if let Ok(s) = self.string_quoted(b'\'') {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"') {
@@ -177,7 +177,7 @@ impl<'a> Parser<'a> {
                     if !v.is_empty() {
                         v.push(sep);
                     }
-                    v.push_str(s);
+                    v.push_str(&s);
                 } else {
                     let s = s.trim_start();
                     if !v.is_empty() && !v.ends_with(char::is_whitespace) {
@@ -202,7 +202,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match type assertion.
-    pub fn ty(&mut self) -> Result<&'a str, ()> {
+    pub fn ty(&mut self) -> Result<String, ()> {
         self.take_while(Self::is_in(b"!"), TakeOpt::Range(1, 2))?;
         self.context(|p| {
             p.identifier()?;
@@ -211,7 +211,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match anchor definition.
-    pub fn anchor(&mut self) -> Result<&'a str, ()> {
+    pub fn anchor(&mut self) -> Result<String, ()> {
         self.sym(b'&')?;
         self.context(|p| {
             p.identifier()?;
@@ -220,7 +220,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Match anchor used.
-    pub fn anchor_use(&mut self) -> Result<&'a str, ()> {
+    pub fn anchor_use(&mut self) -> Result<String, ()> {
         self.sym(b'*')?;
         self.context(|p| {
             p.identifier()?;

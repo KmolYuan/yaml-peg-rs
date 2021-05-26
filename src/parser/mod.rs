@@ -43,6 +43,7 @@ macro_rules! err_own {
 pub struct Parser<'a> {
     doc: &'a str,
     indent: usize,
+    consumed: u64,
     /// Current position.
     pub pos: usize,
     /// Read position.
@@ -59,6 +60,7 @@ impl<'a> Parser<'a> {
         Self {
             doc,
             indent: 2,
+            consumed: 0,
             pos: 0,
             eaten: 0,
         }
@@ -71,17 +73,15 @@ impl<'a> Parser<'a> {
     }
 
     /// Set the starting point if character boundary is valid.
-    ///
-    /// # Panic
-    ///
-    /// If the position is not a char boundary.
     pub fn pos(mut self, pos: usize) -> Self {
-        if !self.doc.is_char_boundary(pos) {
-            panic!("not a char boundary: {}", pos)
-        }
         self.pos = pos;
         self.eaten = pos;
         self
+    }
+
+    /// Get the indicator.
+    pub fn indicator(&self) -> u64 {
+        self.consumed + self.pos as u64
     }
 
     /// A short function to raise error.
@@ -99,7 +99,7 @@ impl<'a> Parser<'a> {
         v.push(self.doc()?);
         loop {
             self.gap().unwrap_or_default();
-            if self.food().peekable().peek().is_none() {
+            if self.food().is_empty() {
                 break;
             }
             if self.seq(b"---").is_err() {
@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
 
     /// Match doc end.
     pub fn doc_end(&mut self) -> bool {
-        if self.food().peekable().peek().is_none() {
+        if self.food().is_empty() {
             true
         } else {
             self.context(|p| {
@@ -171,7 +171,7 @@ impl<'a> Parser<'a> {
             self.bound()?;
         }
         self.forward();
-        let pos = self.pos;
+        let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
         Ok(node!(yaml, pos, anchor.into(), ty.into()))
@@ -200,7 +200,7 @@ impl<'a> Parser<'a> {
         } else if let Ok(s) = self.anchor_use() {
             Yaml::Anchor(s.into())
         } else if let Ok(s) = self.string_flow(use_sep) {
-            Yaml::Str(Self::escape(s))
+            Yaml::Str(Self::escape(&s))
         } else {
             err_own!(
                 self.array_flow(level),
