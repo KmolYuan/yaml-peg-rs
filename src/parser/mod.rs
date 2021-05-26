@@ -19,76 +19,11 @@ macro_rules! err_own {
     };
 }
 
-/// A PEG parser with YAML grammar, support UTF-8 characters.
-///
-/// A simple example for parsing YAML only:
-///
-/// ```
-/// use yaml_peg::{parser::Parser, node};
-/// let n = Parser::new("true").parse().unwrap();
-/// assert_eq!(n, vec![node!(true)]);
-/// ```
-///
-/// For matching partial grammar, each methods are the sub-parser.
-/// The methods have some behaviers:
-///
-/// + They will move the current cursor if matched.
-/// + Returned value:
-///     + `Result<(), ()>` represents the sub-parser can be matched and mismatched.
-///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
-/// + Use `?` to match a condition.
-/// + Use [`Result::unwrap_or_default`] to match an optional condition.
-/// + Method [`Parser::eat`] is used to move on and get the matched string.
-/// + Method [`Parser::backward`] is used to get back if mismatched.
-pub struct Parser<'a> {
-    doc: &'a str,
-    indent: usize,
-    consumed: u64,
-    /// Current position.
-    pub pos: usize,
-    /// Read position.
-    pub eaten: usize,
-}
-
 /// The basic implementation.
 ///
 /// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
 /// Additionally, they should eat the string by themself.
-impl<'a> Parser<'a> {
-    /// Create a PEG parser with the string.
-    pub fn new(doc: &'a str) -> Self {
-        Self {
-            doc,
-            indent: 2,
-            consumed: 0,
-            pos: 0,
-            eaten: 0,
-        }
-    }
-
-    /// Builder method for setting indent.
-    pub fn indent(mut self, indent: usize) -> Self {
-        self.indent = indent;
-        self
-    }
-
-    /// Set the starting point if character boundary is valid.
-    pub fn pos(mut self, pos: usize) -> Self {
-        self.pos = pos;
-        self.eaten = pos;
-        self
-    }
-
-    /// Get the indicator.
-    pub fn indicator(&self) -> u64 {
-        self.consumed + self.pos as u64
-    }
-
-    /// A short function to raise error.
-    pub fn err<R>(&self, msg: &str) -> Result<R, PError> {
-        Err(PError::Terminate(self.pos, msg.into()))
-    }
-
+impl Parser<'_> {
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Array, PError> {
         self.inv(TakeOpt::More(0))?;
@@ -387,5 +322,7 @@ impl<'a> Parser<'a> {
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
 pub fn parse(doc: &str) -> Result<Array, String> {
-    Parser::new(doc).parse().map_err(|e| e.into_error(doc))
+    Parser::new(doc.as_bytes())
+        .parse()
+        .map_err(|e| e.into_error(doc))
 }

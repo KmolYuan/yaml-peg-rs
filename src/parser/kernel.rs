@@ -11,19 +11,90 @@ pub enum TakeOpt {
     More(usize),
 }
 
-/// The low level grammar implementation.
+/// A PEG parser with YAML grammar, support UTF-8 characters.
 ///
-/// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
+/// A simple example for parsing YAML only:
+///
+/// ```
+/// use yaml_peg::{parser::Parser, node};
+/// let n = Parser::new(b"true").parse().unwrap();
+/// assert_eq!(n, vec![node!(true)]);
+/// ```
+///
+/// For matching partial grammar, each methods are the sub-parser.
+/// The methods have some behaviers:
+///
+/// + They will move the current cursor if matched.
+/// + Returned value:
+///     + `Result<(), ()>` represents the sub-parser can be matched and mismatched.
+///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
+/// + Use `?` to match a condition.
+/// + Use [`Result::unwrap_or_default`] to match an optional condition.
+/// + Method [`Parser::eat`] is used to move on and get the matched string.
+/// + Method [`Parser::backward`] is used to get back if mismatched.
+pub struct Parser<'a> {
+    doc: &'a [u8],
+    indent: usize,
+    consumed: u64,
+    /// Current position.
+    pub pos: usize,
+    /// Read position.
+    pub eaten: usize,
+}
+
+/// The implementation of string pointer.
 impl<'a> Parser<'a> {
+    /// Create a PEG parser with the string.
+    pub fn new(doc: &'a [u8]) -> Self {
+        Self {
+            doc,
+            indent: 2,
+            consumed: 0,
+            pos: 0,
+            eaten: 0,
+        }
+    }
+
+    /// Show the right hand side string after the current cursor.
+    pub fn food(&self) -> &'a [u8] {
+        &self.doc[self.pos..]
+    }
+
     /// Get the text from the eaten cursor to the current position.
     pub fn text(&mut self) -> String {
         if self.eaten < self.pos {
-            String::from(String::from_utf8_lossy(
-                self.doc[self.eaten..self.pos].as_bytes(),
-            ))
+            String::from(String::from_utf8_lossy(&self.doc[self.eaten..self.pos]))
         } else {
             String::new()
         }
+    }
+}
+
+/// The low level grammar implementation.
+///
+/// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
+impl Parser<'_> {
+    /// Builder method for setting indent.
+    pub fn indent(mut self, indent: usize) -> Self {
+        self.indent = indent;
+        self
+    }
+
+    /// Set the starting point if character boundary is valid.
+    pub fn pos(mut self, pos: usize) -> Self {
+        self.pos = pos;
+        self.eaten = pos;
+        self
+    }
+
+    /// Get the indicator.
+    pub fn indicator(&self) -> u64 {
+        self.consumed + self.pos as u64
+    }
+
+    /// A short function to raise error.
+    pub fn err<R>(&self, msg: &str) -> Result<R, PError> {
+        Err(PError::Terminate(self.pos, msg.into()))
     }
 
     /// Consume and move the pointer.
@@ -47,11 +118,6 @@ impl<'a> Parser<'a> {
     /// Move back current cursor.
     pub fn back(&mut self, n: usize) {
         self.pos -= n;
-    }
-
-    /// Show the right hand side string after the current cursor.
-    pub fn food(&self) -> &'a [u8] {
-        self.doc[self.pos..].as_bytes()
     }
 
     /// Match symbol.
@@ -139,6 +205,11 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Match indent.
+    pub fn ind(&mut self, level: usize) -> Result<(), ()> {
+        self.seq(&b" ".repeat(self.indent * level))
+    }
+
     /// String escaping, return a new string.
     pub fn escape(doc: &str) -> String {
         let mut s = String::new();
@@ -148,16 +219,15 @@ impl<'a> Parser<'a> {
                 b = true;
                 continue;
             }
-            let mut buff = [0; 4];
-            s += match c {
-                '\\' if b => "\\",
-                'n' if b => "\\n",
-                'r' if b => "\\r",
-                't' if b => "\\t",
-                'b' if b => "\x08",
-                'f' if b => "\x0C",
-                c => c.encode_utf8(&mut buff),
-            };
+            s.push(match c {
+                '\\' if b => '\\',
+                'n' if b => '\n',
+                'r' if b => '\r',
+                't' if b => '\t',
+                'b' if b => '\x08',
+                'f' if b => '\x0C',
+                c => c,
+            });
             b = false;
         }
         s

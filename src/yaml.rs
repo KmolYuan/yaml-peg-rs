@@ -68,7 +68,9 @@ impl Yaml {
     where
         T: Display,
     {
-        parser::Parser::new(&format!("{}", s)).identifier().is_ok()
+        parser::Parser::new(format!("{}", s).as_bytes())
+            .identifier()
+            .is_ok()
     }
 }
 

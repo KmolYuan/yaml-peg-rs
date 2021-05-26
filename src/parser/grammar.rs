@@ -3,7 +3,7 @@ use super::*;
 /// The low level grammar implementation for YAML.
 ///
 /// These sub-parser returns `Result<R, ()>`, and calling [`Parser::backward`] if mismatched.
-impl<'a> Parser<'a> {
+impl Parser<'_> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), ()> {
         self.inv(TakeOpt::One)?;
@@ -239,11 +239,6 @@ impl<'a> Parser<'a> {
     /// Match any invisible characters.
     pub fn inv(&mut self, opt: TakeOpt) -> Result<(), ()> {
         self.take_while(u8::is_ascii_whitespace, opt)
-    }
-
-    /// Match indent.
-    pub fn ind(&mut self, level: usize) -> Result<(), ()> {
-        self.seq(&b" ".repeat(self.indent * level))
     }
 
     /// Match indent with previous level.
