@@ -82,7 +82,8 @@ impl Dumper for Node {
 /// ```
 pub fn dump<I>(nodes: I) -> String
 where
-    I: IntoIterator<Item = Node>,
+    I: IntoIterator,
+    I::Item: Dumper,
 {
     nodes
         .into_iter()
