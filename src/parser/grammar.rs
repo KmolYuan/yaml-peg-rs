@@ -82,39 +82,61 @@ impl Parser<'_> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self, use_sep: bool) -> Result<String, ()> {
-        // FIXME: multiline
-        let eaten = self.eaten;
-        let mut patt = b"[]{}: \n\r".iter().cloned().collect::<Vec<_>>();
+    pub fn string_plain(&mut self, level: usize, use_sep: bool) -> Result<String, ()> {
+        let mut patt = b"[]{}: \n\r".to_vec();
         if use_sep {
             patt.push(b',');
         }
-        loop {
-            self.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
-            self.forward();
-            if self.seq(b": ").is_ok() || self.seq(b":\n").is_ok() || self.seq(b" #").is_ok() {
-                self.back(2);
-            } else if self.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
-                continue;
+        self.context(|p| {
+            let mut v = String::new();
+            loop {
+                p.forward();
+                p.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
+                v.push_str(&p.text());
+                p.forward();
+                if p.seq(b": ").is_ok() || p.seq(b":\n").is_ok() || p.seq(b" #").is_ok() {
+                    p.back(2);
+                    break;
+                }
+                p.forward();
+                if p.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
+                    // Remove leading space
+                    if p.text().trim().is_empty() {
+                        v.truncate(v.trim_end().len());
+                    }
+                    v.push_str(&p.text());
+                } else if p.ind(level).is_err() {
+                    if let Ok(t) = p.gap() {
+                        if t == 1 {
+                            v.push(' ');
+                        }
+                        for _ in 0..t - 1 {
+                            v.push('\n');
+                        }
+                        if p.ind(level).is_err() {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
             }
-            break;
-        }
-        self.eaten = eaten;
-        let s = self.text().trim_end().to_owned();
-        if s.is_empty() {
-            Err(())
-        } else {
-            Ok(s.to_owned())
-        }
+            v.truncate(v.trim_end().len());
+            if v.is_empty() {
+                Err(())
+            } else {
+                Ok(v)
+            }
+        })
     }
 
     /// Match flow string and return the content.
-    pub fn string_flow(&mut self, use_sep: bool) -> Result<String, ()> {
+    pub fn string_flow(&mut self, level: usize, use_sep: bool) -> Result<String, ()> {
         if let Ok(s) = self.string_quoted(b'\'') {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"') {
             Ok(Self::escape(&s))
-        } else if let Ok(s) = self.string_plain(use_sep) {
+        } else if let Ok(s) = self.string_plain(level, use_sep) {
             Ok(s)
         } else {
             Err(())
@@ -125,6 +147,7 @@ impl Parser<'_> {
     pub fn string_literal(&mut self, level: usize) -> Result<String, ()> {
         self.sym(b'|')?;
         let chomp = self.chomp();
+        self.ws(TakeOpt::More(0))?;
         let s = self.string_wrapped(level, '\n', true)?;
         Ok(chomp(s))
     }
@@ -133,6 +156,7 @@ impl Parser<'_> {
     pub fn string_folded(&mut self, level: usize) -> Result<String, ()> {
         self.sym(b'>')?;
         let chomp = self.chomp();
+        self.ws(TakeOpt::More(0))?;
         let s = self.string_wrapped(level, ' ', false)?;
         Ok(chomp(s))
     }
@@ -143,7 +167,7 @@ impl Parser<'_> {
             if p.sym(b'-').is_ok() {
                 |s: String| s.trim_end().to_owned()
             } else if p.sym(b'+').is_ok() {
-                |s: String| s.to_owned()
+                |s| s
             } else {
                 |s: String| s.trim_end().to_owned() + "\n"
             }
@@ -155,8 +179,7 @@ impl Parser<'_> {
         self.context(|p| {
             let mut v = String::new();
             loop {
-                p.bound()?;
-                p.inv(TakeOpt::One)?;
+                p.nl(TakeOpt::One)?;
                 p.forward();
                 if p.ind(level).is_err() {
                     if let Ok(t) = p.gap() {
@@ -257,6 +280,11 @@ impl Parser<'_> {
             |c| c.is_ascii_whitespace() && *c != b'\n' && *c != b'\r',
             opt,
         )
+    }
+
+    /// Match newline characters.
+    pub fn nl(&mut self, opt: TakeOpt) -> Result<(), ()> {
+        self.take_while(Self::is_in(b"\n\r"), opt)
     }
 
     /// Match any invisible characters.

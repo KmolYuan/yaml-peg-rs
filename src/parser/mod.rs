@@ -129,12 +129,12 @@ impl Parser<'_> {
         } else if let Ok(s) = self.float() {
             Yaml::Float(s.trim_end_matches(|c| ".0".contains(c)).into())
         } else if let Ok(s) = self.sci_float() {
-            Yaml::Float(s.into())
+            Yaml::Float(s)
         } else if let Ok(s) = self.int() {
-            Yaml::Int(s.into())
+            Yaml::Int(s)
         } else if let Ok(s) = self.anchor_use() {
-            Yaml::Anchor(s.into())
-        } else if let Ok(s) = self.string_flow(use_sep) {
+            Yaml::Anchor(s)
+        } else if let Ok(s) = self.string_flow(level, use_sep) {
             Yaml::Str(s)
         } else {
             err_own!(
