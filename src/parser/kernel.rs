@@ -209,27 +209,4 @@ impl Parser<'_> {
     pub fn ind(&mut self, level: usize) -> Result<(), ()> {
         self.seq(&b" ".repeat(self.indent * level))
     }
-
-    /// String escaping, return a new string.
-    pub fn escape(doc: &str) -> String {
-        let mut s = String::new();
-        let mut b = false;
-        for c in doc.chars() {
-            if c == '\\' {
-                b = true;
-                continue;
-            }
-            s.push(match c {
-                '\\' if b => '\\',
-                'n' if b => '\n',
-                'r' if b => '\r',
-                't' if b => '\t',
-                'b' if b => '\x08',
-                'f' if b => '\x0C',
-                c => c,
-            });
-            b = false;
-        }
-        s
-    }
 }

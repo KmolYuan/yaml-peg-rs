@@ -75,9 +75,9 @@ impl Parser<'_> {
     pub fn scalar(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Node, PError> {
         self.scalar_inner(|p| {
             if let Ok(s) = p.string_literal(level) {
-                Ok(Yaml::Str(Self::escape(&s)))
+                Ok(Yaml::Str(s))
             } else if let Ok(s) = p.string_folded(level) {
-                Ok(Yaml::Str(Self::escape(&s)))
+                Ok(Yaml::Str(s))
             } else {
                 err_own!(
                     p.array(level, nest),
@@ -135,7 +135,7 @@ impl Parser<'_> {
         } else if let Ok(s) = self.anchor_use() {
             Yaml::Anchor(s.into())
         } else if let Ok(s) = self.string_flow(use_sep) {
-            Yaml::Str(Self::escape(&s))
+            Yaml::Str(s)
         } else {
             err_own!(
                 self.array_flow(level),

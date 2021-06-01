@@ -113,7 +113,7 @@ impl Parser<'_> {
         if let Ok(s) = self.string_quoted(b'\'') {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"') {
-            Ok(s)
+            Ok(Self::escape(&s))
         } else if let Ok(s) = self.string_plain(use_sep) {
             Ok(s)
         } else {
@@ -190,6 +190,29 @@ impl Parser<'_> {
             p.back(1);
             Ok(v + "\n")
         })
+    }
+
+    /// String escaping, return a new string.
+    pub fn escape(doc: &str) -> String {
+        let mut s = String::new();
+        let mut b = false;
+        for c in doc.chars() {
+            if c == '\\' {
+                b = true;
+                continue;
+            }
+            s.push(match c {
+                '\\' if b => '\\',
+                'n' if b => '\n',
+                'r' if b => '\r',
+                't' if b => '\t',
+                'b' if b => '\x08',
+                'f' if b => '\x0C',
+                c => c,
+            });
+            b = false;
+        }
+        s
     }
 
     /// Match valid YAML identifier.
