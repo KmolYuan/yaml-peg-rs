@@ -70,15 +70,45 @@ impl Parser<'_> {
     }
 
     /// Match quoted string.
-    pub fn string_quoted(&mut self, sym: u8) -> Result<String, ()> {
-        // FIXME: escaping
-        self.sym(sym)?;
-        let s = self.context(|p| {
-            p.take_while(Self::not_in(&[sym]), TakeOpt::More(0))?;
-            Ok(p.text())
-        })?;
-        self.sym(sym)?;
-        Ok(s)
+    pub fn string_quoted(&mut self, sym: u8, ignore: &[u8]) -> Result<String, ()> {
+        self.context(|p| {
+            p.sym(sym)?;
+            p.forward();
+            let mut v = String::new();
+            p.ws(TakeOpt::More(0))?;
+            v.push_str(&p.text());
+            loop {
+                p.forward();
+                p.take_while(Self::not_in(&[b'\n', b'\r', b'\\', sym]), TakeOpt::More(0))?;
+                v.push_str(&p.text());
+                p.forward();
+                if p.seq(ignore).is_ok() {
+                    v.push(char::from(sym));
+                } else if let Ok(mut t) = p.gap() {
+                    if v.ends_with('\\') {
+                        t -= 1;
+                    }
+                    if t == 1 {
+                        v.truncate(v.trim_end().len());
+                        // Manual wrapping
+                        if !v.ends_with("\\n") {
+                            v.push(' ');
+                        }
+                    } else if t > 1 {
+                        for _ in 0..t - 1 {
+                            v.push('\n');
+                        }
+                    }
+                    // Remove leading space
+                    p.ws(TakeOpt::More(0))?;
+                } else if p.sym(b'\\').is_ok() {
+                    v.push('\\');
+                } else if p.sym(sym).is_ok() {
+                    break;
+                }
+            }
+            Ok(v)
+        })
     }
 
     /// Match plain string.
@@ -101,7 +131,7 @@ impl Parser<'_> {
                 p.forward();
                 if p.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
                     // Remove leading space
-                    if p.text().trim().is_empty() {
+                    if p.text() == " " {
                         v.truncate(v.trim_end().len());
                     }
                     v.push_str(&p.text());
@@ -132,9 +162,9 @@ impl Parser<'_> {
 
     /// Match flow string and return the content.
     pub fn string_flow(&mut self, level: usize, use_sep: bool) -> Result<String, ()> {
-        if let Ok(s) = self.string_quoted(b'\'') {
+        if let Ok(s) = self.string_quoted(b'\'', b"''") {
             Ok(s)
-        } else if let Ok(s) = self.string_quoted(b'"') {
+        } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
             Ok(Self::escape(&s))
         } else if let Ok(s) = self.string_plain(level, use_sep) {
             Ok(s)
@@ -148,7 +178,7 @@ impl Parser<'_> {
         self.sym(b'|')?;
         let chomp = self.chomp();
         self.ws(TakeOpt::More(0))?;
-        let s = self.string_wrapped(level, '\n', true)?;
+        let s = self.string_wrapped(level, b'\n', true)?;
         Ok(chomp(s))
     }
 
@@ -157,7 +187,7 @@ impl Parser<'_> {
         self.sym(b'>')?;
         let chomp = self.chomp();
         self.ws(TakeOpt::More(0))?;
-        let s = self.string_wrapped(level, ' ', false)?;
+        let s = self.string_wrapped(level, b' ', false)?;
         Ok(chomp(s))
     }
 
@@ -175,7 +205,7 @@ impl Parser<'_> {
     }
 
     /// Match wrapped string.
-    pub fn string_wrapped(&mut self, level: usize, sep: char, leading: bool) -> Result<String, ()> {
+    pub fn string_wrapped(&mut self, level: usize, sep: u8, leading: bool) -> Result<String, ()> {
         self.context(|p| {
             let mut v = String::new();
             loop {
@@ -198,13 +228,13 @@ impl Parser<'_> {
                 let s = p.text();
                 if leading {
                     if !v.is_empty() {
-                        v.push(sep);
+                        v.push(char::from(sep));
                     }
                     v.push_str(&s);
                 } else {
                     let s = s.trim_start();
                     if !v.is_empty() && !v.ends_with(char::is_whitespace) {
-                        v.push(sep);
+                        v.push(char::from(sep));
                     }
                     v.push_str(s);
                 }
@@ -220,7 +250,7 @@ impl Parser<'_> {
         let mut s = String::new();
         let mut b = false;
         for c in doc.chars() {
-            if c == '\\' {
+            if c == '\\' && !b {
                 b = true;
                 continue;
             }
@@ -313,6 +343,7 @@ impl Parser<'_> {
                 // Check point
                 p.forward();
                 p.ws(TakeOpt::More(0))?;
+                p.comment().unwrap_or_default();
                 if p.sym(b'\n').is_err() {
                     return Ok(t);
                 }

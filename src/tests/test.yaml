@@ -20,7 +20,9 @@ a0 bb: val
   a4:
 : -30
 ? *y: b3, b4
-test multiline:
+# Test wrapping
+? test
+  multiline:
   folded: >
     aaa
     bbb
@@ -46,7 +48,6 @@ test multiline:
   double quoted: "aaa \"bbb\" 'ccc',
     dd\
     d\\n\n
-
     eee
       fff"
 ...
