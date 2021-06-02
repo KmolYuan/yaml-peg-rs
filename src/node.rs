@@ -120,11 +120,7 @@ impl Node {
 
     /// Check the value is null.
     pub fn is_null(&self) -> bool {
-        if let Yaml::Null = self.yaml {
-            true
-        } else {
-            false
-        }
+        self.yaml == Yaml::Null
     }
 
     /// Convert to boolean.
