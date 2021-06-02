@@ -2,9 +2,7 @@ use crate::*;
 use std::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
-    io::Result,
     ops::Index,
-    slice::Iter,
     str::FromStr,
 };
 
@@ -21,27 +19,6 @@ macro_rules! as_method {
                     Err(_) => None,
                 },
                 _ => None,
-            }
-        }
-    };
-}
-
-macro_rules! except_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
-        $(#[$meta])*
-        pub fn $id<E, N>(&self, e: E) -> Result<N>
-        where
-            E: AsRef<str>,
-            N: FromStr,
-        {
-            match match &self.yaml {
-                Yaml::$ty1(n) $(| Yaml::$ty2(n))* => n,
-                _ => "",
-            }
-            .parse()
-            {
-                Ok(v) => Ok(v),
-                Err(_) => Err(err!(e.as_ref())),
             }
         }
     };
@@ -133,20 +110,63 @@ impl Node {
 
     as_method! {
         /// Convert to integer.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!(60, node!(60).as_int().unwrap());
+        /// ```
         fn as_int = Int
     }
     as_method! {
         /// Convert to float.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!(20.06, node!(20.06).as_float().unwrap());
+        /// ```
         fn as_float = Float
     }
     as_method! {
         /// Convert to number.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!(60, node!(60).as_number().unwrap());
+        /// assert_eq!(20.06, node!(20.06).as_number().unwrap());
+        /// ```
         fn as_number = Int | Float
+    }
+
+    /// Convert to string pointer.
+    ///
+    /// This method allows null, it represented as empty string.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    /// assert_eq!(
+    ///     "abc",
+    ///     node!("abc").as_str().unwrap()
+    /// );
+    /// ```
+    pub fn as_str(&self) -> Option<&str> {
+        match &self.yaml {
+            Yaml::Str(s) => Some(s),
+            Yaml::Null => Some(""),
+            _ => None,
+        }
     }
 
     /// Convert to array.
     ///
     /// Warn: The object ownership will be took.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    /// assert_eq!(
+    ///     &vec![node!(1), node!(2)],
+    ///     node!([node!(1), node!(2)]).as_array().unwrap()
+    /// );
+    /// ```
     pub fn as_array(&self) -> Option<&Array> {
         match &self.yaml {
             Yaml::Array(a) => Some(a),
@@ -157,101 +177,19 @@ impl Node {
     /// Convert to map and try to get the value by keys.
     ///
     /// If get failed, returns [`Option::None`].
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    /// assert_eq!(
+    ///     node!({node!("a") => node!(30.)}).as_get(&["a"]).unwrap(),
+    ///     &node!(30.)
+    /// );
+    /// ```
     pub fn as_get(&self, keys: &[&str]) -> Option<&Self> {
         if let Yaml::Map(a) = &self.yaml {
             get_from_map(a, keys)
         } else {
             None
-        }
-    }
-
-    /// Assert the data is boolean.
-    pub fn except_bool<E>(&self, e: E) -> Result<bool>
-    where
-        E: AsRef<str>,
-    {
-        match &self.yaml {
-            Yaml::Bool(b) => Ok(*b),
-            _ => Err(err!(e.as_ref())),
-        }
-    }
-
-    except_method! {
-        /// Assert the data is integer.
-        ///
-        /// If get failed, returns [`std::io::Error`].
-        fn except_int = Int
-    }
-    except_method! {
-        /// Assert the data is float.
-        ///
-        /// If get failed, returns [`std::io::Error`].
-        fn except_float = Float
-    }
-    except_method! {
-        /// Assert the data is float.
-        ///
-        /// If get failed, returns [`std::io::Error`].
-        fn except_number = Int | Float
-    }
-
-    /// Assert the data is string reference.
-    ///
-    /// If get failed, returns [`std::io::Error`].
-    /// Null value will generate an empty string.
-    /// Warn: The object ownership will be took.
-    pub fn except_str<E>(&self, e: E) -> Result<&str>
-    where
-        E: AsRef<str>,
-    {
-        match &self.yaml {
-            Yaml::Str(s) => Ok(s.as_ref()),
-            Yaml::Null => Ok(""),
-            _ => Err(err!(e.as_ref())),
-        }
-    }
-
-    /// Assert the data is string.
-    ///
-    /// If get failed, returns [`std::io::Error`].
-    /// Null value will generate an empty string.
-    pub fn except_string<E>(&self, e: E) -> Result<String>
-    where
-        E: AsRef<str>,
-    {
-        match &self.yaml {
-            Yaml::Str(s) => Ok(s.clone()),
-            Yaml::Null => Ok("".into()),
-            _ => Err(err!(e.as_ref())),
-        }
-    }
-
-    /// Assert the data is array.
-    ///
-    /// If get failed, returns [`std::io::Error`].
-    /// Null value will generate an empty array.
-    pub fn except_array<E>(&self, e: E) -> Result<(usize, Iter<Node>)>
-    where
-        E: AsRef<str>,
-    {
-        match &self.yaml {
-            Yaml::Array(a) => Ok((a.len(), a.iter())),
-            Yaml::Null => Ok((0, [].iter())),
-            _ => Err(err!(e.as_ref())),
-        }
-    }
-
-    /// Assert the data is map and try to get the value by keys.
-    ///
-    /// If get failed, returns [`std::io::Error`].
-    pub fn except_get<E>(&self, keys: &[&str], e: E) -> Result<&Self>
-    where
-        E: AsRef<str>,
-    {
-        if let Yaml::Map(m) = &self.yaml {
-            get_from_map(m, keys).ok_or(err!(e.as_ref()))
-        } else {
-            Err(err!(e.as_ref()))
         }
     }
 }
