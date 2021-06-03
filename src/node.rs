@@ -7,18 +7,31 @@ use std::{
 };
 
 macro_rules! as_method {
+    {$(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:tt))? $(| $null:ident($default:expr))? -> $r:ty} => {
+        $(#[$meta])*
+        pub fn $id(&self) -> Result<$r, u64> {
+            match &self.yaml {
+                Yaml::$ty(v) => Ok($($op)?v),
+                $(Yaml::$null => Ok($default),)?
+                _ => Err(self.pos),
+            }
+        }
+    };
+}
+
+macro_rules! as_num_method {
     {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
         $(#[$meta])*
-        pub fn $id<N>(&self) -> Option<N>
+        pub fn $id<N>(&self) -> Result<N, u64>
         where
             N: FromStr,
         {
             match &self.yaml {
                 Yaml::$ty1(n) $(| Yaml::$ty2(n))* => match n.parse() {
-                    Ok(v) => Some(v),
-                    Err(_) => None,
+                    Ok(v) => Ok(v),
+                    Err(_) => Err(self.pos),
                 },
-                _ => None,
+                _ => Err(self.pos),
             }
         }
     };
@@ -61,10 +74,10 @@ macro_rules! as_method {
 ///     let n = node!({
 ///         node!("title") => node!(12.)
 ///     });
-///     let n = n.as_get(&["title"]).ok_or(("missing \"title\"", n.pos))?;
+///     let n = n.as_get(&["title"]).map_err(|p| ("missing \"title\"", p))?;
 ///     assert_eq!(
 ///         Err(("title", 0)),
-///         n.as_str().ok_or(("title", n.pos))
+///         n.as_str().map_err(|p| ("title", p))
 ///     );
 ///     Ok(())
 /// }
@@ -115,20 +128,17 @@ impl Node {
         self.yaml == Yaml::Null
     }
 
-    /// Convert to boolean.
-    ///
-    /// ```
-    /// use yaml_peg::{node};
-    /// assert!(node!(true).as_bool().unwrap());
-    /// ```
-    pub fn as_bool(&self) -> Option<bool> {
-        match &self.yaml {
-            Yaml::Bool(b) => Some(*b),
-            _ => None,
-        }
+    as_method! {
+        /// Convert to boolean.
+        ///
+        /// ```
+        /// use yaml_peg::{node};
+        /// assert!(node!(true).as_bool().unwrap());
+        /// ```
+        fn as_bool = Bool(*) -> bool
     }
 
-    as_method! {
+    as_num_method! {
         /// Convert to integer.
         ///
         /// ```
@@ -137,7 +147,8 @@ impl Node {
         /// ```
         fn as_int = Int
     }
-    as_method! {
+
+    as_num_method! {
         /// Convert to float.
         ///
         /// ```
@@ -146,7 +157,8 @@ impl Node {
         /// ```
         fn as_float = Float
     }
-    as_method! {
+
+    as_num_method! {
         /// Convert to number.
         ///
         /// ```
@@ -157,53 +169,58 @@ impl Node {
         fn as_number = Int | Float
     }
 
-    /// Convert to string pointer.
-    ///
-    /// This method allows null, it represented as empty string.
-    /// You can check them by [`str::is_empty`].
-    ///
-    /// ```
-    /// use yaml_peg::node;
-    /// assert_eq!("abc", node!("abc").as_str().unwrap());
-    /// assert!(node!(null).as_str().unwrap().is_empty());
-    /// ```
-    pub fn as_str(&self) -> Option<&str> {
-        match &self.yaml {
-            Yaml::Str(s) => Some(s),
-            Yaml::Null => Some(""),
-            _ => None,
-        }
+    as_method! {
+        /// Convert to string pointer.
+        ///
+        /// This method allows null, it represented as empty string.
+        /// You can check them by [`str::is_empty`].
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!("abc", node!("abc").as_str().unwrap());
+        /// assert!(node!(null).as_str().unwrap().is_empty());
+        /// ```
+        fn as_str = Str | Null("") -> &str
     }
 
-    /// Convert to the string pointer of an anchor.
-    ///
-    /// ```
-    /// use yaml_peg::node;
-    /// assert_eq!("abc", node!(*("abc")).as_anchor().unwrap());
-    /// ```
-    pub fn as_anchor(&self) -> Option<&str> {
-        match &self.yaml {
-            Yaml::Anchor(s) => Some(s),
-            _ => None,
-        }
+    as_method! {
+        /// Convert to the string pointer of an anchor.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!("abc", node!(*("abc")).as_anchor().unwrap());
+        /// ```
+        fn as_anchor = Anchor -> &str
     }
 
-    /// Convert to array.
-    ///
-    /// WARNING: The object ownership will be took.
-    ///
-    /// ```
-    /// use yaml_peg::node;
-    /// assert_eq!(
-    ///     &vec![node!(1), node!(2)],
-    ///     node!([node!(1), node!(2)]).as_array().unwrap()
-    /// );
-    /// ```
-    pub fn as_array(&self) -> Option<&Array> {
-        match &self.yaml {
-            Yaml::Array(a) => Some(a),
-            _ => None,
-        }
+    as_method! {
+        /// Convert to array.
+        ///
+        /// WARNING: The object ownership will be took.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!(
+        ///     &vec![node!(1), node!(2)],
+        ///     node!([node!(1), node!(2)]).as_array().unwrap()
+        /// );
+        /// ```
+        fn as_array = Array -> &Array
+    }
+
+    as_method! {
+        /// Convert to map.
+        ///
+        /// WARNING: The object ownership will be took.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!(
+        ///     &node!(2),
+        ///     node!({node!(1) => node!(2)}).as_map().unwrap().get(&node!(1)).unwrap()
+        /// );
+        /// ```
+        fn as_map = Map -> &Map
     }
 
     /// Convert to map and try to get the value by keys recursivly.
@@ -213,42 +230,31 @@ impl Node {
     /// ```
     /// use yaml_peg::node;
     /// assert_eq!(
-    ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).as_get(&["a", "b"]).unwrap(),
-    ///     &node!(30.)
+    ///     &node!(30.),
+    ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).as_get(&["a", "b"]).unwrap()
     /// );
     /// ```
-    pub fn as_get<Y>(&self, keys: &[Y]) -> Option<&Self>
+    pub fn as_get<Y>(&self, keys: &[Y]) -> Result<&Self, u64>
     where
         Y: Into<Yaml> + Copy,
     {
-        if let Yaml::Map(a) = &self.yaml {
-            get_from_map(a, keys)
-        } else {
-            None
+        if keys.is_empty() {
+            panic!("invalid search!");
         }
-    }
-}
-
-fn get_from_map<'a, Y>(m: &'a Map, keys: &[Y]) -> Option<&'a Node>
-where
-    Y: Into<Yaml> + Copy,
-{
-    if keys.is_empty() {
-        panic!("invalid search!");
-    }
-    if let Some(n) = m.get(&node!(keys[0])) {
-        match &n.yaml {
+        match &self.yaml {
             Yaml::Map(m) => {
-                if keys[1..].is_empty() {
-                    Some(n)
+                if let Some(n) = m.get(&node!(keys[0])) {
+                    if keys[1..].is_empty() {
+                        Ok(n)
+                    } else {
+                        n.as_get(&keys[1..])
+                    }
                 } else {
-                    get_from_map(m, &keys[1..])
+                    Err(self.pos)
                 }
             }
-            _ => Some(n),
+            _ => Err(self.pos),
         }
-    } else {
-        None
     }
 }
 
