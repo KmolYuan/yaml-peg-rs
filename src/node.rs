@@ -44,13 +44,31 @@ macro_rules! as_method {
 /// but it will always return self if the index is not contained.
 ///
 /// ```
-/// use yaml_peg::{Yaml, Node};
-/// let node = Node::new(Yaml::Null);
-/// assert_eq!(node["a"][0]["bc"], node);
+/// use yaml_peg::{Yaml, node};
+/// let n = node!(Yaml::Null);
+/// assert_eq!(n["a"][0]["bc"], n);
 /// ```
 ///
 /// There are `as_*` methods provide `Option` returns,
-/// default options can be created by [`Option::unwrap_or`].
+/// default options can be created by [`Option::unwrap_or`],
+/// and the error [`Result`] can be return by [`Option::ok_or`] to indicate the position,
+/// which shown as following example:
+///
+/// ```
+/// use yaml_peg::node;
+///
+/// fn main() -> Result<(), (&'static str, u64)> {
+///     let n = node!({
+///         node!("title") => node!(12.)
+///     });
+///     let n = n.as_get(&["title"]).ok_or(("missing \"title\"", n.pos))?;
+///     assert_eq!(
+///         Err(("title", 0)),
+///         n.as_str().ok_or(("title", n.pos))
+///     );
+///     Ok(())
+/// }
+/// ```
 #[derive(Eq, Clone)]
 pub struct Node {
     /// Document position
