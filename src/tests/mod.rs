@@ -35,13 +35,13 @@ fn test_yaml() {
                 node!(3) => node!(4),
             }),
             node!("?a3") => node!([
-                node!(Yaml::Anchor("x".into())),
+                node!(*("x")),
                 node!([node!("d1🀄🃏"), node!("中文")]),
-                node!(Yaml::Null),
-                node!(Yaml::Null),
+                node!(null),
+                node!(null),
             ]),
-            node!({node!("a4") => node!(Yaml::Null)}) => node!(-30),
-            node!(Yaml::Anchor("y".into())) => node!("b3, b4"),
+            node!({node!("a4") => node!(null)}) => node!(-30),
+            node!(*("y")) => node!("b3, b4"),
             node!("test multiline") => node!({
                 node!("folded") => node!("aaa bbb ccc\nddd\n"),
                 node!("literal") => node!("aaa\nbbb\n  ccc\n\n  ddd\n"),

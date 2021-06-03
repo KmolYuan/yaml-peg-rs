@@ -109,7 +109,7 @@ impl Parser<'_> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        Ok(node!(yaml, pos, anchor.into(), ty.into()))
+        Ok(node!(yaml, pos, anchor, ty))
     }
 
     /// Match flow scalar terminal.

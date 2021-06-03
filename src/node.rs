@@ -44,8 +44,8 @@ macro_rules! as_method {
 /// but it will always return self if the index is not contained.
 ///
 /// ```
-/// use yaml_peg::{Yaml, node};
-/// let n = node!(Yaml::Null);
+/// use yaml_peg::node;
+/// let n = node!(null);
 /// assert_eq!(n["a"][0]["bc"], n);
 /// ```
 ///
@@ -104,7 +104,7 @@ impl Node {
         self
     }
 
-    /// Builder function for anchor.
+    /// Builder function for anchor annotation.
     pub fn anchor(mut self, anchor: String) -> Self {
         self.anchor = anchor;
         self
@@ -160,18 +160,30 @@ impl Node {
     /// Convert to string pointer.
     ///
     /// This method allows null, it represented as empty string.
+    /// You can check them by [`str::is_empty`].
     ///
     /// ```
     /// use yaml_peg::node;
-    /// assert_eq!(
-    ///     "abc",
-    ///     node!("abc").as_str().unwrap()
-    /// );
+    /// assert_eq!("abc", node!("abc").as_str().unwrap());
+    /// assert!(node!(null).as_str().unwrap().is_empty());
     /// ```
     pub fn as_str(&self) -> Option<&str> {
         match &self.yaml {
             Yaml::Str(s) => Some(s),
             Yaml::Null => Some(""),
+            _ => None,
+        }
+    }
+
+    /// Convert to the string pointer of an anchor.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    /// assert_eq!("abc", node!(*("abc")).as_anchor().unwrap());
+    /// ```
+    pub fn as_anchor(&self) -> Option<&str> {
+        match &self.yaml {
+            Yaml::Anchor(s) => Some(s),
             _ => None,
         }
     }
@@ -194,18 +206,21 @@ impl Node {
         }
     }
 
-    /// Convert to map and try to get the value by keys.
+    /// Convert to map and try to get the value by keys recursivly.
     ///
     /// If get failed, returns [`Option::None`].
     ///
     /// ```
     /// use yaml_peg::node;
     /// assert_eq!(
-    ///     node!({node!("a") => node!(30.)}).as_get(&["a"]).unwrap(),
+    ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).as_get(&["a", "b"]).unwrap(),
     ///     &node!(30.)
     /// );
     /// ```
-    pub fn as_get(&self, keys: &[&str]) -> Option<&Self> {
+    pub fn as_get<Y>(&self, keys: &[Y]) -> Option<&Self>
+    where
+        Y: Into<Yaml> + Copy,
+    {
         if let Yaml::Map(a) = &self.yaml {
             get_from_map(a, keys)
         } else {
@@ -214,21 +229,23 @@ impl Node {
     }
 }
 
-fn get_from_map<'a>(m: &'a Map, keys: &[&str]) -> Option<&'a Node> {
+fn get_from_map<'a, Y>(m: &'a Map, keys: &[Y]) -> Option<&'a Node>
+where
+    Y: Into<Yaml> + Copy,
+{
     if keys.is_empty() {
         panic!("invalid search!");
     }
-    let key = node!(keys[0].into());
-    if let Some(v) = m.get(&key) {
-        match &v.yaml {
+    if let Some(n) = m.get(&node!(keys[0])) {
+        match &n.yaml {
             Yaml::Map(m) => {
                 if keys[1..].is_empty() {
-                    Some(v)
+                    Some(n)
                 } else {
                     get_from_map(m, &keys[1..])
                 }
             }
-            _ => Some(v),
+            _ => Some(n),
         }
     } else {
         None
@@ -272,7 +289,7 @@ impl Index<&str> for Node {
 
     fn index(&self, index: &str) -> &Self::Output {
         if let Yaml::Map(m) = &self.yaml {
-            m.get(&node!(index.into())).unwrap_or(self)
+            m.get(&node!(index)).unwrap_or(self)
         } else {
             self
         }

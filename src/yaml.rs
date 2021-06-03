@@ -24,7 +24,9 @@ pub type Array = Vec<Node>;
 /// The map data structure of YAML.
 pub type Map = LinkedHashMap<Node, Node>;
 
-/// YAML data types, can convert from primitive types by `From` and `Into` methods.
+/// YAML data types, but it is recommended to use [`Node`] for shorten code.
+///
+/// This type can convert from primitive types by `From` and `Into` methods.
 ///
 /// ```
 /// use yaml_peg::Yaml;

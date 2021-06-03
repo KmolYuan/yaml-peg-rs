@@ -2,12 +2,20 @@
 //!
 //! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
 //!
+//! This parser is not ensure about YAML spec but almost functions are well-implemented.
+//! The buffer reader has also not yet been implemented, but the chunks can be read by sub-parsers.
+//!
 //! Function [`parse`] is used to parse YAML string into [`Node`] data structure.
 //! To get back as string, please use [`dump`] function.
 //!
 //! There are also have some macros for building [`Node`] structure from Rust data.
+//! Especially [`node!`] macro, almost data can be built literally.
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
+//!
+//! Please be aware that the anchor system must be done by your self to prevent recursive problem.
+//! This crate is only store the anchor information in [`Yaml::Anchor`] and [`Node::anchor`].
+//! A reference counter system maybe the best choice.
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
@@ -16,36 +24,47 @@ pub use crate::yaml::*;
 
 /// Create [`Node`] items literally.
 ///
-/// Literals will be transformed to [`Yaml`] automatically but variables need to convert manually.
+/// Literals and expressions will be transformed to [`Yaml`] automatically by calling [`Into::into`].
 ///
 /// ```
 /// use yaml_peg::node;
 /// let k = "a";
-/// assert_eq!(node!(k.into()), node!("a"));
+/// assert_eq!(node!(k), node!("a"));
 /// ```
 ///
 /// The members are ordered as `node!(yaml, pos, anchor, ty)`.
 ///
-/// Also, arrays and maps can be create from this macro directly through brackets (`[]`, `{}`).
+/// Arrays and maps can be created from this macro directly through brackets (`[]`, `{}`).
 ///
 /// ```
 /// use yaml_peg::{node, yaml_array, yaml_map};
 /// assert_eq!(node!([node!(1), node!(2)]), node!(yaml_array![node!(1), node!(2)]));
 /// assert_eq!(node!({node!(1) => node!(2)}), node!(yaml_map![node!(1) => node!(2)]));
 /// ```
+///
+/// The [`Yaml::Null`] and the [`Yaml::Null`] are also supported by the syntax:
+///
+/// ```
+/// use yaml_peg::{node, Yaml};
+/// assert_eq!(node!(Yaml::Null), node!(null));
+/// assert_eq!(node!(Yaml::Anchor("x".into())), node!(*("x")));
+/// ```
 #[macro_export]
 macro_rules! node {
-    ([$($token:tt)*]) => {
-        $crate::node!($crate::yaml_array![$($token)*])
+    ([$($token:tt)*] $($opt:tt)*) => {
+        $crate::node!($crate::yaml_array![$($token)*] $($opt)*)
     };
-    ({$($token:tt)*}) => {
-        $crate::node!($crate::yaml_map![$($token)*])
+    ({$($token:tt)*} $($opt:tt)*) => {
+        $crate::node!($crate::yaml_map![$($token)*] $($opt)*)
     };
-    ($yaml:literal $(, $pos:expr $(, $anchor:literal $(, $ty:literal)?)?)?) => {
-        $crate::Node::new($yaml.into())$(.pos($pos)$(.anchor($anchor.into())$(.ty($ty.into()))?)?)?
+    (null $($opt:tt)*) => {
+        $crate::node!($crate::Yaml::Null $($opt)*)
+    };
+    (*($anchor:expr) $($opt:tt)*) => {
+        $crate::node!($crate::Yaml::Anchor($anchor.into()) $($opt)*)
     };
     ($yaml:expr $(, $pos:expr $(, $anchor:expr $(, $ty:expr)?)?)?) => {
-        $crate::Node::new($yaml)$(.pos($pos)$(.anchor($anchor)$(.ty($ty))?)?)?
+        $crate::Node::new($yaml.into())$(.pos($pos.into())$(.anchor($anchor.into())$(.ty($ty.into()))?)?)?
     };
 }
 
