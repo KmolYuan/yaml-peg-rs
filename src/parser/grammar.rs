@@ -124,8 +124,11 @@ impl Parser<'_> {
                 p.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
                 v.push_str(&p.text());
                 p.forward();
-                if p.seq(b": ").is_ok() || p.seq(b":\n").is_ok() || p.seq(b" #").is_ok() {
-                    p.back(2);
+                if p.seq(b": ").is_ok()
+                    || (p.seq(b":").is_ok() && p.nl().is_ok())
+                    || p.seq(b" #").is_ok()
+                {
+                    p.backward();
                     break;
                 }
                 p.forward();
@@ -209,7 +212,7 @@ impl Parser<'_> {
         self.context(|p| {
             let mut v = String::new();
             loop {
-                p.nl(TakeOpt::One)?;
+                p.nl()?;
                 p.forward();
                 if p.ind(level).is_err() {
                     if let Ok(t) = p.gap() {
@@ -313,8 +316,15 @@ impl Parser<'_> {
     }
 
     /// Match newline characters.
-    pub fn nl(&mut self, opt: TakeOpt) -> Result<(), ()> {
-        self.take_while(Self::is_in(b"\n\r"), opt)
+    pub fn nl(&mut self) -> Result<(), ()> {
+        self.context(|p| {
+            (p.seq(b"\r\n").is_ok()
+                || p.seq(b"\n\r").is_ok()
+                || p.sym(b'\n').is_ok()
+                || p.sym(b'\r').is_ok())
+            .then(|| ())
+            .ok_or(())
+        })
     }
 
     /// Match any invisible characters.
@@ -337,14 +347,14 @@ impl Parser<'_> {
     pub fn gap(&mut self) -> Result<usize, ()> {
         self.context(|p| {
             p.comment().unwrap_or_default();
-            p.sym(b'\n')?;
+            p.nl()?;
             let mut t = 1;
             loop {
                 // Check point
                 p.forward();
                 p.ws(TakeOpt::More(0))?;
                 p.comment().unwrap_or_default();
-                if p.sym(b'\n').is_err() {
+                if p.nl().is_err() {
                     return Ok(t);
                 }
                 t += 1;
