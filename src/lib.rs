@@ -14,20 +14,6 @@ pub use crate::node::*;
 pub use crate::parser::parse;
 pub use crate::yaml::*;
 
-/// Build [`std::io::Error`] with [`std::io::ErrorKind::InvalidData`] from strings.
-///
-/// ```
-/// use yaml_peg::err;
-/// Err::<(), std::io::Error>(err!("error message"));
-/// ```
-#[macro_export]
-macro_rules! err {
-    ($e:expr) => {{
-        use std::io::{Error, ErrorKind};
-        Error::new(ErrorKind::InvalidData, $e)
-    }};
-}
-
 /// Create [`Node`] items literally.
 ///
 /// Literals will be transformed to [`Yaml`] automatically but variables need to convert manually.

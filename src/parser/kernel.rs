@@ -30,7 +30,8 @@ pub enum TakeOpt {
 ///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
 /// + Use `?` to match a condition.
 /// + Use [`Result::unwrap_or_default`] to match an optional condition.
-/// + Method [`Parser::eat`] is used to move on and get the matched string.
+/// + Method [`Parser::forward`] is used to move on.
+/// + Method [`Parser::text`] is used to get the matched string.
 /// + Method [`Parser::backward`] is used to get back if mismatched.
 pub struct Parser<'a> {
     doc: &'a [u8],

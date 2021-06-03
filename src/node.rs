@@ -51,9 +51,6 @@ macro_rules! as_method {
 ///
 /// There are `as_*` methods provide `Option` returns,
 /// default options can be created by [`Option::unwrap_or`].
-///
-/// In another hand, using `except_*` methods to convert the YAML types with **error** returns.
-/// The `except_*` methods are support to use `null` as empty option (for user inputs).
 #[derive(Eq, Clone)]
 pub struct Node {
     /// Document position
@@ -101,6 +98,11 @@ impl Node {
     }
 
     /// Convert to boolean.
+    ///
+    /// ```
+    /// use yaml_peg::{node};
+    /// assert!(node!(true).as_bool().unwrap());
+    /// ```
     pub fn as_bool(&self) -> Option<bool> {
         match &self.yaml {
             Yaml::Bool(b) => Some(*b),
@@ -158,7 +160,7 @@ impl Node {
 
     /// Convert to array.
     ///
-    /// Warn: The object ownership will be took.
+    /// WARNING: The object ownership will be took.
     ///
     /// ```
     /// use yaml_peg::node;
