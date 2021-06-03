@@ -1,8 +1,13 @@
 [package]
 name = "yaml-peg"
+description = "A YAML 1.2 parser using LALR algorithm with PEG atoms."
 version = "0.1.0"
 authors = ["KmolYuan <pyslvs@gmail.com>"]
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/KmolYuan/yaml-peg-rs"
+readme = "README.md"
+keywords = ["yaml", "parser"]
 
 [dependencies]
 linked-hash-map = "0.5"
