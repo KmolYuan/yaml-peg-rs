@@ -72,6 +72,9 @@ impl Dumper for Node {
 
 /// Dump the YAML data in to block format.
 ///
+/// Dumper will use plain string when the string is none-wrapped,
+/// otherwise it use literal string and trim the last white spaces.
+///
 /// ```
 /// use yaml_peg::{dump, node};
 /// let doc = dump(vec![node!({
@@ -80,6 +83,8 @@ impl Dumper for Node {
 /// })]);
 /// assert_eq!(doc, "a: b\nc: d\n");
 /// ```
+///
+/// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
 pub fn dump<I>(nodes: I) -> String
 where
     I: IntoIterator,
