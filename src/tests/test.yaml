@@ -13,7 +13,7 @@ a0 bb: val
 : {!!t2 1: 2, 3: 4}  # Test comment after wrapped! (3)
 ?a3: !t3
   - *x
-  - [d1, 中文]
+  - [d1🀄🃏, 中文]
 - ~  # Test downgraded array item.
   -
 ? &y

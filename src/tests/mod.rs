@@ -36,7 +36,7 @@ fn test_yaml() {
             }),
             node!("?a3") => node!([
                 node!(Yaml::Anchor("x".into())),
-                node!([node!("d1"), node!("中文")]),
+                node!([node!("d1🀄🃏"), node!("中文")]),
                 node!(Yaml::Null),
                 node!(Yaml::Null),
             ]),
