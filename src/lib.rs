@@ -1,4 +1,4 @@
-//! A YAML PEG parser using LALR algorithm.
+//! A YAML 1.2 parser using LALR algorithm with PEG atoms.
 //!
 //! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
 //!
