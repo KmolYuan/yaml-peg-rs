@@ -27,7 +27,7 @@ fn test_yaml() {
             node!("a0 bb") => node!("val"),
             node!("::a1") => node!({
                 node!("b1") => node!(4.),
-                node!("b2") => node!([node!("c1")]),
+                node!("b2") => node!([node!("50%")]),
             }),
             node!("-a2") => node!(4.03),
             node!([node!("q"), node!("r"), node!("s")]) => node!({
