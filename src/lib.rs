@@ -9,7 +9,7 @@
 //! To get back as string, please use [`dump`] function.
 //!
 //! There are also have some macros for building [`Node`] structure from Rust data.
-//! Especially [`node!`] macro, almost data can be built literally.
+//! Especially [`node!`] macro, almost data can be built by the macro literally.
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!

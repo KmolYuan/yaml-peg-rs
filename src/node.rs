@@ -7,12 +7,14 @@ use std::{
 };
 
 macro_rules! as_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:tt))? $(| $null:ident($default:expr))? -> $r:ty} => {
+    {$(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:tt))?
+        $(| ($default:expr)?)?
+        $(| $ty2:ident)* -> $r:ty} => {
         $(#[$meta])*
         pub fn $id(&self) -> Result<$r, u64> {
             match &self.yaml {
-                Yaml::$ty(v) => Ok($($op)?v),
-                $(Yaml::$null => Ok($default),)?
+                Yaml::$ty(v) $(| Yaml::$ty2(v))* => Ok($($op)?v),
+                $(Yaml::Null => Ok($default),)?
                 _ => Err(self.pos),
             }
         }
@@ -62,9 +64,9 @@ macro_rules! as_num_method {
 /// assert_eq!(n["a"][0]["bc"], n);
 /// ```
 ///
-/// There are `as_*` methods provide `Option` returns,
-/// default options can be created by [`Option::unwrap_or`],
-/// and the error [`Result`] can be return by [`Option::ok_or`] to indicate the position,
+/// There are `as_*` methods provide [`Result`] returns,
+/// default options can be created by [`Result::unwrap_or`],
+/// and the optional [`Option`] can be return by [`Result::ok`],
 /// which shown as following example:
 ///
 /// ```
@@ -74,10 +76,14 @@ macro_rules! as_num_method {
 ///     let n = node!({
 ///         node!("title") => node!(12.)
 ///     });
-///     let n = n.as_get(&["title"]).map_err(|p| ("missing \"title\"", p))?;
+///     let n = n.get(&["title"]).map_err(|p| ("missing \"title\"", p))?;
 ///     assert_eq!(
 ///         Err(("title", 0)),
 ///         n.as_str().map_err(|p| ("title", p))
+///     );
+///     assert_eq!(
+///         Option::<&str>::None,
+///         n.as_str().ok()
 ///     );
 ///     Ok(())
 /// }
@@ -180,7 +186,21 @@ impl Node {
         /// assert_eq!("abc", node!("abc").as_str().unwrap());
         /// assert!(node!(null).as_str().unwrap().is_empty());
         /// ```
-        fn as_str = Str | Null("") -> &str
+        fn as_str = Str | ("")? -> &str
+    }
+
+    as_method! {
+        /// Convert to string pointer for string, null, int, and float type.
+        ///
+        /// This method is useful when the option mixed with digit values.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        /// assert_eq!("abc", node!("abc").as_value().unwrap());
+        /// assert_eq!("123", node!(123).as_value().unwrap());
+        /// assert!(node!(null).as_value().unwrap().is_empty());
+        /// ```
+        fn as_value = Str | ("")? | Int | Float -> &str
     }
 
     as_method! {
@@ -231,10 +251,10 @@ impl Node {
     /// use yaml_peg::node;
     /// assert_eq!(
     ///     &node!(30.),
-    ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).as_get(&["a", "b"]).unwrap()
+    ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).get(&["a", "b"]).unwrap()
     /// );
     /// ```
-    pub fn as_get<Y>(&self, keys: &[Y]) -> Result<&Self, u64>
+    pub fn get<Y>(&self, keys: &[Y]) -> Result<&Self, u64>
     where
         Y: Into<Yaml> + Copy,
     {
@@ -247,7 +267,7 @@ impl Node {
                     if keys[1..].is_empty() {
                         Ok(n)
                     } else {
-                        n.as_get(&keys[1..])
+                        n.get(&keys[1..])
                     }
                 } else {
                     Err(self.pos)
