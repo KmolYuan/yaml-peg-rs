@@ -48,13 +48,17 @@ fn test_yaml() {
             ]),
             node!({node!("a4") => node!(null)}) => node!(-30),
             node!(*("y")) => node!("b3, b4"),
-            node!("test multiline") => node!({
-                node!("folded") => node!("aaa bbb ccc\nddd\n"),
-                node!("literal") => node!("aaa\nbbb\n  ccc\n\n  ddd\n"),
-                node!("plain") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
-                node!("single quoted") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
-                node!("double quoted") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
-            }),
+            node!("test multiline") => node!([
+                node!({
+                    node!("folded") => node!("aaa bbb ccc\nddd\n"),
+                    node!("literal") => node!("aaa\nbbb\n  ccc\n\n  ddd\n"),
+                }),
+                node!({
+                    node!("plain") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
+                    node!("single quoted") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
+                    node!("double quoted") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
+                }),
+            ]),
         })
     );
 }
