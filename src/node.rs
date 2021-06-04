@@ -64,8 +64,9 @@ macro_rules! as_num_method {
 /// assert_eq!(n["a"][0]["bc"], n);
 /// ```
 ///
-/// There are `as_*` methods provide [`Result`] returns,
+/// There are `as_*` methods provide `Result<T, u64>` returns with node position,
 /// default options can be created by [`Result::unwrap_or`],
+/// additional error message can be attach by [`Result::map_err`],
 /// and the optional [`Option`] can be return by [`Result::ok`],
 /// which shown as following example:
 ///
