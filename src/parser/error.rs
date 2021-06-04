@@ -9,7 +9,7 @@ pub enum PError {
     /// If parser mismatched, just choose another one.
     Mismatch,
     /// The parser is the only one can be matched.
-    Terminate(usize, String),
+    Terminate(u64, String),
 }
 
 impl PError {

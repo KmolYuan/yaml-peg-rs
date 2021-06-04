@@ -95,7 +95,7 @@ impl Parser<'_> {
 
     /// A short function to raise error.
     pub fn err<R>(&self, msg: &str) -> Result<R, PError> {
-        Err(PError::Terminate(self.pos, msg.into()))
+        Err(PError::Terminate(self.indicator(), msg.into()))
     }
 
     /// Consume and move the pointer.
