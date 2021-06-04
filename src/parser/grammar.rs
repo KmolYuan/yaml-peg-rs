@@ -6,7 +6,7 @@ use super::*;
 impl Parser<'_> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), ()> {
-        self.inv(TakeOpt::One)?;
+        self.take_while(Self::is_in(b":{}[] ,\n\r"), TakeOpt::One)?;
         self.back(1);
         self.ws(TakeOpt::More(0))?;
         Ok(())
@@ -26,7 +26,9 @@ impl Parser<'_> {
     /// Match integer.
     pub fn int(&mut self) -> Result<String, ()> {
         self.num_prefix()?;
-        Ok(self.text())
+        let s = self.text();
+        self.bound()?;
+        Ok(s)
     }
 
     /// Match float.
@@ -34,7 +36,9 @@ impl Parser<'_> {
         self.num_prefix()?;
         self.sym(b'.')?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(0))?;
-        Ok(self.text())
+        let s = self.text();
+        self.bound()?;
+        Ok(s)
     }
 
     /// Match float with scientific notation.
@@ -43,7 +47,9 @@ impl Parser<'_> {
         self.take_while(Self::is_in(b"eE"), TakeOpt::One)?;
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(1))?;
-        Ok(self.text())
+        let s = self.text();
+        self.bound()?;
+        Ok(s)
     }
 
     /// Match NaN.
@@ -51,6 +57,7 @@ impl Parser<'_> {
         self.sym(b'.')?;
         for &s in &[b"nan", b"NaN", b"NAN"] {
             if self.seq(s).is_ok() {
+                self.bound()?;
                 return Ok(());
             }
         }
@@ -63,6 +70,7 @@ impl Parser<'_> {
         self.sym(b'.')?;
         for &s in &[b"inf", b"Inf", b"INF"] {
             if self.seq(s).is_ok() {
+                self.bound()?;
                 return Ok(b);
             }
         }

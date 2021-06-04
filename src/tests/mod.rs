@@ -27,7 +27,13 @@ fn test_yaml() {
             node!("a0 bb") => node!("val"),
             node!("::a1") => node!({
                 node!("b1") => node!(4.),
-                node!("b2") => node!([node!("50%")]),
+                node!("b2") => node!([
+                    node!("50%"),
+                    node!(Yaml::Float("2e-4".to_owned())),
+                    node!(Yaml::Float("NaN".to_owned())),
+                    node!(Yaml::Float("-inf".to_owned())),
+                    node!("-.infs"),
+                ]),
             }),
             node!("-a2") => node!(4.03),
             node!([node!("q"), node!("r"), node!("s")]) => node!({

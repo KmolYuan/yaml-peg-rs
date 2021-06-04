@@ -5,6 +5,10 @@ a0 bb: val
   b1: 4.
   b2:
     - 50%
+    - 2e-4
+    - .nan
+    - -.inf
+    - -.infs
 -a2: !!t1 4.03  # Test comment after normal scalars.
 ?  # Test comment after wrapped! (2)
   - q
