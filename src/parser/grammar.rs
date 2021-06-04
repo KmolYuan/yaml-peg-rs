@@ -341,10 +341,12 @@ impl Parser<'_> {
     }
 
     /// Match indent with previous level.
+    ///
+    /// Return `true` if downgrading indent is allowed.
     pub fn unind(&mut self, level: usize) -> Result<bool, ()> {
         if level > 0 {
             self.ind(level - 1)?;
-            self.context(|p| Ok(p.ind(1).is_ok()))
+            self.context(|p| Ok(p.ind(1).is_err()))
         } else {
             self.ind(level)?;
             Ok(false)

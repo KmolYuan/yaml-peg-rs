@@ -234,12 +234,15 @@ impl Parser<'_> {
                 if self.gap().is_err() {
                     return self.err("array terminator");
                 }
+                if self.doc_end() {
+                    break;
+                }
                 if let Ok(b) = self.unind(level) {
                     downgrade = b
                 } else {
                     break;
                 }
-                if self.doc_end() || self.sym(b'-').is_err() || self.bound().is_err() {
+                if self.sym(b'-').is_err() || self.bound().is_err() {
                     break;
                 }
             }
@@ -249,7 +252,8 @@ impl Parser<'_> {
                 self.err("array item")
             )?);
         }
-        self.forward();
+        // Keep last wrapping
+        self.backward();
         Ok(Yaml::from_iter(v))
     }
 
@@ -286,7 +290,7 @@ impl Parser<'_> {
                 if self.gap().is_err() {
                     return self.err("map terminator");
                 }
-                if self.ind(level).is_err() || self.doc_end() {
+                if self.doc_end() || self.ind(level).is_err() {
                     break;
                 }
                 self.forward();
@@ -309,7 +313,8 @@ impl Parser<'_> {
             let v = err_own!(self.scalar(level + 1, true, false), self.err("map value"))?;
             m.push((k, v));
         }
-        self.forward();
+        // Keep last wrapping
+        self.backward();
         Ok(Yaml::from_iter(m))
     }
 }
