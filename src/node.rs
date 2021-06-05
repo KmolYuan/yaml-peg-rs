@@ -89,6 +89,9 @@ macro_rules! as_num_method {
 ///     Ok(())
 /// }
 /// ```
+///
+/// For default value on map type, [`Node::get`] method has a shorten method [`Node::get_default`] to combining
+/// transform function and default function as well.
 #[derive(Eq, Clone)]
 pub struct Node {
     /// Document position
@@ -246,7 +249,7 @@ impl Node {
 
     /// Convert to map and try to get the value by keys recursivly.
     ///
-    /// If get failed, returns [`Option::None`].
+    /// If any key is missing, return `Err` with node position.
     ///
     /// ```
     /// use yaml_peg::node;
@@ -272,6 +275,55 @@ impl Node {
                     }
                 } else {
                     Err(self.pos)
+                }
+            }
+            _ => Err(self.pos),
+        }
+    }
+
+    /// Same as [`Node::get`] but provide default value if the key is missing.
+    /// For this method, a transform method `as_*` is required.
+    ///
+    /// + If the value exist, return the value.
+    /// + If value is a wrong type, return `Err` with node position.
+    /// + If the value is not exist, return the default value.
+    ///
+    /// ```
+    /// use yaml_peg::{node, Node};
+    /// let a = node!({node!("a") => node!({node!("b") => node!("c")})});
+    /// assert_eq!(
+    ///     "c",
+    ///     a.get_default(&["a", "b"], "d", Node::as_str).unwrap()
+    /// );
+    /// let b = node!({node!("a") => node!({})});
+    /// assert_eq!(
+    ///     "d",
+    ///     b.get_default(&["a", "b"], "d", Node::as_str).unwrap()
+    /// );
+    /// let c = node!({node!("a") => node!({node!("b") => node!(20.)})});
+    /// assert_eq!(
+    ///     Err(0),
+    ///     c.get_default(&["a", "b"], "d", Node::as_str)
+    /// );
+    /// ```
+    pub fn get_default<'a, Y, R, F>(&'a self, keys: &[Y], default: R, factory: F) -> Result<R, u64>
+    where
+        Y: Into<Yaml> + Copy,
+        F: Fn(&'a Self) -> Result<R, u64>,
+    {
+        if keys.is_empty() {
+            panic!("invalid search!");
+        }
+        match &self.yaml {
+            Yaml::Map(m) => {
+                if let Some(n) = m.get(&node!(keys[0])) {
+                    if keys[1..].is_empty() {
+                        factory(n)
+                    } else {
+                        n.get_default(&keys[1..], default, factory)
+                    }
+                } else {
+                    Ok(default)
                 }
             }
             _ => Err(self.pos),
