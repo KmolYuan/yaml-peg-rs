@@ -193,18 +193,27 @@ impl Node {
         fn as_str = Str | ("")? -> &str
     }
 
-    as_method! {
-        /// Convert to string pointer for string, null, int, and float type.
-        ///
-        /// This method is useful when the option mixed with digit values.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        /// assert_eq!("abc", node!("abc").as_value().unwrap());
-        /// assert_eq!("123", node!(123).as_value().unwrap());
-        /// assert!(node!(null).as_value().unwrap().is_empty());
-        /// ```
-        fn as_value = Str | ("")? | Int | Float -> &str
+    /// Convert to string pointer for string, null, bool, int, and float type.
+    ///
+    /// This method is useful when the option mixed with digit values.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    /// assert_eq!("abc", node!("abc").as_value().unwrap());
+    /// assert_eq!("123", node!(123).as_value().unwrap());
+    /// assert_eq!("12.04", node!(12.04).as_value().unwrap());
+    /// assert_eq!("true", node!(true).as_value().unwrap());
+    /// assert_eq!("false", node!(false).as_value().unwrap());
+    /// assert!(node!(null).as_value().unwrap().is_empty());
+    /// ```
+    pub fn as_value(&self) -> Result<&str, u64> {
+        match &self.yaml {
+            Yaml::Str(s) | Yaml::Int(s) | Yaml::Float(s) => Ok(s),
+            Yaml::Bool(true) => Ok("true"),
+            Yaml::Bool(false) => Ok("false"),
+            Yaml::Null => Ok(""),
+            _ => Err(self.pos),
+        }
     }
 
     as_method! {
