@@ -6,7 +6,7 @@ use super::*;
 impl Parser<'_> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), ()> {
-        self.take_while(Self::is_in(b":{}[] ,\n\r"), TakeOpt::One)?;
+        self.sym_set(b":{}[] ,\n\r")?;
         self.back(1);
         self.ws(TakeOpt::More(0))?;
         Ok(())
@@ -44,7 +44,7 @@ impl Parser<'_> {
     /// Match float with scientific notation.
     pub fn sci_float(&mut self) -> Result<String, ()> {
         self.num_prefix()?;
-        self.take_while(Self::is_in(b"eE"), TakeOpt::One)?;
+        self.sym_set(b"eE")?;
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(1))?;
         let s = self.text();
@@ -120,9 +120,9 @@ impl Parser<'_> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self, level: usize, use_sep: bool) -> Result<String, ()> {
+    pub fn string_plain(&mut self, level: usize, inner: bool) -> Result<String, ()> {
         let mut patt = b"[]{}: \n\r".to_vec();
-        if use_sep {
+        if inner {
             patt.push(b',');
         }
         self.context(|p| {
@@ -133,18 +133,20 @@ impl Parser<'_> {
                 v.push_str(&p.text());
                 p.forward();
                 if p.seq(b": ").is_ok()
-                    || (p.seq(b":").is_ok() && p.nl().is_ok())
+                    || (p.sym(b':').is_ok() && p.nl().is_ok())
                     || p.seq(b" #").is_ok()
                 {
                     p.backward();
                     break;
                 }
                 p.forward();
-                if p.take_while(Self::is_in(b": "), TakeOpt::One).is_ok() {
+                if p.sym_set(b": ").is_ok() {
                     // Remove leading space
                     if p.text() == " " {
                         v.truncate(v.trim_end().len());
                     }
+                    v.push_str(&p.text());
+                } else if !inner && !v.is_empty() && p.sym_set(b"{}[]").is_ok() {
                     v.push_str(&p.text());
                 } else if p.ind(level).is_err() {
                     if let Ok(t) = p.gap() {
@@ -172,12 +174,12 @@ impl Parser<'_> {
     }
 
     /// Match flow string and return the content.
-    pub fn string_flow(&mut self, level: usize, use_sep: bool) -> Result<String, ()> {
+    pub fn string_flow(&mut self, level: usize, inner: bool) -> Result<String, ()> {
         if let Ok(s) = self.string_quoted(b'\'', b"''") {
             Ok(s)
         } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
             Ok(Self::escape(&s))
-        } else if let Ok(s) = self.string_plain(level, use_sep) {
+        } else if let Ok(s) = self.string_plain(level, inner) {
             Ok(s)
         } else {
             Err(())

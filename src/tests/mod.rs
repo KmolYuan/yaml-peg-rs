@@ -33,6 +33,7 @@ fn test_yaml() {
                     node!(Yaml::Float("NaN".to_owned())),
                     node!(Yaml::Float("-inf".to_owned())),
                     node!("-.infs"),
+                    node!("2001-11-23 15:01:42 -5"),
                 ]),
             }),
             node!("-a2") => node!(4.03),
@@ -50,13 +51,13 @@ fn test_yaml() {
             node!(*("y")) => node!("b3, b4"),
             node!("test multiline") => node!([
                 node!({
-                    node!("folded") => node!("aaa{} bbb ccc\nddd\n"),
-                    node!("literal") => node!("aaa{}\nbbb\n  ccc\n\n  ddd\n"),
+                    node!("folded") => node!("aaa{}[] bbb ccc\nddd\n"),
+                    node!("literal") => node!("aaa{}[]\nbbb\n  ccc\n\n  ddd\n"),
                 }),
                 node!({
-                    node!("plain") => node!("aaa{} \"bbb\" 'ccc', ddd\\n\neee fff"),
-                    node!("single quoted") => node!("aaa{} \"bbb\" 'ccc', ddd\\n\neee fff"),
-                    node!("double quoted") => node!("aaa{} \"bbb\" 'ccc', ddd\\n\neee fff"),
+                    node!("plain") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff"),
+                    node!("single quoted") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff"),
+                    node!("double quoted") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff"),
                 }),
                 node!("literal\n\n"),
                 node!("literal"),

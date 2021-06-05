@@ -72,7 +72,7 @@ impl Parser<'_> {
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Node, PError> {
+    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> Result<Node, PError> {
         self.scalar_inner(|p| {
             if let Ok(s) = p.string_literal(level) {
                 Ok(Yaml::Str(s))
@@ -81,15 +81,15 @@ impl Parser<'_> {
             } else {
                 err_own!(
                     p.array(level, nest),
-                    err_own!(p.map(level, nest, use_sep), p.scalar_term(level, use_sep))
+                    err_own!(p.map(level, nest, inner), p.scalar_term(level, inner))
                 )
             }
         })
     }
 
     /// Match flow scalar.
-    pub fn scalar_flow(&mut self, level: usize, use_sep: bool) -> Result<Node, PError> {
-        self.scalar_inner(|p| p.scalar_term(level, use_sep))
+    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> Result<Node, PError> {
+        self.scalar_inner(|p| p.scalar_term(level, inner))
     }
 
     fn scalar_inner<F>(&mut self, f: F) -> Result<Node, PError>
@@ -113,7 +113,7 @@ impl Parser<'_> {
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize, use_sep: bool) -> Result<Yaml, PError> {
+    pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<Yaml, PError> {
         let yaml = if self.sym(b'~').is_ok() {
             Yaml::Null
         } else if self.seq(b"null").is_ok() {
@@ -134,7 +134,7 @@ impl Parser<'_> {
             Yaml::Int(s)
         } else if let Ok(s) = self.anchor_use() {
             Yaml::Anchor(s)
-        } else if let Ok(s) = self.string_flow(level, use_sep) {
+        } else if let Ok(s) = self.string_flow(level, inner) {
             Yaml::Str(s)
         } else {
             err_own!(
@@ -258,7 +258,7 @@ impl Parser<'_> {
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, nest: bool, use_sep: bool) -> Result<Yaml, PError> {
+    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> Result<Yaml, PError> {
         let mut m = vec![];
         loop {
             self.forward();
@@ -273,13 +273,13 @@ impl Parser<'_> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
+                    let k = err_own!(self.scalar(level + 1, true, inner), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.ind(level)?;
                     }
                     k
                 } else {
-                    self.scalar_flow(level + 1, use_sep)?
+                    self.scalar_flow(level + 1, inner)?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
@@ -296,13 +296,13 @@ impl Parser<'_> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = err_own!(self.scalar(level + 1, true, use_sep), self.err("map key"))?;
+                    let k = err_own!(self.scalar(level + 1, true, inner), self.err("map key"))?;
                     if self.gap().is_ok() {
                         self.ind(level)?;
                     }
                     k
                 } else {
-                    err_own!(self.scalar_flow(level + 1, use_sep), self.err("map key"))?
+                    err_own!(self.scalar_flow(level + 1, inner), self.err("map key"))?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     return self.err("map splitter");

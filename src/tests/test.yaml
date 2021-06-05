@@ -2,13 +2,14 @@
 ---
 a0 bb: val
 ::a1: &x  # Test comment after wrapped! (1)
-  b1: 4.
+  b1  : 4.
   b2:
     - 50%
   - 2e-4
     - .nan
     - -.inf
     - -.infs
+    - 2001-11-23 15:01:42 -5
 -a2: !!t1 4.03  # Test comment after normal scalars.
 ?  # Test comment after wrapped! (2)
   - q
@@ -28,28 +29,28 @@ a0 bb: val
 ? test
   multiline:
   - folded: >
-      aaa{}
+      aaa{}[]
       bbb
         ccc
 
         ddd
     literal: |
-      aaa{}
+      aaa{}[]
       bbb
         ccc
 
         ddd
-  - plain: aaa{} "bbb" 'ccc',
+  - plain: aaa{}[] "bbb" 'ccc',
       ddd\n
 
       eee
         fff
-    single quoted: 'aaa{} "bbb" ''ccc'',
+    single quoted: 'aaa{}[] "bbb" ''ccc'',
       ddd\n
 
       eee
         fff'
-    double quoted: "aaa{} \"bbb\" 'ccc',
+    double quoted: "aaa{}[] \"bbb\" 'ccc',
       dd\
       d\\n\n
       eee

@@ -123,7 +123,12 @@ impl Parser<'_> {
 
     /// Match symbol.
     pub fn sym(&mut self, s: u8) -> Result<(), ()> {
-        self.take_while(Self::is_in(&[s]), TakeOpt::One)
+        self.sym_set(&[s])
+    }
+
+    /// Match symbol from a set.
+    pub fn sym_set(&mut self, s: &[u8]) -> Result<(), ()> {
+        self.take_while(Self::is_in(s), TakeOpt::One)
     }
 
     /// Match sequence.
