@@ -24,7 +24,7 @@ fn test_yaml() {
     assert_eq!(
         ans[0],
         node!({
-            node!("a0 bb") => node!("val"),
+            node!("a0 bb") => node!(".val."),
             node!("::a1") => node!({
                 node!("b1") => node!(4.),
                 node!("b2") => node!([

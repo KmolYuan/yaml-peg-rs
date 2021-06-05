@@ -1,6 +1,6 @@
 
 ---
-a0 bb: val
+a0 bb: .val.
 ::a1: &x  # Test comment after wrapped! (1)
   b1  : 4.
   b2:
