@@ -54,4 +54,10 @@ a0 bb: val
       d\\n\n
       eee
         fff"
+  - |+
+    literal
+
+  - >-
+    literal
+
 ...

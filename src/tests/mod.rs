@@ -58,6 +58,8 @@ fn test_yaml() {
                     node!("single quoted") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
                     node!("double quoted") => node!("aaa \"bbb\" 'ccc', ddd\\n\neee fff"),
                 }),
+                node!("literal\n\n"),
+                node!("literal"),
             ]),
         })
     );
