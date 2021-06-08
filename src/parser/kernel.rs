@@ -5,9 +5,10 @@ pub enum TakeOpt {
     /// Match once.
     One,
     /// Match in range. Same as regex `{a,b}`.
+    /// `Range(0, 1)` is same as regex `?`.
     Range(usize, usize),
     /// Match until mismatched.
-    /// `More(0)` is same as regex `*`, and `More(1)` is same as regex `?`.
+    /// `More(0)` is same as regex `*`, and `More(1)` is same as regex `+`.
     More(usize),
 }
 
