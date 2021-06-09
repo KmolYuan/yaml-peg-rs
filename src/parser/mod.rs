@@ -28,19 +28,19 @@ impl Parser<'_> {
     pub fn parse(&mut self) -> Result<Array, PError> {
         self.inv(TakeOpt::More(0))?;
         self.seq(b"---").unwrap_or_default();
-        self.gap().unwrap_or_default();
+        self.gap(true).unwrap_or_default();
         self.forward();
         let mut v = vec![];
         v.push(self.doc()?);
         loop {
-            self.gap().unwrap_or_default();
+            self.gap(true).unwrap_or_default();
             if self.food().is_empty() {
                 break;
             }
             if self.seq(b"---").is_err() {
                 return self.err("splitter");
             }
-            self.gap().unwrap_or_default();
+            self.gap(true).unwrap_or_default();
             self.forward();
             v.push(self.doc()?);
         }
@@ -50,7 +50,7 @@ impl Parser<'_> {
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<Node, PError> {
         let ret = self.scalar(0, false, false)?;
-        self.gap().unwrap_or_default();
+        self.gap(true).unwrap_or_default();
         self.seq(b"...").unwrap_or_default();
         self.forward();
         Ok(ret)
@@ -188,7 +188,7 @@ impl Parser<'_> {
                     self.scalar(level + 1, false, true),
                     self.err("flow map key")
                 )?;
-                if self.gap().is_ok() {
+                if self.gap(true).is_ok() {
                     self.ind(level)?;
                 }
                 k
@@ -223,15 +223,15 @@ impl Parser<'_> {
             if v.is_empty() {
                 // Mismatch
                 if nest {
-                    self.gap()?;
+                    self.gap(true)?;
                     downgrade = self.unind(level)?;
-                } else if self.gap().is_ok() {
+                } else if self.gap(true).is_ok() {
                     downgrade = self.unind(level)?;
                 }
                 self.sym(b'-')?;
                 self.bound()?;
             } else {
-                if self.gap().is_err() {
+                if self.gap(true).is_err() {
                     return self.err("array terminator");
                 }
                 if self.doc_end() {
@@ -265,16 +265,16 @@ impl Parser<'_> {
             let k = if m.is_empty() {
                 // Mismatch
                 if nest {
-                    self.gap()?;
+                    self.gap(true)?;
                     self.ind(level)?;
-                } else if self.gap().is_ok() {
+                } else if self.gap(true).is_ok() {
                     self.ind(level)?;
                 }
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
                     let k = err_own!(self.scalar(level + 1, true, inner), self.err("map key"))?;
-                    if self.gap().is_ok() {
+                    if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
                     k
@@ -287,7 +287,7 @@ impl Parser<'_> {
                 }
                 k
             } else {
-                if self.gap().is_err() {
+                if self.gap(true).is_err() {
                     return self.err("map terminator");
                 }
                 if self.doc_end() || self.ind(level).is_err() {
@@ -297,7 +297,7 @@ impl Parser<'_> {
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
                     let k = err_own!(self.scalar(level + 1, true, inner), self.err("map key"))?;
-                    if self.gap().is_ok() {
+                    if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
                     k

@@ -51,13 +51,13 @@ fn test_yaml() {
             node!(*("y")) => node!("b3, b4"),
             node!("test multiline") => node!([
                 node!({
-                    node!("folded") => node!("aaa{}[] bbb ccc\nddd\n"),
-                    node!("literal") => node!("aaa{}[]\nbbb\n  ccc\n\n  ddd\n"),
+                    node!("folded") => node!("aaa{}[] bbb ccc\nddd\n# eee\n"),
+                    node!("literal") => node!("aaa{}[]\nbbb\n  ccc\n\n  ddd\n\n# eee\n"),
                 }),
                 node!({
                     node!("plain") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff"),
-                    node!("single quoted") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff"),
-                    node!("double quoted") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff"),
+                    node!("single quoted") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff\n# ggg"),
+                    node!("double quoted") => node!("aaa{}[] \"bbb\" 'ccc', ddd\\n\neee fff\n# ggg"),
                 }),
                 node!("literal\n\n"),
                 node!("literal"),

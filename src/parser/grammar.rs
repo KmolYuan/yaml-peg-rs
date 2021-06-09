@@ -92,7 +92,7 @@ impl Parser<'_> {
                 p.forward();
                 if p.seq(ignore).is_ok() {
                     v.push(char::from(sym));
-                } else if let Ok(mut t) = p.gap() {
+                } else if let Ok(mut t) = p.gap(false) {
                     if v.ends_with('\\') {
                         t -= 1;
                     }
@@ -149,7 +149,7 @@ impl Parser<'_> {
                 } else if !inner && !v.is_empty() && p.sym_set(b"{}[]").is_ok() {
                     v.push_str(&p.text());
                 } else if p.ind(level).is_err() {
-                    if let Ok(t) = p.gap() {
+                    if let Ok(t) = p.gap(true) {
                         if t == 1 {
                             v.push(' ');
                         }
@@ -225,7 +225,7 @@ impl Parser<'_> {
                 p.nl()?;
                 p.forward();
                 if p.ind(level).is_err() {
-                    if let Ok(t) = p.gap() {
+                    if let Ok(t) = p.gap(false) {
                         for _ in 0..t {
                             v.push('\n');
                         }
@@ -356,17 +356,24 @@ impl Parser<'_> {
     }
 
     /// Match any optional invisible characters between two lines.
-    pub fn gap(&mut self) -> Result<usize, ()> {
+    ///
+    /// Set `cmt` to `true` to ignore comments at the line end.
+    pub fn gap(&mut self, cmt: bool) -> Result<usize, ()> {
         self.context(|p| {
-            p.comment().unwrap_or_default();
+            if cmt {
+                p.comment().unwrap_or_default();
+            }
             p.nl()?;
             let mut t = 1;
             loop {
                 // Check point
                 p.forward();
                 p.ws(TakeOpt::More(0))?;
-                p.comment().unwrap_or_default();
+                if cmt {
+                    p.comment().unwrap_or_default();
+                }
                 if p.nl().is_err() {
+                    p.backward();
                     return Ok(t);
                 }
                 t += 1;

@@ -34,27 +34,37 @@ a0 bb: .val.
         ccc
 
         ddd
+
+      # eee
     literal: |
       aaa{}[]
       bbb
         ccc
 
         ddd
+
+      # eee
   - plain: aaa{}[] "bbb" 'ccc',
       ddd\n
 
       eee
         fff
+
+      # ggg
     single quoted: 'aaa{}[] "bbb" ''ccc'',
       ddd\n
 
       eee
-        fff'
+        fff
+
+      # ggg'
     double quoted: "aaa{}[] \"bbb\" 'ccc',
       dd\
       d\\n\n
       eee
-        fff"
+        fff
+
+      # ggg"
   - |+
     literal
 
