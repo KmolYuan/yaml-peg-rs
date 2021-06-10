@@ -6,6 +6,14 @@ pub const NL: &'static str = "\r\n";
 #[cfg(not(windows))]
 pub const NL: &'static str = "\n";
 
+/// The root type.
+#[derive(Eq, PartialEq)]
+pub enum Root {
+    Map,
+    Array,
+    Scalar,
+}
+
 /// The interface for dumping data structure.
 pub trait Dumper {
     /// Generate indentation.
@@ -14,11 +22,11 @@ pub trait Dumper {
     }
 
     /// Recursive dump function.
-    fn dump(&self, level: usize, wrap: bool) -> String;
+    fn dump(&self, level: usize, root: Root) -> String;
 }
 
 impl Dumper for Node {
-    fn dump(&self, level: usize, wrap: bool) -> String {
+    fn dump(&self, level: usize, root: Root) -> String {
         let mut doc = String::new();
         if !self.anchor.is_empty() {
             doc += &format!("&{} ", self.anchor);
@@ -44,34 +52,43 @@ impl Dumper for Node {
                 }
             }
             Yaml::Array(a) => {
-                let mut doc = if level == 0 { "" } else { NL }.to_owned();
+                let mut doc = NL.to_owned();
                 for (i, node) in a.iter().enumerate() {
                     if i != 0 || level != 0 {
                         doc += &ind;
                     }
-                    doc += &format!("- {}{}", node.dump(level + 1, false), NL);
+                    doc += &format!("- {}{}", node.dump(level + 1, Root::Array), NL);
                 }
                 doc.truncate(doc.len() - NL.len());
                 doc
             }
             Yaml::Map(m) => {
-                let mut doc = if wrap { NL } else { "" }.to_owned();
+                let mut doc = if root == Root::Map { NL } else { "" }.to_owned();
                 for (i, (k, v)) in m.iter().enumerate() {
-                    if i != 0 || wrap {
+                    if i != 0 || root == Root::Map {
                         doc += &ind;
                     }
-                    let s = k.dump(level + 1, false);
+                    let s = k.dump(level + 1, Root::Map);
                     if let Yaml::Map(_) | Yaml::Array(_) = k.yaml {
-                        doc += &format!("?{}{}{}{}{}{}", NL, Self::ind(level + 1), NL, s, NL, ind);
+                        doc += &format!("?{}{}{}{}{}", Self::ind(level + 1), NL, s, NL, ind);
                     } else {
                         doc += &s;
                     }
                     doc += ":";
-                    if let Yaml::Map(_) | Yaml::Array(_) = v.yaml {
-                        doc += &v.dump(level + 1, true);
-                    } else {
-                        doc += " ";
-                        doc += &v.dump(level + 1, true);
+                    match v.yaml {
+                        Yaml::Map(_) => {
+                            doc += &v.dump(level + 1, Root::Map);
+                        }
+                        Yaml::Array(_) if root == Root::Array => {
+                            doc += &v.dump(level, Root::Map);
+                        }
+                        Yaml::Array(_) => {
+                            doc += &v.dump(level + 1, Root::Map);
+                        }
+                        _ => {
+                            doc += " ";
+                            doc += &v.dump(level + 1, Root::Map);
+                        }
                     }
                     doc += NL;
                 }
@@ -111,9 +128,9 @@ where
         .enumerate()
         .map(|(i, node)| {
             if i == 0 {
-                node.dump(0, false) + NL
+                format!("{}{}", node.dump(0, Root::Scalar).trim_start(), NL)
             } else {
-                format!("---{}{}{}", NL, node.dump(0, false), NL)
+                format!("---{}{}{}", NL, node.dump(0, Root::Scalar).trim_start(), NL)
             }
         })
         .collect()
