@@ -43,10 +43,16 @@ impl Dumper for Node {
                 if s.contains(NL) {
                     let s = s
                         .split(NL)
-                        .map(|s| s.trim_end())
+                        .map(|s| {
+                            if s.is_empty() {
+                                "".to_owned()
+                            } else {
+                                ind.to_owned() + s.trim_end()
+                            }
+                        })
                         .collect::<Vec<_>>()
-                        .join(&(NL.to_owned() + &ind));
-                    format!("|{}{}{}", NL, ind, s)
+                        .join(NL);
+                    format!("|{}{}{}", NL, ind, s.trim())
                 } else {
                     s.clone()
                 }
@@ -79,7 +85,7 @@ impl Dumper for Node {
                         Yaml::Map(_) => {
                             doc += &v.dump(level + 1, Root::Map);
                         }
-                        Yaml::Array(_) if root == Root::Array => {
+                        Yaml::Array(_) if root == Root::Array && i == 0 => {
                             doc += &v.dump(level, Root::Map);
                         }
                         Yaml::Array(_) => {
