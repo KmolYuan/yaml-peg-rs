@@ -65,3 +65,30 @@ fn test_yaml() {
         })
     );
 }
+
+#[test]
+fn test_dump() {
+    use crate::dumper::NL;
+    let doc = dump(vec![
+        node!({
+            node!("a") => node!("b"),
+            node!("c") => node!([
+                node!({node!("d") => node!("e")}),
+                node!({node!("f") => node!({
+                    node!("g") => node!("h")
+                })}),
+                node!({node!("i") => node!([
+                    node!("j")
+                ])}),
+            ]),
+        }),
+        node!([node!("a"), node!("b")]),
+    ]);
+    assert_eq!(
+        doc,
+        format!(
+            "a: b{0}c:{0}  - d: e{0}  - f:{0}      g: h{0}  - i:{0}      - j{0}---{0}- a{0}- b{0}",
+            NL
+        )
+    );
+}

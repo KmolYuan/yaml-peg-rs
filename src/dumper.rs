@@ -94,17 +94,10 @@ impl Dumper for Node {
 /// let doc = dump(vec![
 ///     node!({
 ///         node!("a") => node!("b"),
-///         node!("c") => node!([
-///             node!({node!("d") => node!("e")}),
-///         ]),
+///         node!("c") => node!("d"),
 ///     }),
-///     node!([
-///         node!("a"),
-///         node!("b"),
-///         node!("c"),
-///     ]),
 /// ]);
-/// assert_eq!(doc, format!(r#"a: b{0}c:{0}  - d: e{0}---{0}- a{0}- b{0}- c{0}"#, NL));
+/// assert_eq!(doc, format!("a: b{0}c: d{0}", NL));
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
