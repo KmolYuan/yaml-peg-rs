@@ -51,6 +51,7 @@ impl Dumper for Node {
                     }
                     doc += &format!("- {}{}", node.dump(level + 1, false), NL);
                 }
+                doc.truncate(doc.len() - NL.len());
                 doc
             }
             Yaml::Map(m) => {
@@ -65,8 +66,16 @@ impl Dumper for Node {
                     } else {
                         doc += &s;
                     }
-                    doc += &format!(": {}{}", v.dump(level + 1, true), NL);
+                    doc += ":";
+                    if let Yaml::Map(_) | Yaml::Array(_) = v.yaml {
+                        doc += &v.dump(level + 1, true);
+                    } else {
+                        doc += " ";
+                        doc += &v.dump(level + 1, true);
+                    }
+                    doc += NL;
                 }
+                doc.truncate(doc.len() - NL.len());
                 doc
             }
             Yaml::Anchor(anchor) => format!("*{}", anchor),
@@ -82,11 +91,20 @@ impl Dumper for Node {
 ///
 /// ```
 /// use yaml_peg::{dump, node, dumper::NL};
-/// let doc = dump(vec![node!({
-///     node!("a") => node!("b"),
-///     node!("c") => node!("d"),
-/// })]);
-/// assert_eq!(doc, format!("a: b{}c: d{}", NL, NL));
+/// let doc = dump(vec![
+///     node!({
+///         node!("a") => node!("b"),
+///         node!("c") => node!([
+///             node!({node!("d") => node!("e")}),
+///         ]),
+///     }),
+///     node!([
+///         node!("a"),
+///         node!("b"),
+///         node!("c"),
+///     ]),
+/// ]);
+/// assert_eq!(doc, format!(r#"a: b{0}c:{0}  - d: e{0}---{0}- a{0}- b{0}- c{0}"#, NL));
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
@@ -100,9 +118,9 @@ where
         .enumerate()
         .map(|(i, node)| {
             if i == 0 {
-                node.dump(0, false)
+                node.dump(0, false) + NL
             } else {
-                format!("---{}{}", NL, node.dump(0, false))
+                format!("---{}{}{}", NL, node.dump(0, false), NL)
             }
         })
         .collect()
