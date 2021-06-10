@@ -1,6 +1,11 @@
 //! Dumper components.
 use crate::*;
 
+#[cfg(windows)]
+pub const NL: &'static str = "\r\n";
+#[cfg(not(windows))]
+pub const NL: &'static str = "\n";
+
 /// The interface for dumping data structure.
 pub trait Dumper {
     /// Generate indentation.
@@ -23,45 +28,45 @@ impl Dumper for Node {
         }
         let ind = Self::ind(level);
         doc += &match &self.yaml {
-            Yaml::Null => "null".into(),
+            Yaml::Null => "null".to_owned(),
             Yaml::Bool(b) => b.to_string(),
             Yaml::Int(n) | Yaml::Float(n) => n.clone(),
             Yaml::Str(s) => {
-                if s.contains("\n") {
-                    let s = s.trim().replace("\n", &(String::from("\n") + &ind));
-                    String::from("|\n") + &ind + &s
+                if s.contains(NL) {
+                    let s = s
+                        .split(NL)
+                        .map(|s| s.trim_end())
+                        .collect::<Vec<_>>()
+                        .join(&(NL.to_owned() + &ind));
+                    format!("|{}{}{}", NL, ind, s)
                 } else {
                     s.clone()
                 }
             }
             Yaml::Array(a) => {
-                let mut doc = String::from(if level == 0 { "" } else { "\n" });
+                let mut doc = if level == 0 { "" } else { NL }.to_owned();
                 for (i, node) in a.iter().enumerate() {
                     if i != 0 || level != 0 {
                         doc += &ind;
                     }
-                    doc += &format!("- {}\n", node.dump(level + 1, false));
+                    doc += &format!("- {}{}", node.dump(level + 1, false), NL);
                 }
-                doc.pop();
                 doc
             }
             Yaml::Map(m) => {
-                let mut doc = String::from(if wrap { "\n" } else { "" });
+                let mut doc = if wrap { NL } else { "" }.to_owned();
                 for (i, (k, v)) in m.iter().enumerate() {
                     if i != 0 || wrap {
                         doc += &ind;
                     }
                     let s = k.dump(level + 1, false);
                     if let Yaml::Map(_) | Yaml::Array(_) = k.yaml {
-                        doc += "?\n";
-                        doc += &(Self::ind(level + 1) + "\n" + &s + "\n" + &ind);
+                        doc += &format!("?{}{}{}{}{}{}", NL, Self::ind(level + 1), NL, s, NL, ind);
                     } else {
                         doc += &s;
                     }
-                    doc += ": ";
-                    doc += &(v.dump(level + 1, true) + "\n");
+                    doc += &format!(": {}{}", v.dump(level + 1, true), NL);
                 }
-                doc.pop();
                 doc
             }
             Yaml::Anchor(anchor) => format!("*{}", anchor),
@@ -76,12 +81,12 @@ impl Dumper for Node {
 /// otherwise it use literal string and trim the last white spaces.
 ///
 /// ```
-/// use yaml_peg::{dump, node};
+/// use yaml_peg::{dump, node, dumper::NL};
 /// let doc = dump(vec![node!({
 ///     node!("a") => node!("b"),
 ///     node!("c") => node!("d"),
 /// })]);
-/// assert_eq!(doc, "a: b\nc: d\n");
+/// assert_eq!(doc, format!("a: b{}c: d{}", NL, NL));
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
@@ -94,14 +99,11 @@ where
         .into_iter()
         .enumerate()
         .map(|(i, node)| {
-            String::from(if i == 0 { "" } else { "---\n" })
-                + &node
-                    .dump(0, false)
-                    .split('\n')
-                    .map(|s| s.trim_end())
-                    .collect::<Vec<_>>()
-                    .join("\n")
-                + "\n"
+            if i == 0 {
+                node.dump(0, false)
+            } else {
+                format!("---{}{}", NL, node.dump(0, false))
+            }
         })
         .collect()
 }
