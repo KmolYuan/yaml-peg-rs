@@ -55,7 +55,7 @@ impl Parser<'_> {
     /// Match NaN.
     pub fn nan(&mut self) -> Result<(), ()> {
         self.sym(b'.')?;
-        for &s in &[b"nan", b"NaN", b"NAN"] {
+        for s in [b"nan", b"NaN", b"NAN"] {
             if self.seq(s).is_ok() {
                 self.bound()?;
                 return Ok(());
@@ -68,7 +68,7 @@ impl Parser<'_> {
     pub fn inf(&mut self) -> Result<bool, ()> {
         let b = self.sym(b'-').is_err();
         self.sym(b'.')?;
-        for &s in &[b"inf", b"Inf", b"INF"] {
+        for s in [b"inf", b"Inf", b"INF"] {
             if self.seq(s).is_ok() {
                 self.bound()?;
                 return Ok(b);
