@@ -23,6 +23,11 @@ macro_rules! yaml_from_method {
 pub type Array = Vec<Node>;
 /// The map data structure of YAML.
 pub type Map = LinkedHashMap<Node, Node>;
+/// Anchor visitor is made by a hash map that you can get the node reference inside.
+///
+/// Since [`Node`] type is holding a reference counter,
+/// the data are just a viewer to the original memory.
+pub type AnchorVisitor = LinkedHashMap<String, Node>;
 
 /// YAML data types, but it is recommended to use [`Node`] for shorten code.
 ///

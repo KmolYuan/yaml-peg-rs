@@ -43,7 +43,7 @@ pub struct Parser<'a> {
     /// Read position.
     pub eaten: usize,
     /// A visitor of anchors.
-    pub anchors: Anchors,
+    pub anchors: AnchorVisitor,
 }
 
 /// The implementation of string pointer.
@@ -56,7 +56,7 @@ impl<'a> Parser<'a> {
             consumed: 0,
             pos: 0,
             eaten: 0,
-            anchors: Anchors::new(),
+            anchors: AnchorVisitor::new(),
         }
     }
 

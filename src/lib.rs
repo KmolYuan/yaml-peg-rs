@@ -15,13 +15,13 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! Please be aware that the anchor system must be done by your self to prevent recursive problem.
-//! This crate is only store the anchor information in [`Yaml::Anchor`] and [`Node::anchor`].
-//! A reference counter system maybe the best choice.
+//! The anchor system is implemented by using [`std::sync::Arc`] as inner handler,
+//! please see [`AnchorVisitor`].
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
 pub use crate::parser::parse;
+pub use crate::visitor::*;
 pub use crate::yaml::*;
 
 /// Create [`Node`] items literally.
@@ -107,4 +107,5 @@ mod node;
 pub mod parser;
 #[cfg(test)]
 mod tests;
+mod visitor;
 mod yaml;
