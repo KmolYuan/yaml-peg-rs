@@ -109,7 +109,7 @@ impl Parser<'_> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        Ok(node!(yaml, pos, anchor, ty))
+        Ok(Node::new(yaml, pos, &anchor, &ty))
     }
 
     /// Match flow scalar terminal.
@@ -283,7 +283,7 @@ impl Parser<'_> {
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
-                    return Ok(k.yaml);
+                    return Ok(k.into_yaml());
                 }
                 k
             } else {

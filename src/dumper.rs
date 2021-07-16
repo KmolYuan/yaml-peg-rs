@@ -28,14 +28,14 @@ pub trait Dumper {
 impl Dumper for Node {
     fn dump(&self, level: usize, root: Root) -> String {
         let mut doc = String::new();
-        if !self.anchor.is_empty() {
-            doc += &format!("&{} ", self.anchor);
+        if !self.anchor().is_empty() {
+            doc += &format!("&{} ", self.anchor());
         }
-        if !self.ty.is_empty() {
-            doc += &format!("!!{} ", self.ty);
+        if !self.ty().is_empty() {
+            doc += &format!("!!{} ", self.ty());
         }
         let ind = Self::ind(level);
-        doc += &match &self.yaml {
+        doc += &match self.yaml() {
             Yaml::Null => "null".to_owned(),
             Yaml::Bool(b) => b.to_string(),
             Yaml::Int(n) | Yaml::Float(n) => n.clone(),
@@ -75,13 +75,13 @@ impl Dumper for Node {
                         doc += &ind;
                     }
                     let s = k.dump(level + 1, Root::Map);
-                    if let Yaml::Map(_) | Yaml::Array(_) = k.yaml {
+                    if let Yaml::Map(_) | Yaml::Array(_) = k.yaml() {
                         doc += &format!("?{}{}{}{}{}", Self::ind(level + 1), NL, s, NL, ind);
                     } else {
                         doc += &s;
                     }
                     doc += ":";
-                    match v.yaml {
+                    match v.yaml() {
                         Yaml::Map(_) => {
                             doc += &v.dump(level + 1, Root::Map);
                         }

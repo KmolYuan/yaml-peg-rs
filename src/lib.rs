@@ -49,24 +49,24 @@ pub use crate::yaml::*;
 /// ```
 /// use yaml_peg::{node, Yaml};
 /// assert_eq!(node!(Yaml::Null), node!(null));
-/// assert_eq!(node!(Yaml::Anchor("x".into())), node!(*("x")));
+/// assert_eq!(node!(Yaml::Anchor("x".into())), node!(*"x"));
 /// ```
 #[macro_export]
 macro_rules! node {
-    ([$($token:tt)*] $($opt:tt)*) => {
-        $crate::node!($crate::yaml_array![$($token)*] $($opt)*)
+    ([$($token:tt)*]) => {
+        $crate::node!($crate::yaml_array![$($token)*])
     };
-    ({$($token:tt)*} $($opt:tt)*) => {
-        $crate::node!($crate::yaml_map![$($token)*] $($opt)*)
+    ({$($token:tt)*}) => {
+        $crate::node!($crate::yaml_map![$($token)*])
     };
-    (null $($opt:tt)*) => {
-        $crate::node!($crate::Yaml::Null $($opt)*)
+    (null) => {
+        $crate::node!($crate::Yaml::Null)
     };
-    (*($anchor:expr) $($opt:tt)*) => {
-        $crate::node!($crate::Yaml::Anchor($anchor.into()) $($opt)*)
+    (*$anchor:expr) => {
+        $crate::node!($crate::Yaml::Anchor($anchor.into()))
     };
-    ($yaml:expr $(, $pos:expr $(, $anchor:expr $(, $ty:expr)?)?)?) => {
-        $crate::Node::new($yaml.into())$(.pos($pos.into())$(.anchor($anchor.into())$(.ty($ty.into()))?)?)?
+    ($yaml:expr) => {
+        $crate::Node::new($yaml.into(), 0, "", "")
     };
 }
 

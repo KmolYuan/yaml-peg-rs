@@ -42,13 +42,13 @@ fn test_yaml() {
                 node!(3) => node!(4),
             }),
             node!("?a3") => node!([
-                node!(*("x")),
+                node!(*"x"),
                 node!([node!("d1🀄🃏"), node!("中文")]),
                 node!(null),
                 node!(null),
             ]),
             node!({node!("a4") => node!(null)}) => node!(-30),
-            node!(*("y")) => node!("b3, b4"),
+            node!(*"y") => node!("b3, b4"),
             node!("test multiline") => node!([
                 node!({
                     node!("folded") => node!("aaa{}[] bbb ccc\nddd\n# eee\n"),
