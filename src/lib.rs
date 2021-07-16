@@ -34,8 +34,6 @@ pub use crate::yaml::*;
 /// assert_eq!(node!(k), node!("a"));
 /// ```
 ///
-/// The members are ordered as `node!(yaml, pos, anchor, ty)`.
-///
 /// Arrays and maps can be created from this macro directly through brackets (`[]`, `{}`).
 ///
 /// ```

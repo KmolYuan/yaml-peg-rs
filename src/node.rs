@@ -40,9 +40,10 @@ macro_rules! as_num_method {
     };
 }
 
-/// Parser node, includes line number, column number, type assertion and anchor.
+/// Readonly node, including line number, column number, type assertion and anchor.
+/// You can access [`Yaml`] type through [`Node::yaml`] method.
 ///
-/// This type will ignore additional members when comparison and hashing.
+/// This type will ignore additional information when comparison and hashing.
 ///
 /// ```
 /// use std::collections::HashSet;
@@ -93,6 +94,12 @@ macro_rules! as_num_method {
 ///
 /// For default value on map type, [`Node::get`] method has a shorten method [`Node::get_default`] to combining
 /// transform function and default function as well.
+///
+/// # Clone
+///
+/// Since the YAML data is wrapped by reference counter [`Arc`],
+/// cloning `Node` just copy the node information,
+/// the entire data structure are shared together.
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct Node(Arc<Inner>);
 
@@ -135,7 +142,7 @@ impl Node {
         &self.0.yaml
     }
 
-    /// Drop self and get YAML data.
+    /// Drop the node and get the YAML data.
     pub fn into_yaml(self) -> Yaml {
         Arc::try_unwrap(self.0).unwrap().yaml
     }
