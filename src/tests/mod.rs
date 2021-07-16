@@ -5,7 +5,8 @@ const TEST_YAML: &str = include_str!("test.yaml");
 
 #[test]
 fn test_json() {
-    let ans = parse(TEST_JSON).unwrap_or_else(|e| panic!("{}", e));
+    let (ans, anchors) = parse(TEST_JSON).unwrap_or_else(|e| panic!("{}", e));
+    assert_eq!(anchors.len(), 0);
     assert_eq!(
         ans[0],
         node!({
@@ -20,7 +21,10 @@ fn test_json() {
 
 #[test]
 fn test_yaml() {
-    let ans = parse(TEST_YAML).unwrap_or_else(|e| panic!("{}", e));
+    let (ans, anchors) = parse(TEST_YAML).unwrap_or_else(|e| panic!("{}", e));
+    assert_eq!(anchors.len(), 2);
+    assert!(anchors.contains_key("x"));
+    assert!(anchors.contains_key("y"));
     assert_eq!(
         ans[0],
         node!({

@@ -3,11 +3,14 @@ pub use self::error::*;
 pub use self::grammar::*;
 pub use self::kernel::*;
 use crate::*;
+use linked_hash_map::LinkedHashMap;
 use std::iter::FromIterator;
 
 mod error;
 mod grammar;
 mod kernel;
+
+pub type Anchors = LinkedHashMap<String, Node>;
 
 macro_rules! err_own {
     ($e:expr, $then:expr) => {
@@ -109,7 +112,11 @@ impl Parser<'_> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        Ok(Node::new(yaml, pos, &anchor, &ty))
+        let node = Node::new(yaml, pos, &anchor, &ty);
+        if !anchor.is_empty() {
+            self.anchors.insert(anchor, node.clone());
+        }
+        Ok(node)
     }
 
     /// Match flow scalar terminal.
@@ -320,14 +327,17 @@ impl Parser<'_> {
 }
 
 /// Parse YAML document.
+/// Return an array of nodes and the anchors.
 ///
 /// ```
 /// use yaml_peg::{parse, node};
-/// let n = parse("true").unwrap();
+/// let (n, anchors) = parse("true").unwrap();
+/// assert_eq!(anchors.len(), 0);
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
-pub fn parse(doc: &str) -> Result<Array, String> {
-    Parser::new(doc.as_bytes())
-        .parse()
+pub fn parse(doc: &str) -> Result<(Array, Anchors), String> {
+    let mut p = Parser::new(doc.as_bytes());
+    p.parse()
         .map_err(|e| e.into_error(doc))
+        .map(|a| (a, p.anchors))
 }
