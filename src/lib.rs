@@ -7,11 +7,13 @@
 //!
 //! The buffer reader has also not implemented, but the chunks can be read by sub-parsers.
 //!
-//! Function [`parse`] is used to parse YAML string into [`Node`] data structure.
+//! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
+//! which has a data holder [`Yaml`].
+//! There also has multiple thread version corresponding to [`parse_arc`], [`ArcNode`], [`ArcYaml`].
 //! To get back as string, please use [`dump`] function.
 //!
-//! There are also have some macros for building [`Node`] structure from Rust data.
-//! Especially [`node!`] macro, almost data can be built by the macro literally.
+//! There are also have some macros for building [`NodeBase`] structure from Rust data.
+//! Especially [`node!`] / [`node_arc!`] macro, almost data can be built by the macro literally.
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!

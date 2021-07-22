@@ -104,6 +104,8 @@ pub type ArcNode = NodeBase<repr::ArcRepr>;
 /// Since the YAML data is wrapped by reference counter [`std::rc::Rc`] and [`std::sync::Arc`],
 /// cloning `Node` just copy the node information,
 /// the entire data structure are shared together.
+///
+/// If you still went to copy data, use [`ToOwned::to_owned`].
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct NodeBase<R: repr::Repr>(R);
 
