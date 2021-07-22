@@ -15,7 +15,7 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! The anchor system is implemented by using [`std::sync::Arc`] as inner handler,
+//! The anchor system is implemented by using [`std::rc::Rc`] and [`std::sync::Arc`] as inner handler,
 //! please see [`AnchorVisitor`].
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
@@ -42,12 +42,12 @@ pub use crate::yaml::*;
 /// assert_eq!(node!({node!(1) => node!(2)}), node!(yaml_map![node!(1) => node!(2)]));
 /// ```
 ///
-/// The [`Yaml::Null`] and the [`Yaml::Null`] are also supported by the syntax:
+/// The [`YamlBase::Null`] and the [`YamlBase::Null`] are also supported by the syntax:
 ///
 /// ```
-/// use yaml_peg::{node, Yaml};
-/// assert_eq!(node!(Yaml::Null), node!(null));
-/// assert_eq!(node!(Yaml::Anchor("x".into())), node!(*"x"));
+/// use yaml_peg::{node, YamlBase};
+/// assert_eq!(node!(YamlBase::Null), node!(null));
+/// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
 /// ```
 #[macro_export]
 macro_rules! node {
@@ -68,7 +68,27 @@ macro_rules! node {
     };
 }
 
-/// Create [`Yaml::Array`] items literally.
+/// [`node!`] macro for [`ArcNode`].
+#[macro_export]
+macro_rules! node_arc {
+    ([$($token:tt)*]) => {
+        $crate::node_arc!($crate::yaml_array![$($token)*])
+    };
+    ({$($token:tt)*}) => {
+        $crate::node_arc!($crate::yaml_map![$($token)*])
+    };
+    (null) => {
+        $crate::node_arc!($crate::Yaml::Null)
+    };
+    (*$anchor:expr) => {
+        $crate::node_arc!($crate::Yaml::Anchor($anchor.into()))
+    };
+    ($yaml:expr) => {
+        $crate::ArcNode::new($yaml.into(), 0, "", "")
+    };
+}
+
+/// Create [`YamlBase::Array`] items literally.
 ///
 /// ```
 /// use yaml_peg::{node, yaml_array};
@@ -81,7 +101,7 @@ macro_rules! yaml_array {
     };
 }
 
-/// Create [`Yaml::Map`] items literally.
+/// Create [`YamlBase::Map`] items literally.
 ///
 /// ```
 /// use yaml_peg::{node, yaml_map};
@@ -105,6 +125,7 @@ pub mod dumper;
 mod indicator;
 mod node;
 pub mod parser;
+pub mod repr;
 #[cfg(test)]
 mod tests;
 mod visitor;

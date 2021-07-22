@@ -25,7 +25,7 @@ pub trait Dumper {
     fn dump(&self, level: usize, root: Root) -> String;
 }
 
-impl Dumper for Node {
+impl<R: repr::Repr> Dumper for NodeBase<R> {
     fn dump(&self, level: usize, root: Root) -> String {
         let mut doc = String::new();
         if !self.anchor().is_empty() {
@@ -36,10 +36,10 @@ impl Dumper for Node {
         }
         let ind = Self::ind(level);
         doc += &match self.yaml() {
-            Yaml::Null => "null".to_owned(),
-            Yaml::Bool(b) => b.to_string(),
-            Yaml::Int(n) | Yaml::Float(n) => n.clone(),
-            Yaml::Str(s) => {
+            YamlBase::Null => "null".to_owned(),
+            YamlBase::Bool(b) => b.to_string(),
+            YamlBase::Int(n) | YamlBase::Float(n) => n.clone(),
+            YamlBase::Str(s) => {
                 if s.contains(NL) {
                     let s = s
                         .split(NL)
@@ -57,7 +57,7 @@ impl Dumper for Node {
                     s.clone()
                 }
             }
-            Yaml::Array(a) => {
+            YamlBase::Array(a) => {
                 let mut doc = NL.to_owned();
                 for (i, node) in a.iter().enumerate() {
                     if i != 0 || level != 0 {
@@ -68,27 +68,27 @@ impl Dumper for Node {
                 doc.truncate(doc.len() - NL.len());
                 doc
             }
-            Yaml::Map(m) => {
+            YamlBase::Map(m) => {
                 let mut doc = if root == Root::Map { NL } else { "" }.to_owned();
                 for (i, (k, v)) in m.iter().enumerate() {
                     if i != 0 || root == Root::Map {
                         doc += &ind;
                     }
                     let s = k.dump(level + 1, Root::Map);
-                    if let Yaml::Map(_) | Yaml::Array(_) = k.yaml() {
+                    if let YamlBase::Map(_) | YamlBase::Array(_) = k.yaml() {
                         doc += &format!("?{}{}{}{}{}", Self::ind(level + 1), NL, s, NL, ind);
                     } else {
                         doc += &s;
                     }
                     doc += ":";
                     match v.yaml() {
-                        Yaml::Map(_) => {
+                        YamlBase::Map(_) => {
                             doc += &v.dump(level + 1, Root::Map);
                         }
-                        Yaml::Array(_) if root == Root::Array && i == 0 => {
+                        YamlBase::Array(_) if root == Root::Array && i == 0 => {
                             doc += &v.dump(level, Root::Map);
                         }
-                        Yaml::Array(_) => {
+                        YamlBase::Array(_) => {
                             doc += &v.dump(level + 1, Root::Map);
                         }
                         _ => {
@@ -101,7 +101,7 @@ impl Dumper for Node {
                 doc.truncate(doc.len() - NL.len());
                 doc
             }
-            Yaml::Anchor(anchor) => format!("*{}", anchor),
+            YamlBase::Anchor(anchor) => format!("*{}", anchor),
         };
         doc
     }

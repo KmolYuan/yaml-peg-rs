@@ -23,9 +23,9 @@ macro_rules! err_own {
 ///
 /// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
 /// Additionally, they should eat the string by themself.
-impl Parser<'_> {
+impl<R: repr::Repr> Parser<'_, R> {
     /// YAML entry point, return entire doc if exist.
-    pub fn parse(&mut self) -> Result<Array, PError> {
+    pub fn parse(&mut self) -> Result<Array<R>, PError> {
         self.inv(TakeOpt::More(0))?;
         self.seq(b"---").unwrap_or_default();
         self.gap(true).unwrap_or_default();
@@ -48,7 +48,7 @@ impl Parser<'_> {
     }
 
     /// Match one doc block.
-    pub fn doc(&mut self) -> Result<Node, PError> {
+    pub fn doc(&mut self) -> Result<NodeBase<R>, PError> {
         let ret = self.scalar(0, false, false)?;
         self.gap(true).unwrap_or_default();
         self.seq(b"...").unwrap_or_default();
@@ -72,12 +72,12 @@ impl Parser<'_> {
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> Result<Node, PError> {
+    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> Result<NodeBase<R>, PError> {
         self.scalar_inner(|p| {
             if let Ok(s) = p.string_literal(level) {
-                Ok(Yaml::Str(s))
+                Ok(YamlBase::Str(s))
             } else if let Ok(s) = p.string_folded(level) {
-                Ok(Yaml::Str(s))
+                Ok(YamlBase::Str(s))
             } else {
                 err_own!(
                     p.array(level, nest),
@@ -88,13 +88,13 @@ impl Parser<'_> {
     }
 
     /// Match flow scalar.
-    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> Result<Node, PError> {
+    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> Result<NodeBase<R>, PError> {
         self.scalar_inner(|p| p.scalar_term(level, inner))
     }
 
-    fn scalar_inner<F>(&mut self, f: F) -> Result<Node, PError>
+    fn scalar_inner<F>(&mut self, f: F) -> Result<NodeBase<R>, PError>
     where
-        F: Fn(&mut Self) -> Result<Yaml, PError>,
+        F: Fn(&mut Self) -> Result<YamlBase<R>, PError>,
     {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
@@ -109,7 +109,7 @@ impl Parser<'_> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        let node = Node::new(yaml, pos, &ty, &anchor);
+        let node = NodeBase::new(yaml, pos, &ty, &anchor);
         if !anchor.is_empty() {
             self.anchors.insert(anchor, node.clone());
         }
@@ -117,40 +117,40 @@ impl Parser<'_> {
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<Yaml, PError> {
+    pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<YamlBase<R>, PError> {
         let yaml = if self.sym(b'~').is_ok() {
-            Yaml::Null
+            YamlBase::Null
         } else if self.seq(b"null").is_ok() {
-            Yaml::Null
+            YamlBase::Null
         } else if self.seq(b"true").is_ok() {
-            Yaml::Bool(true)
+            YamlBase::Bool(true)
         } else if self.seq(b"false").is_ok() {
-            Yaml::Bool(false)
+            YamlBase::Bool(false)
         } else if self.nan().is_ok() {
-            Yaml::Float("NaN".into())
+            YamlBase::Float("NaN".into())
         } else if let Ok(b) = self.inf() {
-            Yaml::Float(if b { "inf" } else { "-inf" }.into())
+            YamlBase::Float(if b { "inf" } else { "-inf" }.into())
         } else if let Ok(s) = self.float() {
-            Yaml::Float(s.trim_end_matches(|c| ".0".contains(c)).into())
+            YamlBase::Float(s.trim_end_matches(|c| ".0".contains(c)).into())
         } else if let Ok(s) = self.sci_float() {
-            Yaml::Float(s)
+            YamlBase::Float(s)
         } else if let Ok(s) = self.int() {
-            Yaml::Int(s)
+            YamlBase::Int(s)
         } else if let Ok(s) = self.anchor_use() {
-            Yaml::Anchor(s)
+            YamlBase::Anchor(s)
         } else if let Ok(s) = self.string_flow(level, inner) {
-            Yaml::Str(s)
+            YamlBase::Str(s)
         } else {
             err_own!(
                 self.array_flow(level),
-                err_own!(self.map_flow(level), Ok(Yaml::Null))
+                err_own!(self.map_flow(level), Ok(YamlBase::Null))
             )?
         };
         Ok(yaml)
     }
 
     /// Match flow array.
-    pub fn array_flow(&mut self, level: usize) -> Result<Yaml, PError> {
+    pub fn array_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -172,11 +172,11 @@ impl Parser<'_> {
             }
         }
         self.forward();
-        Ok(Yaml::from_iter(v))
+        Ok(YamlBase::from_iter(v))
     }
 
     /// Match flow map.
-    pub fn map_flow(&mut self, level: usize) -> Result<Yaml, PError> {
+    pub fn map_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
@@ -215,11 +215,11 @@ impl Parser<'_> {
             }
         }
         self.forward();
-        Ok(Yaml::from_iter(m))
+        Ok(YamlBase::from_iter(m))
     }
 
     /// Match array.
-    pub fn array(&mut self, level: usize, nest: bool) -> Result<Yaml, PError> {
+    pub fn array(&mut self, level: usize, nest: bool) -> Result<YamlBase<R>, PError> {
         let mut v = vec![];
         loop {
             self.forward();
@@ -258,11 +258,11 @@ impl Parser<'_> {
         }
         // Keep last wrapping
         self.backward();
-        Ok(Yaml::from_iter(v))
+        Ok(YamlBase::from_iter(v))
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> Result<Yaml, PError> {
+    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> Result<YamlBase<R>, PError> {
         let mut m = vec![];
         loop {
             self.forward();
@@ -319,7 +319,7 @@ impl Parser<'_> {
         }
         // Keep last wrapping
         self.backward();
-        Ok(Yaml::from_iter(m))
+        Ok(YamlBase::from_iter(m))
     }
 }
 
@@ -332,8 +332,8 @@ impl Parser<'_> {
 /// assert_eq!(anchors.len(), 0);
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
-pub fn parse(doc: &str) -> Result<(Array, AnchorVisitor), String> {
-    let mut p = Parser::new(doc.as_bytes());
+pub fn parse(doc: &str) -> Result<(Array<repr::RcRepr>, AnchorVisitor<repr::RcRepr>), String> {
+    let mut p = Parser::<repr::RcRepr>::new(doc.as_bytes());
     p.parse()
         .map_err(|e| e.into_error(doc))
         .map(|a| (a, p.anchors))

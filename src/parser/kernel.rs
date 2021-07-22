@@ -34,7 +34,7 @@ pub enum TakeOpt {
 /// + Method [`Parser::forward`] is used to move on.
 /// + Method [`Parser::text`] is used to get the matched string.
 /// + Method [`Parser::backward`] is used to get back if mismatched.
-pub struct Parser<'a> {
+pub struct Parser<'a, R: repr::Repr> {
     doc: &'a [u8],
     indent: usize,
     consumed: u64,
@@ -43,11 +43,11 @@ pub struct Parser<'a> {
     /// Read position.
     pub eaten: usize,
     /// A visitor of anchors.
-    pub anchors: AnchorVisitor,
+    pub anchors: AnchorVisitor<R>,
 }
 
 /// The implementation of string pointer.
-impl<'a> Parser<'a> {
+impl<'a, R: repr::Repr> Parser<'a, R> {
     /// Create a PEG parser with the string.
     pub fn new(doc: &'a [u8]) -> Self {
         Self {
@@ -78,7 +78,7 @@ impl<'a> Parser<'a> {
 /// The low level grammar implementation.
 ///
 /// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
-impl Parser<'_> {
+impl<Repr: repr::Repr> Parser<'_, Repr> {
     /// Builder method for setting indent.
     pub fn indent(mut self, indent: usize) -> Self {
         self.indent = indent;
