@@ -11,5 +11,5 @@ See the API doc for more information.
 
 ## Features
 
-+ Support anchor visitor.
-+ Thread-safe handler provides parallel visiting and less copy cost. (`std::sync::Arc`)
++ Support anchor visitor through reference counter.
++ Different data holder provides parallel visiting and less copy cost.
