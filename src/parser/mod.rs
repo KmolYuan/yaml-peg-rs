@@ -323,18 +323,40 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 }
 
-/// Parse YAML document.
-/// Return an array of nodes and the anchors.
-///
-/// ```
-/// use yaml_peg::{parse, node};
-/// let (n, anchors) = parse("true").unwrap();
-/// assert_eq!(anchors.len(), 0);
-/// assert_eq!(n, vec![node!(true)]);
-/// ```
-pub fn parse(doc: &str) -> Result<(Array<repr::RcRepr>, AnchorVisitor<repr::RcRepr>), String> {
-    let mut p = Parser::<repr::RcRepr>::new(doc.as_bytes());
-    p.parse()
-        .map_err(|e| e.into_error(doc))
-        .map(|a| (a, p.anchors))
+macro_rules! impl_parser {
+    ($(#[$meta:meta])* $func:ident -> $repr:ty) => {
+        $(#[$meta])*
+        pub fn $func(doc: &str) -> Result<(Array<$repr>, AnchorVisitor<$repr>), String> {
+            let mut p = Parser::<$repr>::new(doc.as_bytes());
+            p.parse()
+                .map_err(|e| e.into_error(doc))
+                .map(|a| (a, p.anchors))
+        }
+    };
+}
+
+impl_parser! {
+    /// Parse YAML document into [`std::rc::Rc`] data holder.
+    /// Return an array of nodes and the anchors.
+    ///
+    /// ```
+    /// use yaml_peg::{parse, node};
+    /// let (n, anchors) = parse("true").unwrap();
+    /// assert_eq!(anchors.len(), 0);
+    /// assert_eq!(n, vec![node!(true)]);
+    /// ```
+    parse -> repr::RcRepr
+}
+
+impl_parser! {
+    /// Parse YAML document into [`std::sync::Arc`] data holder.
+    /// Return an array of nodes and the anchors.
+    ///
+    /// ```
+    /// use yaml_peg::{parse_arc, node_arc};
+    /// let (n, anchors) = parse_arc("true").unwrap();
+    /// assert_eq!(anchors.len(), 0);
+    /// assert_eq!(n, vec![node_arc!(true)]);
+    /// ```
+    parse_arc -> repr::ArcRepr
 }

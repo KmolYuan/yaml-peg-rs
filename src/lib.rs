@@ -20,7 +20,7 @@
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
-pub use crate::parser::parse;
+pub use crate::parser::{parse, parse_arc};
 pub use crate::visitor::*;
 pub use crate::yaml::*;
 
