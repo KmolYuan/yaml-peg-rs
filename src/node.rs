@@ -227,14 +227,22 @@ impl<R: repr::Repr> NodeBase<R> {
         }
     }
 
-    as_method! {
-        /// Convert to the string pointer of an anchor.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        /// assert_eq!("abc", node!(*("abc")).as_anchor().unwrap());
-        /// ```
-        fn as_anchor = Anchor -> &str
+    /// Infer an anchor with visitor.
+    ///
+    /// If the node is not a anchor, or the anchor does not exist, the original node is returned.
+    /// Since the anchor type is invalid except for this method, missing anchor will still return an error.
+    ///
+    /// ```
+    /// use yaml_peg::{node, visitor};
+    /// let node_a = node!(*"a");
+    /// let v = visitor!["a" => node!(20.)];
+    /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
+    /// ```
+    pub fn as_anchor(&self, anchors: &AnchorVisitor<R>) -> Self {
+        match self.yaml() {
+            YamlBase::Anchor(s) if anchors.contains_key(s) => anchors.get(s).unwrap().clone(),
+            _ => self.clone(),
+        }
     }
 
     as_method! {
@@ -274,11 +282,11 @@ impl<R: repr::Repr> NodeBase<R> {
     /// ```
     /// use yaml_peg::node;
     /// assert_eq!(
-    ///     &node!(30.),
+    ///     node!(30.),
     ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).get(&["a", "b"]).unwrap()
     /// );
     /// ```
-    pub fn get<Y>(&self, keys: &[Y]) -> Result<&Self, u64>
+    pub fn get<Y>(&self, keys: &[Y]) -> Result<Self, u64>
     where
         Y: Into<YamlBase<R>> + Copy,
     {
@@ -287,9 +295,9 @@ impl<R: repr::Repr> NodeBase<R> {
         }
         match self.yaml() {
             YamlBase::Map(m) => {
-                if let Some(n) = m.get(&Self::from(keys[0].into())) {
+                if let Some(n) = m.get(&keys[0].into().into()) {
                     if keys[1..].is_empty() {
-                        Ok(n)
+                        Ok(n.clone())
                     } else {
                         n.get(&keys[1..])
                     }
@@ -341,7 +349,7 @@ impl<R: repr::Repr> NodeBase<R> {
         }
         match self.yaml() {
             YamlBase::Map(m) => {
-                if let Some(n) = m.get(&Self::from(keys[0].into())) {
+                if let Some(n) = m.get(&keys[0].into().into()) {
                     if keys[1..].is_empty() {
                         factory(n)
                     } else {
@@ -369,7 +377,7 @@ impl<R: repr::Repr> Index<usize> for NodeBase<R> {
         match self.yaml() {
             YamlBase::Array(a) => a.get(index).unwrap_or(self),
             YamlBase::Map(m) => m
-                .get(&Self::from(YamlBase::Int(index.to_string())))
+                .get(&YamlBase::Int(index.to_string()).into())
                 .unwrap_or(self),
             _ => self,
         }
@@ -381,7 +389,7 @@ impl<R: repr::Repr> Index<&str> for NodeBase<R> {
 
     fn index(&self, index: &str) -> &Self::Output {
         if let YamlBase::Map(m) = self.yaml() {
-            m.get(&Self::from(YamlBase::from(index))).unwrap_or(self)
+            m.get(&YamlBase::from(index).into()).unwrap_or(self)
         } else {
             self
         }

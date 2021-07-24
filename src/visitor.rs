@@ -1,4 +1,11 @@
 use super::*;
+use linked_hash_map::LinkedHashMap;
+
+/// Anchor visitor is made by a hash map that you can get the node reference inside.
+///
+/// Since [`NodeBase`] type is holding a reference counter,
+/// the data are just a viewer to the original memory.
+pub type AnchorVisitor<R> = LinkedHashMap<String, NodeBase<R>>;
 
 /// Create a visitor by visiting all nodes of the data.
 ///

@@ -123,6 +123,28 @@ macro_rules! yaml_map {
     }};
 }
 
+/// Create a custom visitor.
+///
+/// The anchor name should implement [`ToString`] trait.
+///
+/// ```
+/// use yaml_peg::{node, visitor};
+/// let v = visitor![
+///     "my-boss" => node!({node!("name") => node!("Henry")}),
+/// ];
+/// assert_eq!(v["my-boss"]["name"], node!("Henry"));
+/// ```
+#[macro_export]
+macro_rules! visitor {
+    () => {
+        $crate::AnchorVisitor::new()
+    };
+    ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
+        use std::iter::FromIterator;
+        $crate::AnchorVisitor::from_iter(vec![($k1.to_string(), $v1) $(, ($k2.to_string(), $v2))*])
+    }};
+}
+
 pub mod dumper;
 mod indicator;
 mod node;

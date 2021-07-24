@@ -27,11 +27,6 @@ pub type ArcYaml = YamlBase<repr::ArcRepr>;
 pub type Array<R> = Vec<NodeBase<R>>;
 /// The map data structure of YAML.
 pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
-/// Anchor visitor is made by a hash map that you can get the node reference inside.
-///
-/// Since [`Node`] type is holding a reference counter,
-/// the data are just a viewer to the original memory.
-pub type AnchorVisitor<R> = LinkedHashMap<String, NodeBase<R>>;
 
 /// YAML data types, but it is recommended to use [`NodeBase`] for shorten code.
 ///
