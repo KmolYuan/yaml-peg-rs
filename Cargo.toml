@@ -10,4 +10,4 @@ readme = "README.md"
 keywords = ["yaml", "parser"]
 
 [dependencies]
-ritelinked = "0.3.1"
+ritelinked = "0.3"
