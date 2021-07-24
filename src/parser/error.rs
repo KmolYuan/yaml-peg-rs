@@ -1,5 +1,6 @@
 use super::*;
-use std::fmt::{Display, Formatter, Result};
+use alloc::format;
+use core::fmt::{Display, Formatter, Result};
 
 /// The error of parser handling.
 ///

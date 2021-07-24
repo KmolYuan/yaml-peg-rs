@@ -13,5 +13,6 @@ See the API doc for more information.
 
 ## Features
 
++ Support no standard library `#![no_std]`.
 + Support anchor visitor through reference counter.
 + Different data holder provides parallel visiting and less copy cost.

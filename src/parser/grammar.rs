@@ -1,4 +1,5 @@
 use super::*;
+use alloc::string::ToString;
 
 /// The low level grammar implementation for YAML.
 ///
@@ -208,11 +209,11 @@ impl<R: repr::Repr> Parser<'_, R> {
     pub fn chomp(&mut self) -> impl Fn(String) -> String {
         self.context(|p| {
             if p.sym(b'-').is_ok() {
-                |s: String| s.trim_end().to_owned()
+                |s: String| s.trim_end().to_string()
             } else if p.sym(b'+').is_ok() {
                 |s| s
             } else {
-                |s: String| s.trim_end().to_owned() + "\n"
+                |s: String| s.trim_end().to_string() + "\n"
             }
         })
     }

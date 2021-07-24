@@ -3,7 +3,8 @@ pub use self::error::*;
 pub use self::grammar::*;
 pub use self::kernel::*;
 use crate::*;
-use std::iter::FromIterator;
+use alloc::{string::String, vec};
+use core::iter::FromIterator;
 
 mod error;
 mod grammar;
@@ -336,7 +337,7 @@ macro_rules! impl_parser {
 }
 
 impl_parser! {
-    /// Parse YAML document into [`std::rc::Rc`] data holder.
+    /// Parse YAML document into [`alloc::rc::Rc`] data holder.
     /// Return an array of nodes and the anchors.
     ///
     /// ```
@@ -349,7 +350,7 @@ impl_parser! {
 }
 
 impl_parser! {
-    /// Parse YAML document into [`std::sync::Arc`] data holder.
+    /// Parse YAML document into [`alloc::sync::Arc`] data holder.
     /// Return an array of nodes and the anchors.
     ///
     /// ```

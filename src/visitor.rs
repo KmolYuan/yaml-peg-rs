@@ -1,5 +1,6 @@
 use super::*;
-use linked_hash_map::LinkedHashMap;
+use alloc::string::{String, ToString};
+use ritelinked::LinkedHashMap;
 
 /// Anchor visitor is made by a hash map that you can get the node reference inside.
 ///
@@ -19,7 +20,7 @@ pub fn anchor_visit<R: repr::Repr>(n: &NodeBase<R>) -> AnchorVisitor<R> {
 
 fn inner_anchor_visit<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorVisitor<R>) {
     if !n.anchor().is_empty() {
-        visitor.insert(n.anchor().to_owned(), n.clone());
+        visitor.insert(n.anchor().to_string(), n.clone());
     }
     match n.yaml() {
         YamlBase::Array(a) => {

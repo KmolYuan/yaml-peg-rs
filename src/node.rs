@@ -1,5 +1,6 @@
 use crate::*;
-use std::{
+use alloc::string::ToString;
+use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::Hash,
     ops::Index,
@@ -39,9 +40,9 @@ macro_rules! as_num_method {
     };
 }
 
-/// A node with [`std::rc::Rc`] holder.
+/// A node with [`alloc::rc::Rc`] holder.
 pub type Node = NodeBase<repr::RcRepr>;
-/// A node with [`std::sync::Arc`] holder.
+/// A node with [`alloc::sync::Arc`] holder.
 pub type ArcNode = NodeBase<repr::ArcRepr>;
 
 /// Readonly node, including line number, column number, type assertion and anchor.
@@ -101,7 +102,7 @@ pub type ArcNode = NodeBase<repr::ArcRepr>;
 ///
 /// # Clone
 ///
-/// Since the YAML data is wrapped by reference counter [`std::rc::Rc`] and [`std::sync::Arc`],
+/// Since the YAML data is wrapped by reference counter [`alloc::rc::Rc`] and [`alloc::sync::Arc`],
 /// cloning node just increase the reference counter,
 /// the entire data structure are still shared together.
 ///
@@ -112,7 +113,7 @@ pub struct NodeBase<R: repr::Repr>(R);
 impl<R: repr::Repr> NodeBase<R> {
     /// Create node from YAML data.
     pub fn new(yaml: YamlBase<R>, pos: u64, ty: &str, anchor: &str) -> Self {
-        Self(R::repr(yaml, pos, ty.to_owned(), anchor.to_owned()))
+        Self(R::repr(yaml, pos, ty.to_string(), anchor.to_string()))
     }
 
     /// Document position.

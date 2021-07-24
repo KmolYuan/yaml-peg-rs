@@ -1,4 +1,5 @@
 use super::*;
+use alloc::{format, string::ToString, vec};
 
 const TEST_JSON: &str = include_str!("test.json");
 const TEST_YAML: &str = include_str!("test.yaml");
@@ -35,9 +36,9 @@ fn test_yaml() {
                 node!("b1") => node!(4.),
                 node!("b2") => node!([
                     node!("50%"),
-                    node!(YamlBase::Float("2e-4".to_owned())),
-                    node!(YamlBase::Float("NaN".to_owned())),
-                    node!(YamlBase::Float("-inf".to_owned())),
+                    node!(YamlBase::Float("2e-4".to_string())),
+                    node!(YamlBase::Float("NaN".to_string())),
+                    node!(YamlBase::Float("-inf".to_string())),
                     node!("-.infs"),
                     node!("2001-11-23 15:01:42 -5"),
                 ]),

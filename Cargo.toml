@@ -10,4 +10,4 @@ readme = "README.md"
 keywords = ["yaml", "parser"]
 
 [dependencies]
-linked-hash-map = "0.5.3"
+ritelinked = "0.3.1"

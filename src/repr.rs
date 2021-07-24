@@ -3,11 +3,10 @@
 //! [`Rc`] is the single thread reference counter,
 //! and [`Arc`] is the multiple thread reference counter.
 use crate::*;
-use std::{
+use alloc::{rc::Rc, string::String, sync::Arc};
+use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
-    rc::Rc,
-    sync::Arc,
 };
 
 /// The representation holder for [`Rc`].

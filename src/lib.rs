@@ -17,8 +17,11 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! The anchor system [`AnchorVisitor`] is implemented by using [`std::rc::Rc`] and [`std::sync::Arc`] as inner handler.
+//! The anchor system [`AnchorVisitor`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
 //! Additionally, [`visitor!`] macro can used to create anchor visitor by yourself.
+#![no_std]
+extern crate alloc;
+extern crate core;
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
@@ -122,14 +125,14 @@ macro_rules! yaml_map {
         $crate::Yaml::Map($crate::Map::new())
     };
     ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
-        use std::iter::FromIterator;
+        use core::iter::FromIterator;
         $crate::Yaml::from_iter(vec![($k1, $v1) $(, ($k2, $v2))*])
     }};
 }
 
 /// Create a custom anchor visitor.
 ///
-/// The anchor name should implement [`ToString`] trait.
+/// The anchor name should implement [`alloc::string::ToString`] trait.
 ///
 /// ```
 /// use yaml_peg::{node, visitor};
@@ -144,7 +147,7 @@ macro_rules! visitor {
         $crate::AnchorVisitor::new()
     };
     ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
-        use std::iter::FromIterator;
+        use core::iter::FromIterator;
         $crate::AnchorVisitor::from_iter(vec![($k1.to_string(), $v1) $(, ($k2.to_string(), $v2))*])
     }};
 }

@@ -1,5 +1,10 @@
 //! Dumper components.
 use crate::*;
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 #[cfg(windows)]
 pub const NL: &'static str = "\r\n";
@@ -36,7 +41,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
         }
         let ind = Self::ind(level);
         doc += &match self.yaml() {
-            YamlBase::Null => "null".to_owned(),
+            YamlBase::Null => "null".to_string(),
             YamlBase::Bool(b) => b.to_string(),
             YamlBase::Int(n) | YamlBase::Float(n) => n.clone(),
             YamlBase::Str(s) => {
@@ -45,9 +50,9 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
                         .split(NL)
                         .map(|s| {
                             if s.is_empty() {
-                                "".to_owned()
+                                "".to_string()
                             } else {
-                                ind.to_owned() + s.trim_end()
+                                ind.to_string() + s.trim_end()
                             }
                         })
                         .collect::<Vec<_>>()
@@ -58,7 +63,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
                 }
             }
             YamlBase::Array(a) => {
-                let mut doc = NL.to_owned();
+                let mut doc = NL.to_string();
                 for (i, node) in a.iter().enumerate() {
                     if i != 0 || level != 0 {
                         doc += &ind;
@@ -69,7 +74,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
                 doc
             }
             YamlBase::Map(m) => {
-                let mut doc = if root == Root::Map { NL } else { "" }.to_owned();
+                let mut doc = if root == Root::Map { NL } else { "" }.to_string();
                 for (i, (k, v)) in m.iter().enumerate() {
                     if i != 0 || root == Root::Map {
                         doc += &ind;

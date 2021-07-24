@@ -1,6 +1,7 @@
 use crate::*;
-use linked_hash_map::LinkedHashMap;
-use std::{fmt::Display, iter::FromIterator};
+use alloc::{format, string::String, vec::Vec};
+use core::{fmt::Display, iter::FromIterator};
+use ritelinked::LinkedHashMap;
 
 macro_rules! yaml_from_method {
     ($from_ty1:ty $(| $from_ty2:ty)* as $ty:ident) => {
@@ -19,9 +20,9 @@ macro_rules! yaml_from_method {
     };
 }
 
-/// A YAML data with [`std::rc::Rc`] holder.
+/// A YAML data with [`alloc::rc::Rc`] holder.
 pub type Yaml = YamlBase<repr::RcRepr>;
-/// A YAML data with [`std::sync::Arc`] holder.
+/// A YAML data with [`alloc::sync::Arc`] holder.
 pub type ArcYaml = YamlBase<repr::ArcRepr>;
 /// The array data structure of YAML.
 pub type Array<R> = Vec<NodeBase<R>>;
