@@ -33,7 +33,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// the data are just a viewer to the original memory.
 pub type AnchorVisitor<R> = LinkedHashMap<String, NodeBase<R>>;
 
-/// YAML data types, but it is recommended to use [`Node`] for shorten code.
+/// YAML data types, but it is recommended to use [`NodeBase`] for shorten code.
 ///
 /// This type can convert from primitive types by `From` and `Into` methods.
 ///

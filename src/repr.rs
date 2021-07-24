@@ -29,14 +29,14 @@ pub struct Inner<R: Repr> {
 }
 
 impl<R: Repr> Debug for Inner<R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_fmt(format_args!("{:?}", &self.yaml))
     }
 }
 
 impl<R: Repr> Hash for Inner<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.yaml.hash(state)
+        self.yaml.hash(state);
     }
 }
 
@@ -73,7 +73,7 @@ macro_rules! impl_repr {
         }
 
         impl Debug for $ty {
-            fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+            fn fmt(&self, f: &mut Formatter) -> FmtResult {
                 f.write_fmt(format_args!("{:?}", &self.0.yaml))
             }
         }

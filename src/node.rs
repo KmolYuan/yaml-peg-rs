@@ -109,10 +109,10 @@ pub type ArcNode = NodeBase<repr::ArcRepr>;
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct NodeBase<R: repr::Repr>(R);
 
-impl<Repr: repr::Repr> NodeBase<Repr> {
+impl<R: repr::Repr> NodeBase<R> {
     /// Create node from YAML data.
-    pub fn new(yaml: YamlBase<Repr>, pos: u64, ty: &str, anchor: &str) -> Self {
-        Self(Repr::repr(yaml, pos, ty.to_owned(), anchor.to_owned()))
+    pub fn new(yaml: YamlBase<R>, pos: u64, ty: &str, anchor: &str) -> Self {
+        Self(R::repr(yaml, pos, ty.to_owned(), anchor.to_owned()))
     }
 
     /// Document position.
@@ -135,12 +135,12 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
 
     /// YAML data.
     #[inline(always)]
-    pub fn yaml(&self) -> &YamlBase<Repr> {
+    pub fn yaml(&self) -> &YamlBase<R> {
         &self.0.as_ref().yaml
     }
 
     /// Drop the node and get the YAML data.
-    pub fn into_yaml(self) -> YamlBase<Repr> {
+    pub fn into_yaml(self) -> YamlBase<R> {
         self.0.into_yaml()
     }
 
@@ -249,7 +249,7 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
         ///     node!([node!(1), node!(2)]).as_array().unwrap()
         /// );
         /// ```
-        fn as_array = Array -> &Array<Repr>
+        fn as_array = Array -> &Array<R>
     }
 
     as_method! {
@@ -264,7 +264,7 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
         ///     node!({node!(1) => node!(2)}).as_map().unwrap().get(&node!(1)).unwrap()
         /// );
         /// ```
-        fn as_map = Map -> &Map<Repr>
+        fn as_map = Map -> &Map<R>
     }
 
     /// Convert to map and try to get the value by keys recursivly.
@@ -280,7 +280,7 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
     /// ```
     pub fn get<Y>(&self, keys: &[Y]) -> Result<&Self, u64>
     where
-        Y: Into<YamlBase<Repr>> + Copy,
+        Y: Into<YamlBase<R>> + Copy,
     {
         if keys.is_empty() {
             panic!("invalid search!");
@@ -326,10 +326,15 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
     ///     c.get_default(&["a", "b"], "d", NodeBase::as_str)
     /// );
     /// ```
-    pub fn get_default<'a, Y, R, F>(&'a self, keys: &[Y], default: R, factory: F) -> Result<R, u64>
+    pub fn get_default<'a, Y, Ret, F>(
+        &'a self,
+        keys: &[Y],
+        default: Ret,
+        factory: F,
+    ) -> Result<Ret, u64>
     where
-        Y: Into<YamlBase<Repr>> + Copy,
-        F: Fn(&'a Self) -> Result<R, u64>,
+        Y: Into<YamlBase<R>> + Copy,
+        F: Fn(&'a Self) -> Result<Ret, u64>,
     {
         if keys.is_empty() {
             panic!("invalid search!");
@@ -352,7 +357,7 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
 }
 
 impl<R: repr::Repr> Debug for NodeBase<R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_fmt(format_args!("Node{:?}", &self.0))
     }
 }

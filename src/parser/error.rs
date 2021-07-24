@@ -31,7 +31,7 @@ impl From<()> for PError {
 }
 
 impl Display for PError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         f.write_fmt(format_args!("{:?}", self))
     }
 }

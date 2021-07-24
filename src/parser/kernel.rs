@@ -78,7 +78,7 @@ impl<'a, R: repr::Repr> Parser<'a, R> {
 /// The low level grammar implementation.
 ///
 /// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
-impl<Repr: repr::Repr> Parser<'_, Repr> {
+impl<R: repr::Repr> Parser<'_, R> {
     /// Builder method for setting indent.
     pub fn indent(mut self, indent: usize) -> Self {
         self.indent = indent;
@@ -98,7 +98,7 @@ impl<Repr: repr::Repr> Parser<'_, Repr> {
     }
 
     /// A short function to raise error.
-    pub fn err<R>(&self, msg: &str) -> Result<R, PError> {
+    pub fn err<Ret>(&self, msg: &str) -> Result<Ret, PError> {
         Err(PError::Terminate(self.indicator(), msg.into()))
     }
 
@@ -187,9 +187,9 @@ impl<Repr: repr::Repr> Parser<'_, Repr> {
     }
 
     /// A wrapper for saving local checkpoint.
-    pub fn context<F, R>(&mut self, f: F) -> R
+    pub fn context<F, Ret>(&mut self, f: F) -> Ret
     where
-        F: Fn(&mut Self) -> R,
+        F: Fn(&mut Self) -> Ret,
     {
         let eaten = self.eaten;
         self.forward();
