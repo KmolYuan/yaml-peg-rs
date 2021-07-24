@@ -17,7 +17,7 @@ pub struct RcRepr(Rc<Inner<Self>>);
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct ArcRepr(Arc<Inner<Self>>);
 
-/// Inner data of node.
+/// Inner data of the nodes.
 ///
 /// Please access the fields by [`NodeBase`].
 #[derive(Eq, Clone)]

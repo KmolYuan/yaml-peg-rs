@@ -17,8 +17,8 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! The anchor system is implemented by using [`std::rc::Rc`] and [`std::sync::Arc`] as inner handler,
-//! please see [`AnchorVisitor`].
+//! The anchor system [`AnchorVisitor`] is implemented by using [`std::rc::Rc`] and [`std::sync::Arc`] as inner handler.
+//! Additionally, [`visitor!`] macro can used to create anchor visitor by yourself.
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
@@ -51,6 +51,8 @@ pub use crate::yaml::*;
 /// assert_eq!(node!(YamlBase::Null), node!(null));
 /// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
 /// ```
+///
+/// For [`ArcNode`], please use [`node_arc!`], which has same API.
 #[macro_export]
 macro_rules! node {
     ([$($token:tt)*]) => {
@@ -70,7 +72,9 @@ macro_rules! node {
     };
 }
 
-/// [`node!`] macro for [`ArcNode`].
+/// Create [`ArcNode`] items literally.
+///
+/// The API is same as [`node!`] macro.
 #[macro_export]
 macro_rules! node_arc {
     ([$($token:tt)*]) => {
@@ -123,7 +127,7 @@ macro_rules! yaml_map {
     }};
 }
 
-/// Create a custom visitor.
+/// Create a custom anchor visitor.
 ///
 /// The anchor name should implement [`ToString`] trait.
 ///
