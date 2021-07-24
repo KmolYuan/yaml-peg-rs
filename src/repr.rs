@@ -17,27 +17,30 @@ pub struct RcRepr(Rc<Inner<Self>>);
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct ArcRepr(Arc<Inner<Self>>);
 
+/// Inner data of node.
+///
+/// Please access the fields by [`NodeBase`].
 #[derive(Eq, Clone)]
-struct Inner<R: repr::Repr> {
-    pos: u64,
-    ty: String,
-    anchor: String,
-    yaml: YamlBase<R>,
+pub struct Inner<R: Repr> {
+    pub(crate) pos: u64,
+    pub(crate) ty: String,
+    pub(crate) anchor: String,
+    pub(crate) yaml: YamlBase<R>,
 }
 
-impl<R: repr::Repr> Debug for Inner<R> {
+impl<R: Repr> Debug for Inner<R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.write_fmt(format_args!("{:?}", &self.yaml))
     }
 }
 
-impl<R: repr::Repr> Hash for Inner<R> {
+impl<R: Repr> Hash for Inner<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.yaml.hash(state)
     }
 }
 
-impl<R: repr::Repr> PartialEq for Inner<R> {
+impl<R: Repr> PartialEq for Inner<R> {
     fn eq(&self, rhs: &Self) -> bool {
         self.yaml.eq(&rhs.yaml)
     }
@@ -46,12 +49,8 @@ impl<R: repr::Repr> PartialEq for Inner<R> {
 /// The generic representation holder for [`YamlBase`] and [`NodeBase`].
 ///
 /// See the implementor list for the choose.
-pub trait Repr: Hash + Eq + PartialEq + Clone + Debug + Sized {
+pub trait Repr: AsRef<Inner<Self>> + Hash + Eq + Clone + Debug {
     fn repr(yaml: YamlBase<Self>, pos: u64, ty: String, anchor: String) -> Self;
-    fn pos(&self) -> u64;
-    fn ty(&self) -> &str;
-    fn anchor(&self) -> &str;
-    fn yaml(&self) -> &YamlBase<Self>;
     fn into_yaml(self) -> YamlBase<Self>;
 }
 
@@ -68,26 +67,6 @@ macro_rules! impl_repr {
             }
 
             #[inline(always)]
-            fn pos(&self) -> u64 {
-                self.0.pos
-            }
-
-            #[inline(always)]
-            fn ty(&self) -> &str {
-                &self.0.ty
-            }
-
-            #[inline(always)]
-            fn anchor(&self) -> &str {
-                &self.0.anchor
-            }
-
-            #[inline(always)]
-            fn yaml(&self) -> &YamlBase<Self> {
-                &self.0.yaml
-            }
-
-            #[inline(always)]
             fn into_yaml(self) -> YamlBase<Self> {
                 $inner::try_unwrap(self.0).unwrap().yaml
             }
@@ -96,6 +75,12 @@ macro_rules! impl_repr {
         impl Debug for $ty {
             fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
                 f.write_fmt(format_args!("{:?}", &self.0.yaml))
+            }
+        }
+
+        impl AsRef<Inner<Self>> for $ty {
+            fn as_ref(&self) -> &Inner<Self> {
+                &self.0
             }
         }
     };

@@ -118,25 +118,25 @@ impl<Repr: repr::Repr> NodeBase<Repr> {
     /// Document position.
     #[inline(always)]
     pub fn pos(&self) -> u64 {
-        self.0.pos()
+        self.0.as_ref().pos
     }
 
     /// Type assertion.
     #[inline(always)]
     pub fn ty(&self) -> &str {
-        self.0.ty()
+        &self.0.as_ref().ty
     }
 
     /// Anchor reference.
     #[inline(always)]
     pub fn anchor(&self) -> &str {
-        self.0.anchor()
+        &self.0.as_ref().anchor
     }
 
     /// YAML data.
     #[inline(always)]
     pub fn yaml(&self) -> &YamlBase<Repr> {
-        self.0.yaml()
+        &self.0.as_ref().yaml
     }
 
     /// Drop the node and get the YAML data.
