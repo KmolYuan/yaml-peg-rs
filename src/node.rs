@@ -313,15 +313,14 @@ impl<R: Repr> NodeBase<R> {
     where
         Y: Into<Self> + Copy,
     {
-        match self.yaml() {
-            YamlBase::Map(m) => {
-                if let Some(n) = m.get(&keys.into()) {
-                    Ok(n.clone())
-                } else {
-                    Err(self.pos())
-                }
+        if let YamlBase::Map(m) = self.yaml() {
+            if let Some(n) = m.get(&keys.into()) {
+                Ok(n.clone())
+            } else {
+                Err(self.pos())
             }
-            _ => Err(self.pos()),
+        } else {
+            Err(self.pos())
         }
     }
 
@@ -338,12 +337,12 @@ impl<R: Repr> NodeBase<R> {
     /// let a = node!({node!("a") => node!({node!("b") => node!("c")})});
     /// assert_eq!(
     ///     "c",
-    ///     a.get("a")?.get_default("b", "d", NodeBase::as_str).unwrap()
+    ///     a.get("a")?.get_default("b", "d", NodeBase::as_str)?
     /// );
     /// let b = node!({node!("a") => node!({})});
     /// assert_eq!(
     ///     "d",
-    ///     b.get("a")?.get_default("b", "d", NodeBase::as_str).unwrap()
+    ///     b.get("a")?.get_default("b", "d", NodeBase::as_str)?
     /// );
     /// let c = node!({node!("a") => node!({node!("b") => node!(20.)})});
     /// assert_eq!(
@@ -362,15 +361,35 @@ impl<R: Repr> NodeBase<R> {
         Y: Into<Self> + Copy,
         F: Fn(&'a Self) -> Result<Ret, u64>,
     {
-        match self.yaml() {
-            YamlBase::Map(m) => {
-                if let Some(n) = m.get(&keys.into()) {
-                    factory(n)
-                } else {
-                    Ok(default)
-                }
+        if let YamlBase::Map(m) = self.yaml() {
+            if let Some(n) = m.get(&keys.into()) {
+                factory(n)
+            } else {
+                Ok(default)
             }
-            _ => Err(self.pos()),
+        } else {
+            Err(self.pos())
+        }
+    }
+
+    /// Get node through index indicator. Only suitable for array.
+    ///
+    /// ```
+    /// # fn main() -> Result<(), u64> {
+    /// use yaml_peg::{node, Ind};
+    /// let n = node!([node!("a"), node!("b"), node!("c")]);
+    /// assert_eq!(node!("b"), n.get_ind(Ind(1))?);
+    /// # Ok::<(), u64>(()) }
+    /// ```
+    pub fn get_ind(&self, ind: Ind) -> Result<Self, u64> {
+        if let YamlBase::Array(a) = self.yaml() {
+            if let Some(n) = a.get(ind.0) {
+                Ok(n.clone())
+            } else {
+                Err(self.pos())
+            }
+        } else {
+            Err(self.pos())
         }
     }
 }
