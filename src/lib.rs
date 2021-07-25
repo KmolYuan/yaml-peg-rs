@@ -17,16 +17,16 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! The anchor system [`AnchorVisitor`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
-//! Additionally, [`visitor!`] macro can used to create anchor visitor by yourself.
+//! The anchor system [`AnchorBase`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
+//! Additionally, [`anchors!`] macro can used to create anchor visitor by yourself.
 #![no_std]
 extern crate alloc;
 extern crate core;
+pub use crate::anchors::*;
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
 pub use crate::node::*;
 pub use crate::parser::{parse, parse_arc};
-pub use crate::visitor::*;
 pub use crate::yaml::*;
 
 /// Create [`Node`] items literally.
@@ -135,23 +135,24 @@ macro_rules! yaml_map {
 /// The anchor name should implement [`alloc::string::ToString`] trait.
 ///
 /// ```
-/// use yaml_peg::{node, visitor};
-/// let v = visitor![
+/// use yaml_peg::{node, anchors};
+/// let v = anchors![
 ///     "my-boss" => node!({node!("name") => node!("Henry")}),
 /// ];
 /// assert_eq!(v["my-boss"]["name"], node!("Henry"));
 /// ```
 #[macro_export]
-macro_rules! visitor {
+macro_rules! anchors {
     () => {
-        $crate::AnchorVisitor::new()
+        $crate::AnchorBase::new()
     };
     ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
         use core::iter::FromIterator;
-        $crate::AnchorVisitor::from_iter(vec![($k1.to_string(), $v1) $(, ($k2.to_string(), $v2))*])
+        $crate::AnchorBase::from_iter(vec![($k1.to_string(), $v1) $(, ($k2.to_string(), $v2))*])
     }};
 }
 
+mod anchors;
 pub mod dumper;
 mod indicator;
 mod node;
@@ -159,5 +160,4 @@ pub mod parser;
 pub mod repr;
 #[cfg(test)]
 mod tests;
-mod visitor;
 mod yaml;

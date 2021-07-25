@@ -327,7 +327,7 @@ impl<R: repr::Repr> Parser<'_, R> {
 macro_rules! impl_parser {
     ($(#[$meta:meta])* $func:ident -> $repr:ty) => {
         $(#[$meta])*
-        pub fn $func(doc: &str) -> Result<(Array<$repr>, AnchorVisitor<$repr>), String> {
+        pub fn $func(doc: &str) -> Result<(Array<$repr>, AnchorBase<$repr>), String> {
             let mut p = Parser::<$repr>::new(doc.as_bytes());
             p.parse()
                 .map_err(|e| e.into_error(doc))

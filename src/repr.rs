@@ -82,6 +82,12 @@ macro_rules! impl_repr {
                 &self.0
             }
         }
+
+        impl AsRef<$inner<Inner<$ty>>> for NodeBase<$ty> {
+            fn as_ref(&self) -> &$inner<Inner<$ty>> {
+                &self.0 .0
+            }
+        }
     };
 }
 

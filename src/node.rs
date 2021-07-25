@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{repr::*, *};
 use alloc::string::ToString;
 use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
@@ -8,13 +8,13 @@ use core::{
 };
 
 macro_rules! as_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:tt))?
+    {$(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:ident))?
         $(| ($default:expr)?)?
         $(| $ty2:ident)* -> $r:ty} => {
         $(#[$meta])*
         pub fn $id(&self) -> Result<$r, u64> {
             match self.yaml() {
-                YamlBase::$ty(v) $(| YamlBase::$ty2(v))* => Ok($($op)?v),
+                YamlBase::$ty(v) $(| YamlBase::$ty2(v))* => Ok(v$(.$op())?),
                 $(YamlBase::Null => Ok($default),)?
                 _ => Err(self.pos()),
             }
@@ -41,9 +41,9 @@ macro_rules! as_num_method {
 }
 
 /// A node with [`alloc::rc::Rc`] holder.
-pub type Node = NodeBase<repr::RcRepr>;
+pub type Node = NodeBase<RcRepr>;
 /// A node with [`alloc::sync::Arc`] holder.
-pub type ArcNode = NodeBase<repr::ArcRepr>;
+pub type ArcNode = NodeBase<ArcRepr>;
 
 /// Readonly node, including line number, column number, type assertion and anchor.
 /// You can access [`YamlBase`] type through [`NodeBase::yaml`] method.
@@ -106,11 +106,22 @@ pub type ArcNode = NodeBase<repr::ArcRepr>;
 /// cloning node just increase the reference counter,
 /// the entire data structure are still shared together.
 ///
+/// ```
+/// use std::rc::Rc;
+/// use yaml_peg::node;
+/// let a = node!("a");
+/// {
+///     let b = a.clone();
+///     assert_eq!(2, Rc::strong_count(b.as_ref()));
+/// }
+/// assert_eq!(1, Rc::strong_count(a.as_ref()));
+/// ```
+///
 /// If you want to copy data, please get the data first.
 #[derive(Hash, Eq, PartialEq, Clone)]
-pub struct NodeBase<R: repr::Repr>(R);
+pub struct NodeBase<R: Repr>(pub(crate) R);
 
-impl<R: repr::Repr> NodeBase<R> {
+impl<R: Repr> NodeBase<R> {
     /// Create node from YAML data.
     pub fn new(yaml: YamlBase<R>, pos: u64, ty: &str, anchor: &str) -> Self {
         Self(R::repr(yaml, pos, ty.to_string(), anchor.to_string()))
@@ -157,7 +168,7 @@ impl<R: repr::Repr> NodeBase<R> {
         /// use yaml_peg::{node};
         /// assert!(node!(true).as_bool().unwrap());
         /// ```
-        fn as_bool = Bool(*) -> bool
+        fn as_bool = Bool(clone) -> bool
     }
 
     as_num_method! {
@@ -234,12 +245,12 @@ impl<R: repr::Repr> NodeBase<R> {
     /// Since the anchor type is invalid except for this method, missing anchor will still return an error.
     ///
     /// ```
-    /// use yaml_peg::{node, visitor};
+    /// use yaml_peg::{node, anchors};
     /// let node_a = node!(*"a");
-    /// let v = visitor!["a" => node!(20.)];
+    /// let v = anchors!["a" => node!(20.)];
     /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
     /// ```
-    pub fn as_anchor(&self, anchors: &AnchorVisitor<R>) -> Self {
+    pub fn as_anchor(&self, anchors: &AnchorBase<R>) -> Self {
         match self.yaml() {
             YamlBase::Anchor(s) if anchors.contains_key(s) => anchors.get(s).unwrap().clone(),
             _ => self.clone(),
@@ -247,31 +258,31 @@ impl<R: repr::Repr> NodeBase<R> {
     }
 
     as_method! {
-        /// Convert to array.
-        ///
-        /// WARNING: The object ownership will be took.
+        /// Convert to array. The object ownership will be took.
         ///
         /// ```
         /// use yaml_peg::node;
-        /// assert_eq!(
-        ///     &vec![node!(1), node!(2)],
-        ///     node!([node!(1), node!(2)]).as_array().unwrap()
-        /// );
+        /// let n = node!([node!(1), node!(2)]);
+        /// assert_eq!(&vec![node!(1), node!(2)], n.as_array().unwrap());
+        /// let n = node!([node!("55")]);
+        /// for n in n.as_array().unwrap() {
+        ///     assert_eq!(&node!("55"), n);
+        /// }
         /// ```
         fn as_array = Array -> &Array<R>
     }
 
     as_method! {
-        /// Convert to map.
-        ///
-        /// WARNING: The object ownership will be took.
+        /// Convert to map. The object ownership will be took.
         ///
         /// ```
         /// use yaml_peg::node;
-        /// assert_eq!(
-        ///     &node!(2),
-        ///     node!({node!(1) => node!(2)}).as_map().unwrap().get(&node!(1)).unwrap()
-        /// );
+        /// let n = node!({node!(1) => node!(2)});
+        /// assert_eq!(node!(2), n.as_map().unwrap()[&node!(1)]);
+        /// for (k, v) in n.as_map().unwrap() {
+        ///     assert_eq!(&node!(1), k);
+        ///     assert_eq!(&node!(2), v);
+        /// }
         /// ```
         fn as_map = Map -> &Map<R>
     }
@@ -282,10 +293,8 @@ impl<R: repr::Repr> NodeBase<R> {
     ///
     /// ```
     /// use yaml_peg::node;
-    /// assert_eq!(
-    ///     node!(30.),
-    ///     node!({node!("a") => node!({node!("b") => node!(30.)})}).get(&["a", "b"]).unwrap()
-    /// );
+    /// let n = node!({node!("a") => node!({node!("b") => node!(30.)})});
+    /// assert_eq!(node!(30.), n.get(&["a", "b"]).unwrap());
     /// ```
     pub fn get<Y>(&self, keys: &[Y]) -> Result<Self, u64>
     where
@@ -365,13 +374,13 @@ impl<R: repr::Repr> NodeBase<R> {
     }
 }
 
-impl<R: repr::Repr> Debug for NodeBase<R> {
+impl<R: Repr> Debug for NodeBase<R> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_fmt(format_args!("Node{:?}", &self.0))
     }
 }
 
-impl<R: repr::Repr> Index<usize> for NodeBase<R> {
+impl<R: Repr> Index<usize> for NodeBase<R> {
     type Output = Self;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -385,7 +394,7 @@ impl<R: repr::Repr> Index<usize> for NodeBase<R> {
     }
 }
 
-impl<R: repr::Repr> Index<&str> for NodeBase<R> {
+impl<R: Repr> Index<&str> for NodeBase<R> {
     type Output = Self;
 
     fn index(&self, index: &str) -> &Self::Output {
@@ -397,7 +406,7 @@ impl<R: repr::Repr> Index<&str> for NodeBase<R> {
     }
 }
 
-impl<R: repr::Repr> From<YamlBase<R>> for NodeBase<R> {
+impl<R: Repr> From<YamlBase<R>> for NodeBase<R> {
     fn from(yaml: YamlBase<R>) -> Self {
         Self::new(yaml, 0, "", "")
     }
