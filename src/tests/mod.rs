@@ -17,7 +17,7 @@ fn test_json() {
             node!("d") => node!({})
         })
     );
-    let n = ans[0].get(&["a"]).unwrap();
+    let n = ans[0].get("a").unwrap();
     assert_eq!(n, node!("b"));
 }
 
