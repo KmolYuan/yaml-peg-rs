@@ -60,16 +60,26 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// assert_eq!(s.len(), 1);
 /// ```
 ///
-/// There is a convenient macro [`node!`] to create nodes literally.
+/// There is also a convenient macro [`node!`] to create nodes literally.
+/// Please see the macro description for more information.
 ///
-/// Nodes can be indexing by `usize` or `&str`,
-/// but it will always return self if the index is not contained.
+/// Nodes can be indexing by convertable values, or array indicator [`Ind`],
+/// but it will be panic if the index is not contained.
 ///
 /// ```
-/// use yaml_peg::node;
+/// use yaml_peg::{node, Ind};
+/// let n = node!([node!("a"), node!("b"), node!("c")]);
+/// assert_eq!(node!("b"), n[Ind(1)]);
+/// ```
+///
+/// ```should_panic
+/// use yaml_peg::{node, Ind};
 /// let n = node!(null);
-/// assert_eq!(n["a"][0]["bc"], n);
+/// let n = &n["a"][Ind(0)]["b"];
 /// ```
+///
+/// Same as containers, to prevent panic, the [`NodeBase::get`] method is the best choice.
+/// The [`NodeBase::get_default`] can provide missing key value when indexing.
 ///
 /// There are `as_*` methods provide `Result<T, u64>` returns with node position,
 /// default options can be created by [`Result::unwrap_or`],
@@ -84,7 +94,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///     let n = node!({
 ///         node!("title") => node!(12.)
 ///     });
-///     let n = n.get(&["title"]).map_err(|p| ("missing \"title\"", p))?;
+///     let n = n.get("title").map_err(|p| ("missing \"title\"", p))?;
 ///     assert_eq!(
 ///         Err(("title", 0)),
 ///         n.as_str().map_err(|p| ("title", p))
@@ -97,8 +107,9 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// }
 /// ```
 ///
-/// For default value on map type, [`NodeBase::get`] method has a shorten method [`NodeBase::get_default`] to combining
-/// transform function and default function as well.
+/// # Anchor
+///
+/// The anchors can be infer from [`AnchorBase`], and attach with [`NodeBase::as_anchor`] method.
 ///
 /// # Clone
 ///
@@ -239,7 +250,7 @@ impl<R: Repr> NodeBase<R> {
         }
     }
 
-    /// Infer an anchor with visitor.
+    /// Infer an anchor with anchor visitor.
     ///
     /// If the node is not a anchor, or the anchor does not exist, the original node is returned.
     /// Since the anchor type is invalid except for this method, missing anchor will still return an error.
@@ -287,30 +298,25 @@ impl<R: Repr> NodeBase<R> {
         fn as_map = Map -> &Map<R>
     }
 
-    /// Convert to map and try to get the value by keys recursivly.
+    /// Convert to map and try to get the value by key.
     ///
     /// If any key is missing, return `Err` with node position.
     ///
     /// ```
+    /// # fn main() -> Result<(), u64> {
     /// use yaml_peg::node;
     /// let n = node!({node!("a") => node!({node!("b") => node!(30.)})});
-    /// assert_eq!(node!(30.), n.get(&["a", "b"]).unwrap());
+    /// assert_eq!(node!(30.), n.get("a")?.get("b")?);
+    /// # Ok::<(), u64>(()) }
     /// ```
-    pub fn get<Y>(&self, keys: &[Y]) -> Result<Self, u64>
+    pub fn get<Y>(&self, keys: Y) -> Result<Self, u64>
     where
-        Y: Into<YamlBase<R>> + Copy,
+        Y: Into<Self> + Copy,
     {
-        if keys.is_empty() {
-            panic!("invalid search!");
-        }
         match self.yaml() {
             YamlBase::Map(m) => {
-                if let Some(n) = m.get(&keys[0].into().into()) {
-                    if keys[1..].is_empty() {
-                        Ok(n.clone())
-                    } else {
-                        n.get(&keys[1..])
-                    }
+                if let Some(n) = m.get(&keys.into()) {
+                    Ok(n.clone())
                 } else {
                     Err(self.pos())
                 }
@@ -327,44 +333,39 @@ impl<R: Repr> NodeBase<R> {
     /// + If the value is not exist, return the default value.
     ///
     /// ```
+    /// # fn main() -> Result<(), u64> {
     /// use yaml_peg::{node, NodeBase};
     /// let a = node!({node!("a") => node!({node!("b") => node!("c")})});
     /// assert_eq!(
     ///     "c",
-    ///     a.get_default(&["a", "b"], "d", NodeBase::as_str).unwrap()
+    ///     a.get("a")?.get_default("b", "d", NodeBase::as_str).unwrap()
     /// );
     /// let b = node!({node!("a") => node!({})});
     /// assert_eq!(
     ///     "d",
-    ///     b.get_default(&["a", "b"], "d", NodeBase::as_str).unwrap()
+    ///     b.get("a")?.get_default("b", "d", NodeBase::as_str).unwrap()
     /// );
     /// let c = node!({node!("a") => node!({node!("b") => node!(20.)})});
     /// assert_eq!(
     ///     Err(0),
-    ///     c.get_default(&["a", "b"], "d", NodeBase::as_str)
+    ///     c.get("a")?.get_default("b", "d", NodeBase::as_str)
     /// );
+    /// # Ok::<(), u64>(()) }
     /// ```
     pub fn get_default<'a, Y, Ret, F>(
         &'a self,
-        keys: &[Y],
+        keys: Y,
         default: Ret,
         factory: F,
     ) -> Result<Ret, u64>
     where
-        Y: Into<YamlBase<R>> + Copy,
+        Y: Into<Self> + Copy,
         F: Fn(&'a Self) -> Result<Ret, u64>,
     {
-        if keys.is_empty() {
-            panic!("invalid search!");
-        }
         match self.yaml() {
             YamlBase::Map(m) => {
-                if let Some(n) = m.get(&keys[0].into().into()) {
-                    if keys[1..].is_empty() {
-                        factory(n)
-                    } else {
-                        n.get_default(&keys[1..], default, factory)
-                    }
+                if let Some(n) = m.get(&keys.into()) {
+                    factory(n)
                 } else {
                     Ok(default)
                 }
@@ -380,34 +381,44 @@ impl<R: Repr> Debug for NodeBase<R> {
     }
 }
 
-impl<R: Repr> Index<usize> for NodeBase<R> {
+/// Node index indicator use to indicate array position.
+pub struct Ind(pub usize);
+
+impl<R: Repr> Index<Ind> for NodeBase<R> {
     type Output = Self;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        match self.yaml() {
-            YamlBase::Array(a) => a.get(index).unwrap_or(self),
-            YamlBase::Map(m) => m
-                .get(&YamlBase::Int(index.to_string()).into())
-                .unwrap_or(self),
-            _ => self,
-        }
-    }
-}
-
-impl<R: Repr> Index<&str> for NodeBase<R> {
-    type Output = Self;
-
-    fn index(&self, index: &str) -> &Self::Output {
-        if let YamlBase::Map(m) = self.yaml() {
-            m.get(&YamlBase::from(index).into()).unwrap_or(self)
+    fn index(&self, index: Ind) -> &Self::Output {
+        if let YamlBase::Array(a) = self.yaml() {
+            a.index(index.0)
         } else {
-            self
+            panic!("out of bound!")
         }
     }
 }
 
-impl<R: Repr> From<YamlBase<R>> for NodeBase<R> {
-    fn from(yaml: YamlBase<R>) -> Self {
-        Self::new(yaml, 0, "", "")
+impl<R, I> Index<I> for NodeBase<R>
+where
+    R: Repr,
+    I: Into<Self>,
+{
+    type Output = Self;
+
+    fn index(&self, index: I) -> &Self::Output {
+        if let YamlBase::Map(m) = self.yaml() {
+            m.get(&index.into())
+                .unwrap_or_else(|| panic!("out of bound!"))
+        } else {
+            panic!("out of bound!")
+        }
+    }
+}
+
+impl<R, Y> From<Y> for NodeBase<R>
+where
+    R: Repr,
+    Y: Into<YamlBase<R>>,
+{
+    fn from(yaml: Y) -> Self {
+        Self::new(yaml.into(), 0, "", "")
     }
 }

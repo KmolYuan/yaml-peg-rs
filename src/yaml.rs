@@ -1,19 +1,22 @@
-use crate::*;
-use alloc::{format, string::String, vec::Vec};
-use core::{fmt::Display, iter::FromIterator};
+use crate::{repr::*, *};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::iter::FromIterator;
 use ritelinked::LinkedHashMap;
 
-macro_rules! yaml_from_method {
+macro_rules! impl_from {
     ($from_ty1:ty $(| $from_ty2:ty)* as $ty:ident) => {
-        impl<R: repr::Repr> From<$from_ty1> for YamlBase<R> {
+        impl<R: Repr> From<$from_ty1> for YamlBase<R> {
             fn from(s: $from_ty1) -> Self {
-                Self::$ty(format!("{}", s))
+                Self::$ty(s.to_string())
             }
         }
         $(
-        impl<R: repr::Repr> From<$from_ty2> for YamlBase<R> {
+        impl<R: Repr> From<$from_ty2> for YamlBase<R> {
             fn from(s: $from_ty2) -> Self {
-                Self::$ty(format!("{}", s))
+                Self::$ty(s.to_string())
             }
         }
         )*
@@ -21,9 +24,9 @@ macro_rules! yaml_from_method {
 }
 
 /// A YAML data with [`alloc::rc::Rc`] holder.
-pub type Yaml = YamlBase<repr::RcRepr>;
+pub type Yaml = YamlBase<RcRepr>;
 /// A YAML data with [`alloc::sync::Arc`] holder.
-pub type ArcYaml = YamlBase<repr::ArcRepr>;
+pub type ArcYaml = YamlBase<ArcRepr>;
 /// The array data structure of YAML.
 pub type Array<R> = Vec<NodeBase<R>>;
 /// The map data structure of YAML.
@@ -51,7 +54,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// assert_eq!(Yaml::from_iter(m), yaml_map!{node!(1) => node!(2), node!(3) => node!(4)});
 /// ```
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
-pub enum YamlBase<R: repr::Repr> {
+pub enum YamlBase<R: Repr> {
     /// Null
     Null,
     /// Boolean
@@ -70,29 +73,26 @@ pub enum YamlBase<R: repr::Repr> {
     Anchor(String),
 }
 
-impl<R: repr::Repr> YamlBase<R> {
+impl<R: Repr> YamlBase<R> {
     /// Check the anchor is valid.
-    pub fn is_valid_anchor<T>(s: T) -> bool
-    where
-        T: Display,
-    {
-        parser::Parser::<R>::new(format!("{}", s).as_bytes())
+    pub fn is_valid_anchor<S: ToString>(s: S) -> bool {
+        parser::Parser::<R>::new(s.to_string().as_bytes())
             .identifier()
             .is_ok()
     }
 }
 
-impl<R: repr::Repr> From<bool> for YamlBase<R> {
+impl<R: Repr> From<bool> for YamlBase<R> {
     fn from(b: bool) -> Self {
         Self::Bool(b)
     }
 }
 
-yaml_from_method! { &str | String | &String as Str }
-yaml_from_method! { u8 | u16 | u32 | u64 | u128 | i8 | i16 | i32 | i64 | i128 as Int }
-yaml_from_method! { f32 | f64 as Float }
+impl_from! { &str | String | &String as Str }
+impl_from! { usize | u8 | u16 | u32 | u64 | u128 | isize | i8 | i16 | i32 | i64 | i128 as Int }
+impl_from! { f32 | f64 as Float }
 
-impl<R: repr::Repr> FromIterator<NodeBase<R>> for YamlBase<R> {
+impl<R: Repr> FromIterator<NodeBase<R>> for YamlBase<R> {
     fn from_iter<T>(iter: T) -> Self
     where
         T: IntoIterator<Item = NodeBase<R>>,
@@ -101,7 +101,7 @@ impl<R: repr::Repr> FromIterator<NodeBase<R>> for YamlBase<R> {
     }
 }
 
-impl<R: repr::Repr> FromIterator<(NodeBase<R>, NodeBase<R>)> for YamlBase<R> {
+impl<R: Repr> FromIterator<(NodeBase<R>, NodeBase<R>)> for YamlBase<R> {
     fn from_iter<T>(iter: T) -> Self
     where
         T: IntoIterator<Item = (NodeBase<R>, NodeBase<R>)>,
