@@ -25,10 +25,7 @@ macro_rules! as_method {
 macro_rules! as_num_method {
     {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
         $(#[$meta])*
-        pub fn $id<N>(&self) -> Result<N, u64>
-        where
-            N: FromStr,
-        {
+        pub fn $id<N: FromStr>(&self) -> Result<N, u64> {
             match self.yaml() {
                 YamlBase::$ty1(n) $(| YamlBase::$ty2(n))* => match n.parse() {
                     Ok(v) => Ok(v),
@@ -322,10 +319,7 @@ impl<R: Repr> NodeBase<R> {
     /// assert_eq!(node!(30.), n.get("a")?.get("b")?);
     /// # Ok::<(), u64>(()) }
     /// ```
-    pub fn get<Y>(&self, keys: Y) -> Result<Self, u64>
-    where
-        Y: Into<Self> + Copy,
-    {
+    pub fn get<Y: Into<Self>>(&self, keys: Y) -> Result<Self, u64> {
         if let YamlBase::Map(m) = self.yaml() {
             if let Some(n) = m.get(&keys.into()) {
                 Ok(n.clone())
@@ -382,7 +376,7 @@ impl<R: Repr> NodeBase<R> {
         factory: F,
     ) -> Result<Ret, u64>
     where
-        Y: Into<Self> + Copy,
+        Y: Into<Self>,
         F: Fn(&'a Self) -> Result<Ret, u64>,
     {
         if let YamlBase::Map(m) = self.yaml() {
