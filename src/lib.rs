@@ -74,7 +74,7 @@ macro_rules! node {
         $crate::node!($crate::Yaml::Anchor($anchor.into()))
     };
     ($yaml:expr) => {
-        $crate::Node::new($yaml.into(), 0, "", "")
+        $crate::Node::from($yaml)
     };
 }
 
@@ -110,7 +110,7 @@ macro_rules! node_arc {
 #[macro_export]
 macro_rules! yaml_array {
     ($($token:tt)*) => {
-        $crate::Yaml::Array(vec![$($token)*])
+        $crate::YamlBase::Array(vec![$($token)*])
     };
 }
 
@@ -131,7 +131,7 @@ macro_rules! yaml_map {
     };
     ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
         use core::iter::FromIterator;
-        $crate::Yaml::from_iter(vec![($k1, $v1) $(, ($k2, $v2))*])
+        $crate::YamlBase::from_iter(vec![($k1, $v1) $(, ($k2, $v2))*])
     }};
 }
 

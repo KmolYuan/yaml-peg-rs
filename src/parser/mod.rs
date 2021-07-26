@@ -4,7 +4,6 @@ pub use self::grammar::*;
 pub use self::kernel::*;
 use crate::*;
 use alloc::{string::String, vec};
-use core::iter::FromIterator;
 
 mod error;
 mod grammar;
@@ -173,7 +172,7 @@ impl<R: repr::Repr> Parser<'_, R> {
             }
         }
         self.forward();
-        Ok(YamlBase::from_iter(v))
+        Ok(v.into_iter().collect())
     }
 
     /// Match flow map.
@@ -216,7 +215,7 @@ impl<R: repr::Repr> Parser<'_, R> {
             }
         }
         self.forward();
-        Ok(YamlBase::from_iter(m))
+        Ok(m.into_iter().collect())
     }
 
     /// Match array.
@@ -259,7 +258,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         }
         // Keep last wrapping
         self.backward();
-        Ok(YamlBase::from_iter(v))
+        Ok(v.into_iter().collect())
     }
 
     /// Match map.
@@ -320,7 +319,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         }
         // Keep last wrapping
         self.backward();
-        Ok(YamlBase::from_iter(m))
+        Ok(m.into_iter().collect())
     }
 }
 

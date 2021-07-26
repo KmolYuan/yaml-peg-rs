@@ -3,6 +3,7 @@ use alloc::string::ToString;
 use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::Hash,
+    iter::FromIterator,
     ops::Index,
     str::FromStr,
 };
@@ -35,6 +36,20 @@ macro_rules! as_num_method {
             }
         }
     };
+}
+
+macro_rules! impl_iter {
+    ($item:ty) => {
+        impl<R: Repr> FromIterator<$item> for NodeBase<R> {
+            fn from_iter<T: IntoIterator<Item = $item>>(iter: T) -> Self {
+                Self::from(iter.into_iter().collect::<YamlBase<R>>())
+            }
+        }
+    };
+    ($item1:ty $(, $item2:ty)*) => {
+        impl_iter!{$item1}
+        $(impl_iter!{$item2})*
+    }
 }
 
 /// A node with [`alloc::rc::Rc`] holder.
@@ -460,3 +475,5 @@ where
         Self::new(yaml.into(), 0, "", "")
     }
 }
+
+impl_iter! {Self, (Self, Self)}

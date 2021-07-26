@@ -7,20 +7,31 @@ use core::iter::FromIterator;
 use ritelinked::LinkedHashMap;
 
 macro_rules! impl_from {
-    ($from_ty1:ty $(| $from_ty2:ty)* as $ty:ident) => {
-        impl<R: Repr> From<$from_ty1> for YamlBase<R> {
-            fn from(s: $from_ty1) -> Self {
+    ($from_ty:ty => $ty:ident) => {
+        impl<R: Repr> From<$from_ty> for YamlBase<R> {
+            fn from(s: $from_ty) -> Self {
                 Self::$ty(s.to_string())
             }
         }
-        $(
-        impl<R: Repr> From<$from_ty2> for YamlBase<R> {
-            fn from(s: $from_ty2) -> Self {
-                Self::$ty(s.to_string())
-            }
-        }
-        )*
     };
+    ($ty1:ty $(, $ty2:ty)* => $ty:ident) => {
+        impl_from! {$ty1 => $ty}
+        $(impl_from! {$ty2 => $ty})*
+    };
+}
+
+macro_rules! impl_iter {
+    ($item:ty => $ty:ident) => {
+        impl<R: Repr> FromIterator<$item> for YamlBase<R> {
+            fn from_iter<T: IntoIterator<Item = $item>>(iter: T) -> Self {
+                Self::$ty(iter.into_iter().collect())
+            }
+        }
+    };
+    ($item1:ty $(, $item2:ty)* => $ty:ident) => {
+        impl_iter!{$item1 => $ty}
+        $(impl_iter!{$item2 => $ty})*
+    }
 }
 
 /// A YAML data with [`alloc::rc::Rc`] holder.
@@ -90,24 +101,8 @@ impl<R: Repr> From<bool> for YamlBase<R> {
     }
 }
 
-impl_from! { &str | String | &String as Str }
-impl_from! { usize | u8 | u16 | u32 | u64 | u128 | isize | i8 | i16 | i32 | i64 | i128 as Int }
-impl_from! { f32 | f64 as Float }
-
-impl<R: Repr> FromIterator<NodeBase<R>> for YamlBase<R> {
-    fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = NodeBase<R>>,
-    {
-        Self::Array(iter.into_iter().collect())
-    }
-}
-
-impl<R: Repr> FromIterator<(NodeBase<R>, NodeBase<R>)> for YamlBase<R> {
-    fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = (NodeBase<R>, NodeBase<R>)>,
-    {
-        Self::Map(iter.into_iter().collect())
-    }
-}
+impl_from! {&str, String, &String => Str}
+impl_from! {usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128 => Int}
+impl_from! {f32, f64 => Float}
+impl_iter! {NodeBase<R> => Array}
+impl_iter! {(NodeBase<R>, NodeBase<R>) => Map}
