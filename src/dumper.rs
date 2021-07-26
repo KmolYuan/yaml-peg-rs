@@ -119,6 +119,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
 ///
 /// ```
 /// use yaml_peg::{dump, node, dumper::NL};
+///
 /// let doc = dump(vec![
 ///     node!({
 ///         node!("a") => node!("b"),

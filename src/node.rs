@@ -53,6 +53,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// ```
 /// use std::collections::HashSet;
 /// use yaml_peg::Node;
+///
 /// let mut s = HashSet::new();
 /// s.insert(Node::new("a".into(), 0, "", ""));
 /// s.insert(Node::new("a".into(), 1, "my-type", ""));
@@ -68,12 +69,14 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// ```
 /// use yaml_peg::{node, Ind};
+///
 /// let n = node!([node!("a"), node!("b"), node!("c")]);
 /// assert_eq!(node!("b"), n[Ind(1)]);
 /// ```
 ///
 /// ```should_panic
 /// use yaml_peg::{node, Ind};
+///
 /// let n = node!(null);
 /// let n = &n["a"][Ind(0)]["b"];
 /// ```
@@ -120,6 +123,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// ```
 /// use std::rc::Rc;
 /// use yaml_peg::node;
+///
 /// let a = node!("a");
 /// {
 ///     let b = a.clone();
@@ -176,7 +180,8 @@ impl<R: Repr> NodeBase<R> {
         /// Convert to boolean.
         ///
         /// ```
-        /// use yaml_peg::{node};
+        /// use yaml_peg::node;
+        ///
         /// assert!(node!(true).as_bool().unwrap());
         /// ```
         fn as_bool = Bool(clone) -> bool
@@ -187,6 +192,7 @@ impl<R: Repr> NodeBase<R> {
         ///
         /// ```
         /// use yaml_peg::node;
+        ///
         /// assert_eq!(60, node!(60).as_int().unwrap());
         /// ```
         fn as_int = Int
@@ -197,6 +203,7 @@ impl<R: Repr> NodeBase<R> {
         ///
         /// ```
         /// use yaml_peg::node;
+        ///
         /// assert_eq!(20.06, node!(20.06).as_float().unwrap());
         /// ```
         fn as_float = Float
@@ -207,6 +214,7 @@ impl<R: Repr> NodeBase<R> {
         ///
         /// ```
         /// use yaml_peg::node;
+        ///
         /// assert_eq!(60, node!(60).as_number().unwrap());
         /// assert_eq!(20.06, node!(20.06).as_number().unwrap());
         /// ```
@@ -221,6 +229,7 @@ impl<R: Repr> NodeBase<R> {
         ///
         /// ```
         /// use yaml_peg::node;
+        ///
         /// assert_eq!("abc", node!("abc").as_str().unwrap());
         /// assert!(node!(null).as_str().unwrap().is_empty());
         /// ```
@@ -233,6 +242,7 @@ impl<R: Repr> NodeBase<R> {
     ///
     /// ```
     /// use yaml_peg::node;
+    ///
     /// assert_eq!("abc", node!("abc").as_value().unwrap());
     /// assert_eq!("123", node!(123).as_value().unwrap());
     /// assert_eq!("12.04", node!(12.04).as_value().unwrap());
@@ -257,6 +267,7 @@ impl<R: Repr> NodeBase<R> {
     ///
     /// ```
     /// use yaml_peg::{node, anchors};
+    ///
     /// let node_a = node!(*"a");
     /// let v = anchors!["a" => node!(20.)];
     /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
@@ -269,33 +280,34 @@ impl<R: Repr> NodeBase<R> {
     }
 
     as_method! {
-        /// Convert to array. The object ownership will be took.
+        /// Convert to array.
         ///
         /// ```
         /// use yaml_peg::node;
-        /// let n = node!([node!(1), node!(2)]);
-        /// assert_eq!(&vec![node!(1), node!(2)], n.as_array().unwrap());
+        ///
         /// let n = node!([node!("55")]);
+        /// assert_eq!(node!("55"), n.as_array().unwrap()[0]);
         /// for n in n.as_array().unwrap() {
-        ///     assert_eq!(&node!("55"), n);
+        ///     assert_eq!(node!("55"), n);
         /// }
         /// ```
-        fn as_array = Array -> &Array<R>
+        fn as_array = Array(clone) -> Array<R>
     }
 
     as_method! {
-        /// Convert to map. The object ownership will be took.
+        /// Convert to map.
         ///
         /// ```
         /// use yaml_peg::node;
+        ///
         /// let n = node!({node!(1) => node!(2)});
         /// assert_eq!(node!(2), n.as_map().unwrap()[&node!(1)]);
         /// for (k, v) in n.as_map().unwrap() {
-        ///     assert_eq!(&node!(1), k);
-        ///     assert_eq!(&node!(2), v);
+        ///     assert_eq!(node!(1), k);
+        ///     assert_eq!(node!(2), v);
         /// }
         /// ```
-        fn as_map = Map -> &Map<R>
+        fn as_map = Map(clone) -> Map<R>
     }
 
     /// Convert to map and try to get the value by key.
@@ -305,6 +317,7 @@ impl<R: Repr> NodeBase<R> {
     /// ```
     /// # fn main() -> Result<(), u64> {
     /// use yaml_peg::node;
+    ///
     /// let n = node!({node!("a") => node!({node!("b") => node!(30.)})});
     /// assert_eq!(node!(30.), n.get("a")?.get("b")?);
     /// # Ok::<(), u64>(()) }
@@ -334,6 +347,7 @@ impl<R: Repr> NodeBase<R> {
     /// ```
     /// # fn main() -> Result<(), u64> {
     /// use yaml_peg::{node, NodeBase};
+    ///
     /// let a = node!({node!("a") => node!({node!("b") => node!("c")})});
     /// assert_eq!(
     ///     "c",
@@ -349,6 +363,16 @@ impl<R: Repr> NodeBase<R> {
     ///     Err(0),
     ///     c.get("a")?.get_default("b", "d", NodeBase::as_str)
     /// );
+    /// # Ok::<(), u64>(()) }
+    /// ```
+    ///
+    /// ```
+    /// # fn main() -> Result<(), u64> {
+    /// use yaml_peg::{node, NodeBase};
+    ///
+    /// let n = node!({node!("a") => node!([node!(1), node!(2), node!(3)])});
+    /// let a = n.get_default("c", vec![], NodeBase::as_array)?;
+    /// assert_eq!(a, vec![]);
     /// # Ok::<(), u64>(()) }
     /// ```
     pub fn get_default<'a, Y, Ret, F>(
@@ -377,6 +401,7 @@ impl<R: Repr> NodeBase<R> {
     /// ```
     /// # fn main() -> Result<(), u64> {
     /// use yaml_peg::{node, Ind};
+    ///
     /// let n = node!([node!("a"), node!("b"), node!("c")]);
     /// assert_eq!(node!("b"), n.get_ind(Ind(1))?);
     /// # Ok::<(), u64>(()) }

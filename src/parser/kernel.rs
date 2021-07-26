@@ -18,6 +18,7 @@ pub enum TakeOpt {
 ///
 /// ```
 /// use yaml_peg::{parser::Parser, node};
+///
 /// let n = Parser::new(b"true").parse().unwrap();
 /// assert_eq!(n, vec![node!(true)]);
 /// ```

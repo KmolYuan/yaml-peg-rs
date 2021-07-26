@@ -35,6 +35,7 @@ pub use crate::yaml::*;
 ///
 /// ```
 /// use yaml_peg::node;
+///
 /// let k = "a";
 /// assert_eq!(node!(k), node!("a"));
 /// ```
@@ -43,6 +44,7 @@ pub use crate::yaml::*;
 ///
 /// ```
 /// use yaml_peg::{node, yaml_array, yaml_map};
+///
 /// assert_eq!(node!([node!(1), node!(2)]), node!(yaml_array![node!(1), node!(2)]));
 /// assert_eq!(node!({node!(1) => node!(2)}), node!(yaml_map![node!(1) => node!(2)]));
 /// ```
@@ -51,6 +53,7 @@ pub use crate::yaml::*;
 ///
 /// ```
 /// use yaml_peg::{node, YamlBase};
+///
 /// assert_eq!(node!(YamlBase::Null), node!(null));
 /// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
 /// ```
@@ -101,6 +104,7 @@ macro_rules! node_arc {
 ///
 /// ```
 /// use yaml_peg::{node, yaml_array};
+///
 /// yaml_array![node!("a"), node!("b"), node!("c")];
 /// ```
 #[macro_export]
@@ -114,6 +118,7 @@ macro_rules! yaml_array {
 ///
 /// ```
 /// use yaml_peg::{node, yaml_map};
+///
 /// yaml_map!{
 ///     node!("a") => node!("b"),
 ///     node!("c") => node!("d"),
@@ -136,6 +141,7 @@ macro_rules! yaml_map {
 ///
 /// ```
 /// use yaml_peg::{node, anchors};
+///
 /// let v = anchors![
 ///     "my-boss" => node!({node!("name") => node!("Henry")}),
 /// ];

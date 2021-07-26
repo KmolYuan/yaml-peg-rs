@@ -342,6 +342,7 @@ impl_parser! {
     ///
     /// ```
     /// use yaml_peg::{parse, node};
+    ///
     /// let (n, anchors) = parse("true").unwrap();
     /// assert_eq!(anchors.len(), 0);
     /// assert_eq!(n, vec![node!(true)]);
@@ -355,6 +356,7 @@ impl_parser! {
     ///
     /// ```
     /// use yaml_peg::{parse_arc, node_arc};
+    ///
     /// let (n, anchors) = parse_arc("true").unwrap();
     /// assert_eq!(anchors.len(), 0);
     /// assert_eq!(n, vec![node_arc!(true)]);

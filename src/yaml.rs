@@ -38,6 +38,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 ///
 /// ```
 /// use yaml_peg::Yaml;
+///
 /// assert_eq!(Yaml::Int("20".into()), 20.into());
 /// assert_eq!(Yaml::Float("0.001".into()), 1e-3.into());
 /// ```
@@ -47,6 +48,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// ```
 /// use yaml_peg::{Yaml, node};
 /// use yaml_peg::{yaml_array, yaml_map};
+///
 /// use std::iter::FromIterator;
 /// let v = vec![node!(1), node!(2), node!(3)];
 /// assert_eq!(Yaml::from_iter(v), yaml_array![node!(1), node!(2), node!(3)]);
