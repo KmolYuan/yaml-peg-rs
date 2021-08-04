@@ -1,13 +1,14 @@
 [package]
 name = "yaml-peg"
 description = "A YAML 1.2 parser using greedy parsing algorithm with PEG atoms."
-version = "0.12.0"
+version = "0.13.0"
 authors = ["KmolYuan <pyslvs@gmail.com>"]
 edition = "2018"
 license = "MIT"
 repository = "https://github.com/KmolYuan/yaml-peg-rs"
 readme = "README.md"
 keywords = ["yaml", "parser"]
+categories = ["parser-implementations", "no-std"]
 
 [dependencies]
 ritelinked = "0.3"
