@@ -8,31 +8,25 @@ use serde::{
 };
 
 macro_rules! impl_visitor {
-    (fn $method:ident) => {
-        fn $method<E>(self) -> Result<Self::Value, E>
+    (@$ty:ty, $name:ident) => {
+        $name
+    };
+    (@) => {
+        ()
+    };
+    ($(fn $method:ident$(($ty:ty))?)+) => {
+        $(fn $method<E>(self$(, v: $ty)?) -> Result<Self::Value, E>
         where
             E: Error,
         {
-            Ok(().into())
-        }
-    };
-    (fn $method:ident($ty:ty)) => {
-        fn $method<E>(self, v: $ty) -> Result<Self::Value, E>
-        where
-            E: Error,
-        {
-            Ok(v.into())
-        }
-    };
-    (fn $method1:ident$(($ty1:ty))? $(fn $method2:ident$(($ty2:ty))?)+) => {
-        impl_visitor! { fn $method1$(($ty1))? }
-        $(impl_visitor! { fn $method2$(($ty2))? })+
+            Ok(impl_visitor!(@$($ty, v)?).into())
+        })+
     };
 }
 
 macro_rules! impl_deserializer {
-    (fn $method:ident($ty:ident) => $visit:ident($n:ident => $value:expr)) => {
-        fn $method<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    ($(fn $method:ident($ty:ident) => $visit:ident($n:ident => $value:expr))+) => {
+        $(fn $method<V>(self, visitor: V) -> Result<V::Value, Self::Error>
         where
             V: Visitor<'a>,
         {
@@ -40,13 +34,8 @@ macro_rules! impl_deserializer {
                 YamlBase::$ty($n) => visitor.$visit($value),
                 _ => Err(Error::invalid_type(self.unexpected(), &visitor)),
             }
-        }
+        })+
     };
-    (fn $method1:ident($ty1:ident) => $visit1:ident($n1:ident => $value1:expr)
-    $(fn $method2:ident($ty2:ident) => $visit2:ident($n2:ident => $value2:expr))+) => {
-        impl_deserializer! { fn $method1($ty1) => $visit1($n1 => $value1) }
-        $(impl_deserializer! { fn $method2($ty2) => $visit2($n2 => $value2) })+
-    }
 }
 
 struct NodeVisitor<R: Repr>(PhantomData<R>);
