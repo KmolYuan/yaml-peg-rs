@@ -95,6 +95,12 @@ impl<R: Repr> YamlBase<R> {
     }
 }
 
+impl<R: Repr> From<()> for YamlBase<R> {
+    fn from(_: ()) -> Self {
+        Self::Null
+    }
+}
+
 impl<R: Repr> From<bool> for YamlBase<R> {
     fn from(b: bool) -> Self {
         Self::Bool(b)

@@ -164,6 +164,8 @@ mod indicator;
 mod node;
 pub mod parser;
 pub mod repr;
+#[cfg(feature = "serialize")]
+pub mod serialize;
 #[cfg(test)]
 mod tests;
 mod yaml;
