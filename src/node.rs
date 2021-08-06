@@ -284,9 +284,9 @@ impl<R: Repr> NodeBase<R> {
     /// let v = anchors!["a" => node!(20.)];
     /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
     /// ```
-    pub fn as_anchor(&self, anchors: &AnchorBase<R>) -> Self {
+    pub fn as_anchor(&self, v: &AnchorBase<R>) -> Self {
         match self.yaml() {
-            YamlBase::Anchor(s) if anchors.contains_key(s) => anchors.get(s).unwrap().clone(),
+            YamlBase::Anchor(s) if v.contains_key(s) => v.get(s).unwrap().clone(),
             _ => self.clone(),
         }
     }
@@ -334,9 +334,9 @@ impl<R: Repr> NodeBase<R> {
     /// assert_eq!(node!(30.), n.get("a")?.get("b")?);
     /// # Ok::<(), u64>(()) }
     /// ```
-    pub fn get<Y: Into<Self>>(&self, keys: Y) -> Result<Self, u64> {
+    pub fn get<Y: Into<Self>>(&self, key: Y) -> Result<Self, u64> {
         if let YamlBase::Map(m) = self.yaml() {
-            if let Some(n) = m.get(&keys.into()) {
+            if let Some(n) = m.get(&key.into()) {
                 Ok(n.clone())
             } else {
                 Err(self.pos())
@@ -386,7 +386,7 @@ impl<R: Repr> NodeBase<R> {
     /// ```
     pub fn get_default<'a, Y, Ret, F>(
         &'a self,
-        keys: Y,
+        key: Y,
         default: Ret,
         factory: F,
     ) -> Result<Ret, u64>
@@ -395,8 +395,46 @@ impl<R: Repr> NodeBase<R> {
         F: Fn(&'a Self) -> Result<Ret, u64>,
     {
         if let YamlBase::Map(m) = self.yaml() {
-            if let Some(n) = m.get(&keys.into()) {
+            if let Some(n) = m.get(&key.into()) {
                 factory(n)
+            } else {
+                Ok(default)
+            }
+        } else {
+            Err(self.pos())
+        }
+    }
+
+    /// Trait as map then get a key-value with anchor visitor,
+    /// returns default value if key is not found.
+    ///
+    /// If the value type is incorrect, returns [`Err`].
+    /// Same as [`NodeBase::get_default`] but support anchor visitor.
+    ///
+    /// ```
+    /// # fn main() -> Result<(), u64> {
+    /// use yaml_peg::{anchors, node, Node};
+    ///
+    /// let v = anchors!["c" => node!(10)];
+    /// let a = node!({node!("a") => node!({node!("b") => node!(*"c")})});
+    /// let c = a.get("a")?.with(&v, "b", 0, Node::as_int)?;
+    /// assert_eq!(10, c);
+    /// # Ok::<(), u64>(()) }
+    /// ```
+    pub fn with<Y, Ret, F>(
+        &self,
+        v: &AnchorBase<R>,
+        key: Y,
+        default: Ret,
+        factory: F,
+    ) -> Result<Ret, u64>
+    where
+        Y: Into<Self>,
+        F: Fn(&Self) -> Result<Ret, u64>,
+    {
+        if let YamlBase::Map(m) = self.yaml() {
+            if let Some(n) = m.get(&key.into()) {
+                factory(&n.as_anchor(v))
             } else {
                 Ok(default)
             }
