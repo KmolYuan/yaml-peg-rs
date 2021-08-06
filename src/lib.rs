@@ -129,7 +129,7 @@ macro_rules! yaml_map {
     (@) => { $crate::Map::new() };
     (@$expr:expr) => { $expr };
     ($($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?)?) => {
-        $crate::YamlBase::Map(yaml_map!(@$({
+        $crate::YamlBase::Map($crate::yaml_map!(@$({
             let mut m = $crate::Map::new();
             m.insert($k1, $v1);
             $(m.insert($k2, $v2);)*
