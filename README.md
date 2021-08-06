@@ -15,3 +15,4 @@ See the API doc for more information.
 + Support no standard library `#![no_std]`.
 + Support anchor visitor through reference counter.
 + Different data holder provides parallel visiting and less copy cost.
++ Support [`serde`](https://github.com/serde-rs/serde) as a feature.
