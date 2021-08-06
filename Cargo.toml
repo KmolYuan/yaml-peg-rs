@@ -16,3 +16,6 @@ serialize = ["serde"]
 [dependencies]
 ritelinked = "0.3"
 serde = { version = "1", default-features = false, optional = true }
+
+[dev-dependencies]
+serde = { version = "1", default-features = false, features = ["derive"] }

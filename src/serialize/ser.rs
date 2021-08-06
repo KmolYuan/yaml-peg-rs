@@ -70,11 +70,36 @@ macro_rules! impl_map_serializer {
 }
 
 /// Serialize data into [`Node`].
+///
+/// For example, if a serializable data is provide,
+/// it should be able to transform into YAML format.
+///
+/// ```
+/// use serde::Serialize;
+/// use yaml_peg::{serialize::to_node, node};
+///
+/// #[derive(Serialize, Debug)]
+/// struct Member<'a> {
+///     name: &'a str,
+///     age: u8,
+/// }
+///
+/// let officer = Member { name: "Bob", age: 46 };
+/// let officer_yaml = node!({
+///     node!("name") => node!("Bob"),
+///     node!("age") => node!(46),
+/// });
+/// assert_eq!(officer_yaml, to_node(officer).unwrap());
+/// ```
+///
+/// There is another version for multi-thread representation: [`to_arc_node`].
 pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
 /// Serialize data into [`ArcNode`].
+///
+/// There is another version for single-thread representation: [`to_node`].
 pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }

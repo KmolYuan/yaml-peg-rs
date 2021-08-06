@@ -2,6 +2,7 @@ use alloc::string::{String, ToString};
 use core::fmt::{Debug, Display, Formatter};
 use serde::{de::Error as DeError, ser::Error as SerError};
 
+/// The error type for the serialization.
 #[derive(Debug)]
 pub struct SerdeError(String);
 
