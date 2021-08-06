@@ -81,25 +81,27 @@ macro_rules! impl_map_serializer {
 /// #[derive(Serialize, Debug)]
 /// struct Member<'a> {
 ///     name: &'a str,
+///     married: bool,
 ///     age: u8,
 /// }
 ///
-/// let officer = Member { name: "Bob", age: 46 };
+/// let officer = Member { name: "Bob", married: true, age: 46 };
 /// let officer_yaml = node!({
 ///     node!("name") => node!("Bob"),
+///     node!("married") => node!(true),
 ///     node!("age") => node!(46),
 /// });
 /// assert_eq!(officer_yaml, to_node(officer).unwrap());
 /// ```
 ///
-/// There is another version for multi-thread representation: [`to_arc_node`].
+/// There is another version for multi-thread reference counter: [`to_arc_node`].
 pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
 /// Serialize data into [`ArcNode`].
 ///
-/// There is another version for single-thread representation: [`to_node`].
+/// There is another version for single-thread reference counter: [`to_node`].
 pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }

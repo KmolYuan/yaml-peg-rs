@@ -9,10 +9,10 @@ impl<R: Repr> Serialize for NodeBase<R> {
     {
         match self.yaml() {
             YamlBase::Null => serializer.serialize_unit(),
-            YamlBase::Bool(b) => b.serialize(serializer),
+            YamlBase::Bool(b) => serializer.serialize_bool(*b),
             YamlBase::Int(n) => serializer.serialize_i64(n.parse().unwrap()),
             YamlBase::Float(n) => serializer.serialize_f64(n.parse().unwrap()),
-            YamlBase::Str(s) => s.serialize(serializer),
+            YamlBase::Str(s) => serializer.serialize_str(s),
             YamlBase::Array(a) => a.serialize(serializer),
             YamlBase::Map(m) => {
                 let mut map = serializer.serialize_map(Some(m.len()))?;
