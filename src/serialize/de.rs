@@ -3,17 +3,16 @@ use crate::{repr::Repr, Array, Map, NodeBase, YamlBase};
 use alloc::{format, string::String};
 use core::marker::PhantomData;
 use serde::{
-    de::{DeserializeSeed, Error, MapAccess, SeqAccess, Unexpected, Visitor},
+    de::{
+        DeserializeSeed, EnumAccess, Error, MapAccess, SeqAccess, Unexpected, VariantAccess,
+        Visitor,
+    },
     serde_if_integer128, Deserialize, Deserializer,
 };
 
 macro_rules! impl_visitor {
-    (@$ty:ty, $name:ident) => {
-        $name
-    };
-    (@) => {
-        ()
-    };
+    (@$ty:ty, $name:ident) => { $name };
+    (@) => { () };
     ($(fn $method:ident$(($ty:ty))?)+) => {
         $(fn $method<E>(self$(, v: $ty)?) -> Result<Self::Value, E>
         where
@@ -133,6 +132,83 @@ impl<'a, R: Repr> MapAccess<'a> for MapVisitor<R> {
     }
 }
 
+struct EnumVisitor<R: Repr>(NodeBase<R>, Option<NodeBase<R>>);
+
+impl<'a, R: Repr> EnumAccess<'a> for EnumVisitor<R> {
+    type Error = SerdeError;
+    type Variant = VariantVisitor<R>;
+
+    fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
+    where
+        V: DeserializeSeed<'a>,
+    {
+        let visitor = VariantVisitor(self.1);
+        seed.deserialize(self.0).map(|v| (v, visitor))
+    }
+}
+
+struct VariantVisitor<R: Repr>(Option<NodeBase<R>>);
+
+impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
+    type Error = SerdeError;
+
+    fn unit_variant(self) -> Result<(), Self::Error> {
+        match self.0 {
+            Some(v) => Deserialize::deserialize(v),
+            None => Ok(()),
+        }
+    }
+
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+    where
+        T: DeserializeSeed<'a>,
+    {
+        match self.0 {
+            Some(v) => seed.deserialize(v),
+            None => Err(Error::invalid_type(
+                Unexpected::UnitVariant,
+                &"new type variant",
+            )),
+        }
+    }
+
+    fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.0 {
+            Some(node) => match node.yaml() {
+                YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+                _ => Err(Error::invalid_type(node.unexpected(), &"tuple variant")),
+            },
+            None => Err(Error::invalid_type(
+                Unexpected::TupleVariant,
+                &"tuple variant",
+            )),
+        }
+    }
+
+    fn struct_variant<V>(
+        self,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.0 {
+            Some(node) => match node.yaml() {
+                YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+                _ => Err(Error::invalid_type(node.unexpected(), &"struct variant")),
+            },
+            None => Err(Error::invalid_type(
+                Unexpected::UnitVariant,
+                &"struct variant",
+            )),
+        }
+    }
+}
+
 impl<'a, R: Repr> Deserialize<'a> for NodeBase<R> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -149,14 +225,14 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
     where
         V: Visitor<'a>,
     {
-        match self.into_yaml() {
+        match self.yaml() {
             YamlBase::Null => visitor.visit_unit(),
-            YamlBase::Bool(v) => visitor.visit_bool(v),
+            YamlBase::Bool(v) => visitor.visit_bool(*v),
             YamlBase::Int(n) => visitor.visit_i64(n.parse().unwrap()),
             YamlBase::Float(n) => visitor.visit_f64(n.parse().unwrap()),
-            YamlBase::Str(s) => visitor.visit_string(s),
-            YamlBase::Array(a) => visitor.visit_seq(&mut SeqVisitor(a.into_iter())),
-            YamlBase::Map(m) => visitor.visit_map(&mut MapVisitor(m.into_iter(), None)),
+            YamlBase::Str(s) => visitor.visit_string(s.clone()),
+            YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+            YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
             YamlBase::Anchor(s) => visitor.visit_string(format!("*{}", s)),
         }
     }
@@ -174,7 +250,11 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         fn deserialize_f32(Float) => visit_f32(n => n.parse().unwrap())
         fn deserialize_f64(Float) => visit_f64(n => n.parse().unwrap())
         fn deserialize_str(Str) => visit_str(s => s)
-        fn deserialize_string(Str) => visit_string(s => s.clone())
+        fn deserialize_string(Str) => visit_str(s => s)
+        fn deserialize_char(Str) => visit_str(s => s)
+        fn deserialize_seq(Array) => visit_seq(a => SeqVisitor(a.clone().into_iter()))
+        fn deserialize_map(Map) => visit_map(m => MapVisitor(m.clone().into_iter(), None))
+        fn deserialize_identifier(Str) => visit_str(s => s)
     }
 
     serde_if_integer128! {
@@ -184,32 +264,32 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         }
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'a>,
-    {
-        todo!()
-    }
-
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        self.deserialize_byte_buf(visitor)
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        match self.yaml() {
+            YamlBase::Str(s) => visitor.visit_str(s),
+            YamlBase::Array(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
+            _ => Err(Error::invalid_type(self.unexpected(), &visitor)),
+        }
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        match self.yaml() {
+            YamlBase::Null => visitor.visit_none(),
+            _ => visitor.visit_some(self),
+        }
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -225,95 +305,95 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
 
     fn deserialize_unit_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        self.deserialize_unit(visitor)
     }
 
     fn deserialize_newtype_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
-    }
-
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'a>,
-    {
-        todo!()
+        self.deserialize_seq(visitor)
     }
 
     fn deserialize_tuple_struct<V>(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
-    }
-
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'a>,
-    {
-        todo!()
+        self.deserialize_seq(visitor)
     }
 
     fn deserialize_struct<V>(
         self,
-        name: &'static str,
-        fields: &'static [&'static str],
+        _name: &'static str,
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        match self.yaml() {
+            YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+            YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+            _ => Err(Error::invalid_type(self.unexpected(), &visitor)),
+        }
     }
 
     fn deserialize_enum<V>(
         self,
-        name: &'static str,
-        variants: &'static [&'static str],
+        _name: &'static str,
+        _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
-    }
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'a>,
-    {
-        todo!()
+        let (k, v) = match self.yaml() {
+            YamlBase::Map(m) => {
+                if m.len() != 1 {
+                    return Err(Error::invalid_type(
+                        self.unexpected(),
+                        &"map with single pair",
+                    ));
+                }
+                if let Some((k, v)) = m.into_iter().next() {
+                    (k.clone(), Some(v.clone()))
+                } else {
+                    panic!("never failed")
+                }
+            }
+            YamlBase::Str(_) => (self.clone(), None),
+            _ => return Err(Error::invalid_type(self.unexpected(), &visitor)),
+        };
+        visitor.visit_enum(EnumVisitor(k, v))
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'a>,
     {
-        todo!()
+        visitor.visit_unit()
     }
 }
 
