@@ -1,5 +1,5 @@
 use super::SerdeError;
-use crate::{repr::Repr, yaml_map, Array, Map, NodeBase};
+use crate::{repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase};
 use core::{fmt::Display, marker::PhantomData};
 use serde::{
     ser::{
@@ -19,11 +19,63 @@ macro_rules! impl_serializer {
     };
 }
 
-pub fn to_node(any: impl Serialize) -> Result<crate::Node, SerdeError> {
+macro_rules! impl_end {
+    (@ $self:ident) => { $self.0.into() };
+    (@map $self:ident) => { yaml_map!($self.1.into() => $self.0.into()).into() };
+}
+
+macro_rules! impl_seq_serializer {
+    ($(impl $trait:ident for $ty:ident => $method:ident $(($tt:tt))?)+) => {
+        $(impl<R: Repr> $trait for $ty<R> {
+            type Ok = NodeBase<R>;
+            type Error = SerdeError;
+
+            fn $method<T>(&mut self, value: &T) -> Result<(), Self::Error>
+            where
+                T: Serialize + ?Sized,
+            {
+                self.0.push(value.serialize(NodeSerializer(PhantomData))?);
+                Ok(())
+            }
+
+            fn end(self) -> Result<Self::Ok, Self::Error> {
+                Ok(impl_end!(@$($tt)? self))
+            }
+        })+
+    };
+}
+
+macro_rules! impl_map_serializer {
+    ($(impl $trait:ident for $ty:ident $(($tt:tt))?)+) => {
+        $(impl<R: Repr> $trait for $ty<R> {
+            type Ok = NodeBase<R>;
+            type Error = SerdeError;
+
+            fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+            where
+                T: Serialize + ?Sized,
+            {
+                self.0.insert(
+                    key.serialize(NodeSerializer(PhantomData))?,
+                    value.serialize(NodeSerializer(PhantomData))?,
+                );
+                Ok(())
+            }
+
+            fn end(self) -> Result<Self::Ok, Self::Error> {
+                Ok(impl_end!(@$($tt)? self))
+            }
+        })+
+    };
+}
+
+/// Serialize data into [`Node`].
+pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
-pub fn to_arc_node(any: impl Serialize) -> Result<crate::ArcNode, SerdeError> {
+/// Serialize data into [`ArcNode`].
+pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
@@ -69,9 +121,9 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         Ok(v.iter().map(|b| NodeBase::from(*b)).collect())
     }
 
-    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         value.serialize(self)
     }
@@ -89,18 +141,18 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         Ok(variant.into())
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
+    fn serialize_newtype_struct<T>(
         self,
         _name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         _variant_index: u32,
@@ -108,7 +160,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Ok(yaml_map!(variant.into() => value.serialize(NodeSerializer(PhantomData))?).into())
     }
@@ -171,9 +223,9 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         Ok(StructVariant(Map::with_capacity(len), variant))
     }
 
-    fn collect_str<T: ?Sized>(self, value: &T) -> Result<Self::Ok, Self::Error>
+    fn collect_str<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Display,
+        T: Display + ?Sized,
     {
         use alloc::string::ToString;
         self.serialize_str(&value.to_string())
@@ -181,92 +233,38 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
 }
 
 struct SeqSerializer<R: Repr>(Array<R>);
-
-impl<R: Repr> SerializeSeq for SeqSerializer<R> {
-    type Ok = NodeBase<R>;
-    type Error = SerdeError;
-
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        self.0.push(value.serialize(NodeSerializer(PhantomData))?);
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(self.0.into())
-    }
-}
-
-impl<R: Repr> SerializeTuple for SeqSerializer<R> {
-    type Ok = NodeBase<R>;
-    type Error = SerdeError;
-
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        SerializeSeq::serialize_element(self, value)
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        SerializeSeq::end(self)
-    }
-}
-
-impl<R: Repr> SerializeTupleStruct for SeqSerializer<R> {
-    type Ok = NodeBase<R>;
-    type Error = SerdeError;
-
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        SerializeSeq::serialize_element(self, value)
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        SerializeSeq::end(self)
-    }
-}
-
 struct TupleVariant<R: Repr>(Array<R>, &'static str);
+struct MapSerializer<R: Repr>(Map<R>, Option<NodeBase<R>>);
+struct StructSerializer<R: Repr>(Map<R>);
+struct StructVariant<R: Repr>(Map<R>, &'static str);
 
-impl<R: Repr> SerializeTupleVariant for TupleVariant<R> {
-    type Ok = NodeBase<R>;
-    type Error = SerdeError;
-
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        self.0.push(value.serialize(NodeSerializer(PhantomData))?);
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(yaml_map!(self.1.into() => self.0.into()).into())
-    }
+impl_seq_serializer! {
+    impl SerializeSeq for SeqSerializer => serialize_element
+    impl SerializeTuple for SeqSerializer => serialize_element
+    impl SerializeTupleStruct for SeqSerializer => serialize_field
+    impl SerializeTupleVariant for TupleVariant => serialize_field (map)
 }
 
-struct MapSerializer<R: Repr>(Map<R>, Option<NodeBase<R>>);
+impl_map_serializer! {
+    impl SerializeStruct for StructSerializer
+    impl SerializeStructVariant for StructVariant (map)
+}
 
 impl<R: Repr> SerializeMap for MapSerializer<R> {
     type Ok = NodeBase<R>;
     type Error = SerdeError;
 
-    fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
+    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.1 = Some(key.serialize(NodeSerializer(PhantomData))?);
         Ok(())
     }
 
-    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         match self.1.take() {
             Some(k) => self
@@ -277,14 +275,10 @@ impl<R: Repr> SerializeMap for MapSerializer<R> {
         Ok(())
     }
 
-    fn serialize_entry<K: ?Sized, V: ?Sized>(
-        &mut self,
-        key: &K,
-        value: &V,
-    ) -> Result<(), Self::Error>
+    fn serialize_entry<K, V>(&mut self, key: &K, value: &V) -> Result<(), Self::Error>
     where
-        K: Serialize,
-        V: Serialize,
+        K: Serialize + ?Sized,
+        V: Serialize + ?Sized,
     {
         self.0.insert(
             key.serialize(NodeSerializer(PhantomData))?,
@@ -295,57 +289,5 @@ impl<R: Repr> SerializeMap for MapSerializer<R> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(self.0.into())
-    }
-}
-
-struct StructSerializer<R: Repr>(Map<R>);
-
-impl<R: Repr> SerializeStruct for StructSerializer<R> {
-    type Ok = NodeBase<R>;
-    type Error = SerdeError;
-
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        self.0.insert(
-            key.serialize(NodeSerializer(PhantomData))?,
-            value.serialize(NodeSerializer(PhantomData))?,
-        );
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(self.0.into())
-    }
-}
-
-struct StructVariant<R: Repr>(Map<R>, &'static str);
-
-impl<R: Repr> SerializeStructVariant for StructVariant<R> {
-    type Ok = NodeBase<R>;
-    type Error = SerdeError;
-
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        self.0.insert(
-            key.serialize(NodeSerializer(PhantomData))?,
-            value.serialize(NodeSerializer(PhantomData))?,
-        );
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(yaml_map!(self.1.into() => self.0.into()).into())
     }
 }
