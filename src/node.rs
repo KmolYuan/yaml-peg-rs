@@ -284,10 +284,10 @@ impl<R: Repr> NodeBase<R> {
     /// let v = anchors!["a" => node!(20.)];
     /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
     /// ```
-    pub fn as_anchor(&self, v: &AnchorBase<R>) -> Self {
+    pub fn as_anchor<'a, 'b: 'a>(&'a self, v: &'b AnchorBase<R>) -> &'a Self {
         match self.yaml() {
-            YamlBase::Anchor(s) if v.contains_key(s) => v.get(s).unwrap().clone(),
-            _ => self.clone(),
+            YamlBase::Anchor(s) if v.contains_key(s) => v.get(s).unwrap(),
+            _ => &self,
         }
     }
 
@@ -331,13 +331,13 @@ impl<R: Repr> NodeBase<R> {
     /// use yaml_peg::node;
     ///
     /// let n = node!({node!("a") => node!({node!("b") => node!(30.)})});
-    /// assert_eq!(node!(30.), n.get("a")?.get("b")?);
+    /// assert_eq!(&node!(30.), n.get("a")?.get("b")?);
     /// # Ok::<(), u64>(()) }
     /// ```
-    pub fn get<Y: Into<Self>>(&self, key: Y) -> Result<Self, u64> {
+    pub fn get<Y: Into<Self>>(&self, key: Y) -> Result<&Self, u64> {
         if let YamlBase::Map(m) = self.yaml() {
             if let Some(n) = m.get(&key.into()) {
-                Ok(n.clone())
+                Ok(n)
             } else {
                 Err(self.pos())
             }
@@ -419,22 +419,24 @@ impl<R: Repr> NodeBase<R> {
     /// let a = node!({node!("a") => node!({node!("b") => node!(*"c")})});
     /// let c = a.get("a")?.with(&v, "b", 0, Node::as_int)?;
     /// assert_eq!(10, c);
+    /// let c = a.get("a")?.with(&v, "b", "default", Node::as_str);
+    /// assert_eq!(Err(0), c);
     /// # Ok::<(), u64>(()) }
     /// ```
-    pub fn with<Y, Ret, F>(
-        &self,
-        v: &AnchorBase<R>,
+    pub fn with<'a, 'b: 'a, Y, Ret, F>(
+        &'a self,
+        v: &'b AnchorBase<R>,
         key: Y,
         default: Ret,
         factory: F,
     ) -> Result<Ret, u64>
     where
         Y: Into<Self>,
-        F: Fn(&Self) -> Result<Ret, u64>,
+        F: Fn(&'a Self) -> Result<Ret, u64>,
     {
         if let YamlBase::Map(m) = self.yaml() {
             if let Some(n) = m.get(&key.into()) {
-                factory(&n.as_anchor(v))
+                factory(n.as_anchor(v))
             } else {
                 Ok(default)
             }
@@ -450,13 +452,13 @@ impl<R: Repr> NodeBase<R> {
     /// use yaml_peg::{node, Ind};
     ///
     /// let n = node!([node!("a"), node!("b"), node!("c")]);
-    /// assert_eq!(node!("b"), n.get_ind(Ind(1))?);
+    /// assert_eq!(&node!("b"), n.get_ind(Ind(1))?);
     /// # Ok::<(), u64>(()) }
     /// ```
-    pub fn get_ind(&self, ind: Ind) -> Result<Self, u64> {
+    pub fn get_ind(&self, ind: Ind) -> Result<&Self, u64> {
         if let YamlBase::Array(a) = self.yaml() {
             if let Some(n) = a.get(ind.0) {
-                Ok(n.clone())
+                Ok(n)
             } else {
                 Err(self.pos())
             }
