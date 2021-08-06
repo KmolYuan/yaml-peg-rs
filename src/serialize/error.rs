@@ -1,6 +1,6 @@
 use alloc::string::{String, ToString};
 use core::fmt::{Debug, Display, Formatter};
-use serde::de::{Error, StdError};
+use serde::{de::Error as DeError, ser::Error as SerError};
 
 #[derive(Debug)]
 pub struct SerdeError(String);
@@ -11,9 +11,16 @@ impl Display for SerdeError {
     }
 }
 
-impl StdError for SerdeError {}
+impl SerError for SerdeError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: Display,
+    {
+        Self(msg.to_string())
+    }
+}
 
-impl Error for SerdeError {
+impl DeError for SerdeError {
     fn custom<T>(msg: T) -> Self
     where
         T: Display,

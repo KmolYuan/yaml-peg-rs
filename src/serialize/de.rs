@@ -1,6 +1,6 @@
 use super::SerdeError;
 use crate::{repr::Repr, Array, Map, NodeBase, YamlBase};
-use alloc::{format, string::String};
+use alloc::format;
 use core::marker::PhantomData;
 use serde::{
     de::{
@@ -11,8 +11,8 @@ use serde::{
 };
 
 macro_rules! impl_visitor {
-    (@$ty:ty, $name:ident) => { $name };
     (@) => { () };
+    (@$ty:ty, $name:ident) => { $name };
     ($(fn $method:ident$(($ty:ty))?)+) => {
         $(fn $method<E>(self$(, v: $ty)?) -> Result<Self::Value, E>
         where
@@ -52,7 +52,6 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
         fn visit_u64(u64)
         fn visit_f64(f64)
         fn visit_str(&str)
-        fn visit_string(String)
         fn visit_none
         fn visit_unit
     }
@@ -230,10 +229,10 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
             YamlBase::Bool(v) => visitor.visit_bool(*v),
             YamlBase::Int(n) => visitor.visit_i64(n.parse().unwrap()),
             YamlBase::Float(n) => visitor.visit_f64(n.parse().unwrap()),
-            YamlBase::Str(s) => visitor.visit_string(s.clone()),
+            YamlBase::Str(s) => visitor.visit_str(s),
             YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
-            YamlBase::Anchor(s) => visitor.visit_string(format!("*{}", s)),
+            YamlBase::Anchor(s) => visitor.visit_str(&format!("*{}", s)),
         }
     }
 

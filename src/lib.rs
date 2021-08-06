@@ -126,13 +126,16 @@ macro_rules! yaml_array {
 /// ```
 #[macro_export]
 macro_rules! yaml_map {
-    () => {
-        $crate::Yaml::Map($crate::Map::new())
+    (@) => { $crate::Map::new() };
+    (@$expr:expr) => { $expr };
+    ($($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?)?) => {
+        $crate::YamlBase::Map(yaml_map!(@$({
+            let mut m = $crate::Map::new();
+            m.insert($k1, $v1);
+            $(m.insert($k2, $v2);)*
+            m
+        })?))
     };
-    ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
-        use core::iter::FromIterator;
-        $crate::YamlBase::from_iter(vec![($k1, $v1) $(, ($k2, $v2))*])
-    }};
 }
 
 /// Create a custom anchor visitor.
