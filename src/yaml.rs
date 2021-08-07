@@ -14,9 +14,9 @@ macro_rules! impl_from {
             }
         }
     };
-    ($ty1:ty $(, $ty2:ty)* => $ty:ident) => {
-        impl_from! {$ty1 => $ty}
-        $(impl_from! {$ty2 => $ty})*
+    ($($ty1:ty $(, $ty2:ty)* => $ty:ident)+) => {
+        $(impl_from! {$ty1 => $ty}
+        $(impl_from! {$ty2 => $ty})*)+
     };
 }
 
@@ -28,9 +28,9 @@ macro_rules! impl_iter {
             }
         }
     };
-    ($item1:ty $(, $item2:ty)* => $ty:ident) => {
-        impl_iter!{$item1 => $ty}
-        $(impl_iter!{$item2 => $ty})*
+    ($($item1:ty $(, $item2:ty)* => $ty:ident)+) => {
+        $(impl_iter!{$item1 => $ty}
+        $(impl_iter!{$item2 => $ty})*)+
     }
 }
 
@@ -107,9 +107,11 @@ impl<R: Repr> From<bool> for YamlBase<R> {
     }
 }
 
-impl_from! {char, &str, String, &String => Str}
-impl_from! {usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128 => Int}
-impl_from! {f32, f64 => Float}
+impl_from! {
+    char, &str, String, &String => Str
+    usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128 => Int
+    f32, f64 => Float
+}
 
 impl<R: Repr> From<Array<R>> for YamlBase<R> {
     fn from(a: Array<R>) -> Self {
@@ -123,5 +125,7 @@ impl<R: Repr> From<Map<R>> for YamlBase<R> {
     }
 }
 
-impl_iter! {NodeBase<R> => Array}
-impl_iter! {(NodeBase<R>, NodeBase<R>) => Map}
+impl_iter! {
+    NodeBase<R> => Array
+    (NodeBase<R>, NodeBase<R>) => Map
+}
