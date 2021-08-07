@@ -7,6 +7,8 @@
 //!
 //! The buffer reader has also not implemented, but the chunks can be read by sub-parsers.
 //!
+//! # Parser
+//!
 //! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
 //! which has a data holder [`Yaml`].
 //! There also has multiple thread version corresponding to [`parse_arc`], [`ArcNode`], [`ArcYaml`].
@@ -16,6 +18,8 @@
 //! Especially [`node!`] / [`node_arc!`] macro, almost data can be built by the macro literally.
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
+//!
+//! # Anchors
 //!
 //! The anchor system [`AnchorBase`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
 //! Additionally, [`anchors!`] macro can used to create anchor visitor by yourself.
