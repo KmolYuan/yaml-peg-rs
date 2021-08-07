@@ -200,12 +200,12 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 
     /// A SET detector.
-    pub fn is_in<'b>(s: &'b [u8]) -> impl Fn(&u8) -> bool + 'b {
+    pub fn is_in(s: &[u8]) -> impl Fn(&u8) -> bool + '_ {
         move |c| !Self::not_in(s)(c)
     }
 
     /// A NOT detector.
-    pub fn not_in<'b>(s: &'b [u8]) -> impl Fn(&u8) -> bool + 'b {
+    pub fn not_in(s: &[u8]) -> impl Fn(&u8) -> bool + '_ {
         move |c| {
             for s in s {
                 if c == s {

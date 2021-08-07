@@ -30,8 +30,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         self.seq(b"---").unwrap_or_default();
         self.gap(true).unwrap_or_default();
         self.forward();
-        let mut v = vec![];
-        v.push(self.doc()?);
+        let mut v = vec![self.doc()?];
         loop {
             self.gap(true).unwrap_or_default();
             if self.food().is_empty() {
@@ -118,9 +117,7 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     /// Match flow scalar terminal.
     pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<YamlBase<R>, PError> {
-        let yaml = if self.sym(b'~').is_ok() {
-            YamlBase::Null
-        } else if self.seq(b"null").is_ok() {
+        let yaml = if self.sym(b'~').is_ok() || self.seq(b"null").is_ok() {
             YamlBase::Null
         } else if self.seq(b"true").is_ok() {
             YamlBase::Bool(true)
