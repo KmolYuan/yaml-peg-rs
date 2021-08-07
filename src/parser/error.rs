@@ -10,7 +10,7 @@ pub enum PError {
     /// If parser mismatched, just choose another one.
     Mismatch,
     /// The parser is the only one can be matched.
-    Terminate(u64, String),
+    Terminate(u64, &'static str),
 }
 
 impl PError {

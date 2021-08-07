@@ -28,7 +28,7 @@ pub enum TakeOpt {
 ///
 /// + They will move the current cursor if matched.
 /// + Returned value:
-///     + `Result<(), ()>` represents the sub-parser can be matched and mismatched.
+///     + `Result<(), PError>` represents the sub-parser can be matched and mismatched.
 ///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
 /// + Use `?` to match a condition.
 /// + Use [`Result::unwrap_or_default`] to match an optional condition.
@@ -78,7 +78,7 @@ impl<'a, R: repr::Repr> Parser<'a, R> {
 
 /// The low level grammar implementation.
 ///
-/// These sub-parser returns `Result<(), ()>`, and calling [`Parser::backward`] if mismatched.
+/// These sub-parser returns `Result<(), PError>`, and calling [`Parser::backward`] if mismatched.
 impl<R: repr::Repr> Parser<'_, R> {
     /// Builder method for setting indent.
     pub fn indent(mut self, indent: usize) -> Self {
@@ -99,8 +99,8 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 
     /// A short function to raise error.
-    pub fn err<Ret>(&self, msg: &str) -> Result<Ret, PError> {
-        Err(PError::Terminate(self.indicator(), msg.into()))
+    pub fn err<Ret>(&self, msg: &'static str) -> Result<Ret, PError> {
+        Err(PError::Terminate(self.indicator(), msg))
     }
 
     /// Consume and move the pointer.
@@ -127,17 +127,17 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 
     /// Match symbol.
-    pub fn sym(&mut self, s: u8) -> Result<(), ()> {
+    pub fn sym(&mut self, s: u8) -> Result<(), PError> {
         self.sym_set(&[s])
     }
 
     /// Match symbol from a set.
-    pub fn sym_set(&mut self, s: &[u8]) -> Result<(), ()> {
+    pub fn sym_set(&mut self, s: &[u8]) -> Result<(), PError> {
         self.take_while(Self::is_in(s), TakeOpt::One)
     }
 
     /// Match sequence.
-    pub fn seq(&mut self, s: &[u8]) -> Result<(), ()> {
+    pub fn seq(&mut self, s: &[u8]) -> Result<(), PError> {
         for s in s {
             self.sym(*s)?;
         }
@@ -147,7 +147,7 @@ impl<R: repr::Repr> Parser<'_, R> {
     /// Match until the condition failed.
     ///
     /// The argument `opt` matches different terminate requirement.
-    pub fn take_while<F>(&mut self, f: F, opt: TakeOpt) -> Result<(), ()>
+    pub fn take_while<F>(&mut self, f: F, opt: TakeOpt) -> Result<(), PError>
     where
         F: Fn(&u8) -> bool,
     {
@@ -175,12 +175,12 @@ impl<R: repr::Repr> Parser<'_, R> {
                 }
             }
             self.backward();
-            Err(())
+            Err(PError::Mismatch)
         } else {
             if let TakeOpt::More(c) | TakeOpt::Range(c, _) = opt {
                 if counter < c {
                     self.backward();
-                    return Err(());
+                    return Err(PError::Mismatch);
                 }
             }
             Ok(())
@@ -217,7 +217,7 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 
     /// Match indent.
-    pub fn ind(&mut self, level: usize) -> Result<(), ()> {
+    pub fn ind(&mut self, level: usize) -> Result<(), PError> {
         self.seq(&b" ".repeat(self.indent * level))
     }
 }
