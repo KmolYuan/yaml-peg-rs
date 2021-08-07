@@ -45,7 +45,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 
 /// YAML data types, but it is recommended to use [`NodeBase`] for shorten code.
 ///
-/// This type can convert from primitive types by `From` and `Into` methods.
+/// This type can convert from primitive types by `From` and `Into` traits.
 ///
 /// ```
 /// use yaml_peg::Yaml;

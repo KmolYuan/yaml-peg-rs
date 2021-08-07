@@ -20,16 +20,22 @@
 //! The anchor system [`AnchorBase`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
 //! Additionally, [`anchors!`] macro can used to create anchor visitor by yourself.
 //!
-//! # Serialization
+//! # Serialization and Deserialization
 //!
 //! Enable `serialize` feature to use `serde` crate.
 //! The crate provides a set of protocol traits to convert between custom Rust data.
+//! Please be aware that the additional fields will be discard when convert to a fix-sized structure.
+//! For example, the structure fields can be turned into map keys as well.
+//!
+//! On the other hand, the primitive types still able to transform to YAML data without serialization,
+//! according to `From` and `Into` traits.
 //!
 //! See [`serialize`] module for more information.
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 extern crate alloc;
 extern crate core;
+
 pub use crate::anchors::*;
 pub use crate::dumper::dump;
 pub use crate::indicator::*;
