@@ -36,7 +36,7 @@
 //!
 //! See [`serialize`] module for more information.
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
 extern crate alloc;
 extern crate core;
 
@@ -186,7 +186,7 @@ mod node;
 pub mod parser;
 pub mod repr;
 #[cfg(feature = "serialize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serialize")))]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serialize")))]
 pub mod serialize;
 #[cfg(test)]
 mod tests;

@@ -22,3 +22,4 @@ serde = { version = "1", default-features = false, features = ["derive", "alloc"
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "doc_cfg"]
