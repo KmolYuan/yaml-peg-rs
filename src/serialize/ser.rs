@@ -78,7 +78,7 @@ macro_rules! impl_map_serializer {
 /// use serde::Serialize;
 /// use yaml_peg::{serialize::to_node, node};
 ///
-/// #[derive(Serialize, Debug)]
+/// #[derive(Serialize)]
 /// struct Member<'a> {
 ///     name: &'a str,
 ///     married: bool,
@@ -100,6 +100,26 @@ pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
 }
 
 /// Serialize data into [`ArcNode`].
+///
+/// ```
+/// use serde::Serialize;
+/// use yaml_peg::{serialize::to_arc_node, node_arc};
+///
+/// #[derive(Serialize)]
+/// struct Member<'a> {
+///     name: &'a str,
+///     married: bool,
+///     age: u8,
+/// }
+///
+/// let officer = Member { name: "Bob", married: true, age: 46 };
+/// let officer_yaml = node_arc!({
+///     node_arc!("name") => node_arc!("Bob"),
+///     node_arc!("married") => node_arc!(true),
+///     node_arc!("age") => node_arc!(46),
+/// });
+/// assert_eq!(officer_yaml, to_arc_node(officer).unwrap());
+/// ```
 ///
 /// There is another version for single-thread reference counter: [`to_node`].
 pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
