@@ -25,12 +25,6 @@ impl PError {
     }
 }
 
-impl From<()> for PError {
-    fn from(_: ()) -> Self {
-        Self::Mismatch
-    }
-}
-
 impl Display for PError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         f.write_fmt(format_args!("{:?}", self))
