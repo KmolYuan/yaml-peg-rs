@@ -1,5 +1,6 @@
 use crate::{repr::*, *};
 use alloc::string::ToString;
+use core::ops::Deref;
 use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::Hash,
@@ -139,9 +140,9 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// let a = node!("a");
 /// {
 ///     let b = a.clone();
-///     assert_eq!(2, Rc::strong_count(b.as_ref()));
+///     assert_eq!(2, Rc::strong_count(&b));
 /// }
-/// assert_eq!(1, Rc::strong_count(a.as_ref()));
+/// assert_eq!(1, Rc::strong_count(&a));
 /// ```
 ///
 /// If you want to copy data, please get the data first.
@@ -471,6 +472,15 @@ impl<R: Repr> NodeBase<R> {
 impl<R: Repr> Debug for NodeBase<R> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_fmt(format_args!("Node{:?}", &self.0))
+    }
+}
+
+impl<R: Repr> Deref for NodeBase<R> {
+    type Target = R::Target;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        self.0.deref()
     }
 }
 

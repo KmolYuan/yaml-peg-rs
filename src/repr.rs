@@ -4,6 +4,7 @@
 //! and [`Arc`] is the multiple thread reference counter.
 use crate::*;
 use alloc::{rc::Rc, string::String, sync::Arc};
+use core::ops::Deref;
 use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
@@ -48,7 +49,7 @@ impl<R: Repr> PartialEq for Inner<R> {
 /// The generic representation holder for [`YamlBase`] and [`NodeBase`].
 ///
 /// See the implementor list for the choose.
-pub trait Repr: AsRef<Inner<Self>> + Hash + Eq + Clone + Debug {
+pub trait Repr: AsRef<Inner<Self>> + Deref + Hash + Eq + Clone + Debug {
     fn repr(yaml: YamlBase<Self>, pos: u64, ty: String, anchor: String) -> Self;
     fn into_yaml(self) -> YamlBase<Self>;
 }
@@ -78,14 +79,17 @@ macro_rules! impl_repr {
         }
 
         impl AsRef<Inner<Self>> for $ty {
+            #[inline(always)]
             fn as_ref(&self) -> &Inner<Self> {
                 &self.0
             }
         }
 
-        impl AsRef<$inner<Inner<$ty>>> for NodeBase<$ty> {
-            fn as_ref(&self) -> &$inner<Inner<$ty>> {
-                &self.0 .0
+        impl Deref for $ty {
+            type Target = $inner<Inner<Self>>;
+            #[inline(always)]
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
     };
