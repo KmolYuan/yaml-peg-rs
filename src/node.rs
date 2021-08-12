@@ -40,17 +40,13 @@ macro_rules! as_num_method {
 }
 
 macro_rules! impl_iter {
-    ($item:ty) => {
-        impl<R: Repr> FromIterator<$item> for NodeBase<R> {
+    ($(impl $item:ty)+) => {
+        $(impl<R: Repr> FromIterator<$item> for NodeBase<R> {
             fn from_iter<T: IntoIterator<Item = $item>>(iter: T) -> Self {
                 Self::from(iter.into_iter().collect::<YamlBase<R>>())
             }
-        }
+        })+
     };
-    ($item1:ty $(, $item2:ty)*) => {
-        impl_iter!{$item1}
-        $(impl_iter!{$item2})*
-    }
 }
 
 /// A node with [`alloc::rc::Rc`] holder.
@@ -526,4 +522,7 @@ where
     }
 }
 
-impl_iter! {Self, (Self, Self)}
+impl_iter! {
+    impl Self
+    impl (Self, Self)
+}
