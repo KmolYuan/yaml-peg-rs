@@ -154,7 +154,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         let pos = self.pos;
         let mut counter = 0;
         for c in self.food() {
-            if !f(&c) {
+            if !f(c) {
                 break;
             }
             self.pos += 1;

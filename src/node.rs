@@ -288,7 +288,7 @@ impl<R: Repr> NodeBase<R> {
     pub fn as_anchor<'a, 'b: 'a>(&'a self, v: &'b AnchorBase<R>) -> &'a Self {
         match self.yaml() {
             YamlBase::Anchor(s) if v.contains_key(s) => v.get(s).unwrap(),
-            _ => &self,
+            _ => self,
         }
     }
 
