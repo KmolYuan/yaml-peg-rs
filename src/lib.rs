@@ -128,7 +128,7 @@ macro_rules! node_arc {
 #[macro_export]
 macro_rules! yaml_array {
     ($($token:tt)*) => {
-        $crate::YamlBase::Array(vec![$($token)*])
+        $crate::YamlBase::Array(alloc::vec![$($token)*])
     };
 }
 
@@ -144,15 +144,8 @@ macro_rules! yaml_array {
 /// ```
 #[macro_export]
 macro_rules! yaml_map {
-    (@) => { $crate::Map::new() };
-    (@$expr:expr) => { $expr };
-    ($($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?)?) => {
-        $crate::YamlBase::Map($crate::yaml_map!(@$({
-            let mut m = $crate::Map::new();
-            m.insert($k1, $v1);
-            $(m.insert($k2, $v2);)*
-            m
-        })?))
+    ($($k:expr => $v:expr),* $(,)?) => {
+        $crate::YamlBase::Map(alloc::vec![$(($k, $v)),*].into_iter().collect())
     };
 }
 
@@ -170,12 +163,8 @@ macro_rules! yaml_map {
 /// ```
 #[macro_export]
 macro_rules! anchors {
-    () => {
-        $crate::AnchorBase::new()
-    };
-    ($k1:expr => $v1:expr $(, $k2:expr => $v2:expr)* $(,)?) => {{
-        use core::iter::FromIterator;
-        $crate::AnchorBase::from_iter(vec![($k1.to_string(), $v1) $(, ($k2.to_string(), $v2))*])
+    ($($k:expr => $v:expr),* $(,)?) => {{
+        alloc::vec![($k.to_string(), $v),*].into_iter().collect::<$crate::AnchorBase>()
     }};
 }
 
