@@ -127,9 +127,10 @@ macro_rules! node_arc {
 /// ```
 #[macro_export]
 macro_rules! yaml_array {
-    ($($token:tt)*) => {
+    ($($token:tt)*) => {{
+        extern crate alloc;
         $crate::YamlBase::Array(alloc::vec![$($token)*])
-    };
+    }};
 }
 
 /// Create [`YamlBase::Map`] items literally.
@@ -144,9 +145,10 @@ macro_rules! yaml_array {
 /// ```
 #[macro_export]
 macro_rules! yaml_map {
-    ($($k:expr => $v:expr),* $(,)?) => {
+    ($($k:expr => $v:expr),* $(,)?) => {{
+        extern crate alloc;
         $crate::YamlBase::Map(alloc::vec![$(($k, $v)),*].into_iter().collect())
-    };
+    }};
 }
 
 /// Create a custom anchor visitor.
@@ -164,7 +166,8 @@ macro_rules! yaml_map {
 #[macro_export]
 macro_rules! anchors {
     ($($k:expr => $v:expr),* $(,)?) => {{
-        alloc::vec![($k.to_string(), $v),*].into_iter().collect::<$crate::AnchorBase>()
+        extern crate alloc;
+        alloc::vec![$(($k.to_string(), $v)),*].into_iter().collect::<$crate::AnchorBase<_>>()
     }};
 }
 
