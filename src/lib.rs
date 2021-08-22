@@ -86,10 +86,10 @@ macro_rules! node {
         $crate::node!($crate::yaml_map![$($token)*])
     };
     (null) => {
-        $crate::node!($crate::Yaml::Null)
+        $crate::node!(())
     };
     (*$anchor:expr) => {
-        $crate::node!($crate::Yaml::Anchor($anchor.into()))
+        $crate::node!($crate::YamlBase::Anchor($anchor.into()))
     };
     ($yaml:expr) => {
         $crate::Node::from($yaml)
@@ -108,10 +108,10 @@ macro_rules! node_arc {
         $crate::node_arc!($crate::yaml_map![$($token)*])
     };
     (null) => {
-        $crate::node_arc!($crate::Yaml::Null)
+        $crate::node_arc!(())
     };
     (*$anchor:expr) => {
-        $crate::node_arc!($crate::Yaml::Anchor($anchor.into()))
+        $crate::node_arc!($crate::YamlBase::Anchor($anchor.into()))
     };
     ($yaml:expr) => {
         $crate::ArcNode::new($yaml.into(), 0, "", "")
