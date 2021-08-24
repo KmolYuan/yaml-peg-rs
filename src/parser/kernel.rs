@@ -187,7 +187,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         }
     }
 
-    /// A wrapper for saving local checkpoint.
+    /// A wrapper for saving checkpoint locally.
     pub fn context<F, Ret>(&mut self, f: F) -> Ret
     where
         F: Fn(&mut Self) -> Ret,

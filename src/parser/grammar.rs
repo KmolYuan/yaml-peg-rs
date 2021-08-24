@@ -1,5 +1,5 @@
 use super::*;
-use alloc::string::ToString;
+use alloc::{format, string::ToString};
 use core::cmp::Ordering;
 
 /// The low level grammar implementation for YAML.
@@ -303,10 +303,16 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     /// Match tags.
     pub fn tag(&mut self) -> Result<String, PError> {
-        self.take_while(Self::is_in(b"!"), TakeOpt::Range(1, 2))?;
+        self.sym(b'!')?;
         self.context(|p| {
+            let prefix = if p.sym(b'!').is_ok() {
+                // Default secondary tag prefix
+                "tag:yaml.org,2002:"
+            } else {
+                ""
+            };
             p.identifier()?;
-            Ok(p.text())
+            Ok(format!("{}{}", prefix, p.text()))
         })
     }
 
