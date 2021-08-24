@@ -301,8 +301,8 @@ impl<R: repr::Repr> Parser<'_, R> {
         )
     }
 
-    /// Match type assertion.
-    pub fn ty(&mut self) -> Result<String, PError> {
+    /// Match tags.
+    pub fn tag(&mut self) -> Result<String, PError> {
         self.take_while(Self::is_in(b"!"), TakeOpt::Range(1, 2))?;
         self.context(|p| {
             p.identifier()?;

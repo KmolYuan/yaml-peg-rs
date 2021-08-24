@@ -100,15 +100,15 @@ impl<R: repr::Repr> Parser<'_, R> {
             self.bound()?;
         }
         self.forward();
-        let ty = self.ty().unwrap_or_default();
-        if !ty.is_empty() {
+        let tag = self.tag().unwrap_or_default();
+        if !tag.is_empty() {
             self.bound()?;
         }
         self.forward();
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        let node = NodeBase::new(yaml, pos, &ty, &anchor);
+        let node = NodeBase::new(yaml, pos, &tag, &anchor);
         if !anchor.is_empty() {
             self.anchors.insert(anchor, node.clone());
         }

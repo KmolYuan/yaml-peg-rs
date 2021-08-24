@@ -23,7 +23,7 @@ pub struct ArcRepr(Arc<Inner<Self>>);
 #[derive(Eq, Clone)]
 pub struct Inner<R: Repr> {
     pub(crate) pos: u64,
-    pub(crate) ty: String,
+    pub(crate) tag: String,
     pub(crate) anchor: String,
     pub(crate) yaml: YamlBase<R>,
 }
@@ -50,17 +50,17 @@ impl<R: Repr> PartialEq for Inner<R> {
 ///
 /// See the implementor list for the choose.
 pub trait Repr: AsRef<Inner<Self>> + Deref + Hash + Eq + Clone + Debug {
-    fn repr(yaml: YamlBase<Self>, pos: u64, ty: String, anchor: String) -> Self;
+    fn repr(yaml: YamlBase<Self>, pos: u64, tag: String, anchor: String) -> Self;
     fn into_yaml(self) -> YamlBase<Self>;
 }
 
 macro_rules! impl_repr {
     ($ty:ty, $inner:ident) => {
         impl Repr for $ty {
-            fn repr(yaml: YamlBase<Self>, pos: u64, ty: String, anchor: String) -> Self {
+            fn repr(yaml: YamlBase<Self>, pos: u64, tag: String, anchor: String) -> Self {
                 Self($inner::new(Inner {
                     pos,
-                    ty,
+                    tag,
                     anchor,
                     yaml,
                 }))

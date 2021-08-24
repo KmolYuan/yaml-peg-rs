@@ -147,8 +147,8 @@ pub struct NodeBase<R: Repr>(pub(crate) R);
 
 impl<R: Repr> NodeBase<R> {
     /// Create node from YAML data.
-    pub fn new(yaml: YamlBase<R>, pos: u64, ty: &str, anchor: &str) -> Self {
-        Self(R::repr(yaml, pos, ty.to_string(), anchor.to_string()))
+    pub fn new(yaml: YamlBase<R>, pos: u64, tag: &str, anchor: &str) -> Self {
+        Self(R::repr(yaml, pos, tag.to_string(), anchor.to_string()))
     }
 
     /// Document position.
@@ -157,10 +157,10 @@ impl<R: Repr> NodeBase<R> {
         self.0.as_ref().pos
     }
 
-    /// Type assertion.
+    /// Tag.
     #[inline(always)]
-    pub fn ty(&self) -> &str {
-        &self.0.as_ref().ty
+    pub fn tag(&self) -> &str {
+        &self.0.as_ref().tag
     }
 
     /// Anchor reference.

@@ -36,8 +36,8 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
         if !self.anchor().is_empty() {
             doc += &format!("&{} ", self.anchor());
         }
-        if !self.ty().is_empty() {
-            doc += &format!("!!{} ", self.ty());
+        if !self.tag().is_empty() {
+            doc += &format!("!!{} ", self.tag());
         }
         let ind = Self::ind(level);
         doc += &match self.yaml() {
