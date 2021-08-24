@@ -99,6 +99,12 @@ macro_rules! node {
 /// Create [`ArcNode`] items literally.
 ///
 /// The API is same as [`node!`] macro.
+///
+/// ```
+/// use yaml_peg::{node_arc as node, ArcNode};
+///
+/// assert_eq!(node!(null), ArcNode::from(()));
+/// ```
 #[macro_export]
 macro_rules! node_arc {
     ([$($token:tt)*]) => {
@@ -114,7 +120,7 @@ macro_rules! node_arc {
         $crate::node_arc!($crate::YamlBase::Anchor($anchor.into()))
     };
     ($yaml:expr) => {
-        $crate::ArcNode::new($yaml.into(), 0, "", "")
+        $crate::ArcNode::from($yaml)
     };
 }
 
