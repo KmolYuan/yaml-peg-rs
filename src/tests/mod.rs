@@ -51,10 +51,10 @@ fn test_yaml() {
             node!("?a3") => node!([
                 node!(*"x"),
                 node!([node!("d1🀄🃏"), node!("中文")]),
-                node!(null),
-                node!(null),
+                node!(()),
+                node!(()),
             ]),
-            node!({node!("a4") => node!(null)}) => node!(-30),
+            node!({node!("a4") => node!(())}) => node!(-30),
             node!(*"y") => node!("b3, b4"),
             node!("test multiline") => node!([
                 node!({

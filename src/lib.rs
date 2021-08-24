@@ -52,10 +52,11 @@ pub use crate::yaml::*;
 /// Literals and expressions will be transformed to [`Yaml`] automatically by calling [`Into::into`].
 ///
 /// ```
-/// use yaml_peg::node;
+/// use yaml_peg::{node, Node};
 ///
 /// let k = "a";
 /// assert_eq!(node!(k), node!("a"));
+/// assert_eq!(node!(()), Node::from(()));
 /// ```
 ///
 /// Arrays and maps can be created from this macro directly through brackets (`[]`, `{}`).
@@ -67,12 +68,11 @@ pub use crate::yaml::*;
 /// assert_eq!(node!({node!(1) => node!(2)}), node!(yaml_map![node!(1) => node!(2)]));
 /// ```
 ///
-/// The [`YamlBase::Null`] and the [`YamlBase::Null`] are also supported by the syntax:
+/// The [`YamlBase::Anchor`] is also supported by the syntax:
 ///
 /// ```
 /// use yaml_peg::{node, YamlBase};
 ///
-/// assert_eq!(node!(YamlBase::Null), node!(null));
 /// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
 /// ```
 ///
@@ -84,9 +84,6 @@ macro_rules! node {
     };
     ({$($token:tt)*}) => {
         $crate::node!($crate::yaml_map![$($token)*])
-    };
-    (null) => {
-        $crate::node!(())
     };
     (*$anchor:expr) => {
         $crate::node!($crate::YamlBase::Anchor($anchor.into()))
@@ -103,7 +100,7 @@ macro_rules! node {
 /// ```
 /// use yaml_peg::{node_arc as node, ArcNode};
 ///
-/// assert_eq!(node!(null), ArcNode::from(()));
+/// assert_eq!(node!(()), ArcNode::from(()));
 /// ```
 #[macro_export]
 macro_rules! node_arc {
@@ -112,9 +109,6 @@ macro_rules! node_arc {
     };
     ({$($token:tt)*}) => {
         $crate::node_arc!($crate::yaml_map![$($token)*])
-    };
-    (null) => {
-        $crate::node_arc!(())
     };
     (*$anchor:expr) => {
         $crate::node_arc!($crate::YamlBase::Anchor($anchor.into()))

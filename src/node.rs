@@ -86,7 +86,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// ```should_panic
 /// use yaml_peg::{node, Ind};
 ///
-/// let n = node!(null);
+/// let n = node!(());
 /// let n = &n["a"][Ind(0)]["b"];
 /// ```
 ///
@@ -240,7 +240,7 @@ impl<R: Repr> NodeBase<R> {
         /// use yaml_peg::node;
         ///
         /// assert_eq!("abc", node!("abc").as_str().unwrap());
-        /// assert!(node!(null).as_str().unwrap().is_empty());
+        /// assert!(node!(()).as_str().unwrap().is_empty());
         /// ```
         fn as_str = Str | ("")? -> &str
     }
@@ -257,7 +257,7 @@ impl<R: Repr> NodeBase<R> {
     /// assert_eq!("12.04", node!(12.04).as_value().unwrap());
     /// assert_eq!("true", node!(true).as_value().unwrap());
     /// assert_eq!("false", node!(false).as_value().unwrap());
-    /// assert!(node!(null).as_value().unwrap().is_empty());
+    /// assert!(node!(()).as_value().unwrap().is_empty());
     /// ```
     pub fn as_value(&self) -> Result<&str, u64> {
         match self.yaml() {
