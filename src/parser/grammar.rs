@@ -308,10 +308,19 @@ impl<R: repr::Repr> Parser<'_, R> {
             let tag = p.text();
             let prefix = if !tag.is_empty() {
                 if p.sym(b'!').is_ok() {
+                    // Tag prefix variable
                     p.tag[&tag].clone()
                 } else {
                     tag
                 }
+            } else if p.sym(b'<').is_ok() {
+                // Full tag
+                let tag = p.context(|p| {
+                    p.take_while(Self::not_in(b" <>\n\r"), TakeOpt::More(1))?;
+                    Ok(p.text())
+                })?;
+                p.sym(b'>')?;
+                tag
             } else if p.sym(b'!').is_ok() {
                 p.tag["!!"].clone()
             } else {

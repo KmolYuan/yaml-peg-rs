@@ -75,6 +75,8 @@ fn test_yaml() {
     assert_eq!(ans[0][k].tag(), "tag:test.x.prefix:foo");
     let k = node!("-a2");
     assert_eq!(ans[0][k].tag(), "tag:test.prefix:t1");
+    let k = node!("?a3");
+    assert_eq!(ans[0][k].tag(), "tag:my.tag.prefix:tt");
 }
 
 #[test]

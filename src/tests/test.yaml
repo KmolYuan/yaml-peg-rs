@@ -17,8 +17,8 @@ a0 bb: !x!foo .val.
   - q
   - r  # Test comment after plain string...
   - s
-: {!!t2 1: 2, 3: 4}  # Test comment after wrapped! (3)
-?a3: !t3
+: !!t2 { 1: 2, 3: 4 }  # Test comment after wrapped! (3)
+?a3: !<tag:my.tag.prefix:tt>
   - *x
   - [d1🀄🃏, 中文]
 - ~  # Test downgraded array item.
