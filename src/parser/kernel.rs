@@ -1,4 +1,6 @@
 use super::*;
+use alloc::string::ToString;
+use ritelinked::LinkedHashMap;
 
 /// The option of [`Parser::take_while`].
 pub enum TakeOpt {
@@ -24,7 +26,7 @@ pub enum TakeOpt {
 /// ```
 ///
 /// For matching partial grammar, each methods are the sub-parser.
-/// The methods have some behaviers:
+/// The methods have some behaviors:
 ///
 /// + They will move the current cursor if matched.
 /// + Returned value:
@@ -39,6 +41,8 @@ pub struct Parser<'a, R: repr::Repr> {
     doc: &'a [u8],
     indent: usize,
     consumed: u64,
+    pub(crate) version_checked: bool,
+    pub(crate) tag: LinkedHashMap<String, String>,
     /// Current position.
     pub pos: usize,
     /// Read position.
@@ -51,10 +55,15 @@ pub struct Parser<'a, R: repr::Repr> {
 impl<'a, R: repr::Repr> Parser<'a, R> {
     /// Create a PEG parser with the string.
     pub fn new(doc: &'a [u8]) -> Self {
+        let mut tag = LinkedHashMap::new();
+        tag.insert("!".to_string(), String::new());
+        tag.insert("!!".to_string(), "tag:yaml.org,2002:".to_string());
         Self {
             doc,
             indent: 2,
             consumed: 0,
+            version_checked: false,
+            tag,
             pos: 0,
             eaten: 0,
             anchors: AnchorBase::new(),

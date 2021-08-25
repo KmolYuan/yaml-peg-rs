@@ -1,10 +1,10 @@
 //! Parser components.
-pub use self::error::*;
-pub use self::grammar::*;
-pub use self::kernel::*;
+pub use self::error::PError;
+pub use self::kernel::{Parser, TakeOpt};
 use crate::*;
 use alloc::{string::String, vec};
 
+mod directive;
 mod error;
 mod grammar;
 mod kernel;
@@ -26,7 +26,11 @@ macro_rules! err_own {
 impl<R: repr::Repr> Parser<'_, R> {
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Array<R>, PError> {
-        self.inv(TakeOpt::More(0))?;
+        loop {
+            if self.context(Self::directive).is_err() {
+                break;
+            }
+        }
         self.seq(b"---").unwrap_or_default();
         self.gap(true).unwrap_or_default();
         self.forward();

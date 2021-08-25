@@ -71,6 +71,10 @@ fn test_yaml() {
             ]),
         })
     );
+    let k = node!("a0 bb");
+    assert_eq!(ans[0][k].tag(), "tag:test.x.prefix:foo");
+    let k = node!("-a2");
+    assert_eq!(ans[0][k].tag(), "tag:test.prefix:t1");
 }
 
 #[test]

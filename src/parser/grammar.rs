@@ -4,14 +4,13 @@ use core::cmp::Ordering;
 
 /// The low level grammar implementation for YAML.
 ///
-/// These sub-parser returns `Result<R, ()>`, and calling [`Parser::backward`] if mismatched.
+/// These sub-parser returns `Result<R, PError>`, and calling [`Parser::backward`] if mismatched.
 impl<R: repr::Repr> Parser<'_, R> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), PError> {
         self.sym_set(b":{}[] ,\n\r")?;
         self.back(1);
-        self.ws(TakeOpt::More(0))?;
-        Ok(())
+        self.ws(TakeOpt::More(0))
     }
 
     /// Match complex mapping indicator (`?`).
@@ -305,14 +304,27 @@ impl<R: repr::Repr> Parser<'_, R> {
     pub fn tag(&mut self) -> Result<String, PError> {
         self.sym(b'!')?;
         self.context(|p| {
-            let prefix = if p.sym(b'!').is_ok() {
-                // Default secondary tag prefix
-                "tag:yaml.org,2002:"
+            p.identifier().unwrap_or_default();
+            let tag = p.text();
+            let prefix = if !tag.is_empty() {
+                if p.sym(b'!').is_ok() {
+                    p.tag[&tag].clone()
+                } else {
+                    tag
+                }
+            } else if p.sym(b'!').is_ok() {
+                p.tag["!!"].clone()
             } else {
-                ""
+                p.tag["!"].clone()
             };
-            p.identifier()?;
-            Ok(format!("{}{}", prefix, p.text()))
+            let doc = p.context(|p| {
+                if p.identifier().is_ok() {
+                    p.text()
+                } else {
+                    String::new()
+                }
+            });
+            Ok(format!("{}{}", prefix, doc))
         })
     }
 
