@@ -14,43 +14,6 @@ pub enum TakeOpt {
     More(usize),
 }
 
-/// A PEG parser with YAML grammar, support UTF-8 characters.
-///
-/// A simple example for parsing YAML only:
-///
-/// ```
-/// use yaml_peg::{parser::Parser, node};
-///
-/// let n = Parser::new(b"true").parse().unwrap();
-/// assert_eq!(n, vec![node!(true)]);
-/// ```
-///
-/// For matching partial grammar, each methods are the sub-parser.
-/// The methods have some behaviors:
-///
-/// + They will move the current cursor if matched.
-/// + Returned value:
-///     + `Result<(), PError>` represents the sub-parser can be matched and mismatched.
-///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
-/// + Use `?` to match a condition.
-/// + Use [`Result::unwrap_or_default`] to match an optional condition.
-/// + Method [`Parser::forward`] is used to move on.
-/// + Method [`Parser::text`] is used to get the matched string.
-/// + Method [`Parser::backward`] is used to get back if mismatched.
-pub struct Parser<'a, R: repr::Repr> {
-    doc: &'a [u8],
-    indent: usize,
-    consumed: u64,
-    pub(crate) version_checked: bool,
-    pub(crate) tag: LinkedHashMap<String, String>,
-    /// Current position.
-    pub pos: usize,
-    /// Read position.
-    pub eaten: usize,
-    /// A visitor of anchors.
-    pub anchors: AnchorBase<R>,
-}
-
 /// The implementation of string pointer.
 impl<'a, R: repr::Repr> Parser<'a, R> {
     /// Create a PEG parser with the string.

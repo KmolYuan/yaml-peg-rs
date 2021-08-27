@@ -1,15 +1,16 @@
 //! Parser components.
+pub use self::base::TakeOpt;
 pub use self::error::PError;
-pub use self::kernel::{Parser, TakeOpt};
 use crate::*;
 use alloc::{string::String, vec};
+use ritelinked::LinkedHashMap;
 
+mod base;
 mod directive;
 mod error;
 mod grammar;
-mod kernel;
 
-macro_rules! err_own {
+macro_rules! err {
     ($e:expr, $then:expr) => {
         match $e {
             Ok(v) => Ok(v),
@@ -17,6 +18,43 @@ macro_rules! err_own {
             Err(e) => Err(e),
         }
     };
+}
+
+/// A PEG parser with YAML grammar, support UTF-8 characters.
+///
+/// A simple example for parsing YAML only:
+///
+/// ```
+/// use yaml_peg::{parser::Parser, node};
+///
+/// let n = Parser::new(b"true").parse().unwrap();
+/// assert_eq!(n, vec![node!(true)]);
+/// ```
+///
+/// For matching partial grammar, each methods are the sub-parser.
+/// The methods have some behaviors:
+///
+/// + They will move the current cursor if matched.
+/// + Returned value:
+///     + `Result<(), PError>` represents the sub-parser can be matched and mismatched.
+///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
+/// + Use `?` to match a condition.
+/// + Use [`Result::unwrap_or_default`] to match an optional condition.
+/// + Method [`Parser::forward`] is used to move on.
+/// + Method [`Parser::text`] is used to get the matched string.
+/// + Method [`Parser::backward`] is used to get back if mismatched.
+pub struct Parser<'a, R: repr::Repr> {
+    doc: &'a [u8],
+    indent: usize,
+    consumed: u64,
+    pub(crate) version_checked: bool,
+    pub(crate) tag: LinkedHashMap<String, String>,
+    /// Current position.
+    pub pos: usize,
+    /// Read position.
+    pub eaten: usize,
+    /// A visitor of anchors.
+    pub anchors: AnchorBase<R>,
 }
 
 /// The basic implementation.
@@ -82,9 +120,9 @@ impl<R: repr::Repr> Parser<'_, R> {
             } else if let Ok(s) = p.string_folded(level) {
                 Ok(YamlBase::Str(s))
             } else {
-                err_own!(
+                err!(
                     p.array(level, nest),
-                    err_own!(p.map(level, nest, inner), p.scalar_term(level, inner))
+                    err!(p.map(level, nest, inner), p.scalar_term(level, inner))
                 )
             }
         })
@@ -142,9 +180,9 @@ impl<R: repr::Repr> Parser<'_, R> {
         } else if let Ok(s) = self.string_flow(level, inner) {
             YamlBase::Str(s)
         } else {
-            err_own!(
+            err!(
                 self.array_flow(level),
-                err_own!(self.map_flow(level), Ok(YamlBase::Null))
+                err!(self.map_flow(level), Ok(YamlBase::Null))
             )?
         };
         Ok(yaml)
@@ -161,7 +199,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 break;
             }
             self.forward();
-            v.push(err_own!(
+            v.push(err!(
                 self.scalar(level + 1, false, true),
                 self.err("flow array item")
             )?);
@@ -189,7 +227,7 @@ impl<R: repr::Repr> Parser<'_, R> {
             self.forward();
             let k = if self.complex_mapping().is_ok() {
                 self.forward();
-                let k = err_own!(
+                let k = err!(
                     self.scalar(level + 1, false, true),
                     self.err("flow map key")
                 )?;
@@ -198,7 +236,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 }
                 k
             } else {
-                err_own!(
+                err!(
                     self.scalar_flow(level + 1, true),
                     self.err("flow map value")
                 )?
@@ -207,7 +245,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 return self.err("map");
             }
             self.forward();
-            let v = err_own!(self.scalar(level + 1, false, true), self.err("map"))?;
+            let v = err!(self.scalar(level + 1, false, true), self.err("map"))?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;
@@ -252,7 +290,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 }
             }
             self.forward();
-            v.push(err_own!(
+            v.push(err!(
                 self.scalar(if downgrade { level } else { level + 1 }, false, false),
                 self.err("array item")
             )?);
@@ -278,7 +316,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = err_own!(self.scalar(level + 1, true, inner), self.err("map key"))?;
+                    let k = err!(self.scalar(level + 1, true, inner), self.err("map key"))?;
                     if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
@@ -301,13 +339,13 @@ impl<R: repr::Repr> Parser<'_, R> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = err_own!(self.scalar(level + 1, true, inner), self.err("map key"))?;
+                    let k = err!(self.scalar(level + 1, true, inner), self.err("map key"))?;
                     if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
                     k
                 } else {
-                    err_own!(self.scalar_flow(level + 1, inner), self.err("map key"))?
+                    err!(self.scalar_flow(level + 1, inner), self.err("map key"))?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     return self.err("map splitter");
@@ -315,7 +353,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 k
             };
             self.forward();
-            let v = err_own!(self.scalar(level + 1, true, false), self.err("map value"))?;
+            let v = err!(self.scalar(level + 1, true, false), self.err("map value"))?;
             m.push((k, v));
         }
         // Keep last wrapping
