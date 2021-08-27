@@ -29,10 +29,10 @@
 //! and if `serde/alloc` is not used, you cannot deserialize [`alloc::string::String`] or [`alloc::vec::Vec`] type.
 //!
 //! For converting custom data into YAML data, please see [`to_node`] and [`to_arc_node`],
-//! and if you went to parse YAML document before deserializing, use [`from_str`].
+//! and if you went to parse / dump YAML document, use [`from_str`] and [`to_string`].
 pub use self::de::from_str;
 pub use self::error::SerdeError;
-pub use self::ser::{to_arc_node, to_node};
+pub use self::ser::{to_arc_node, to_node, to_string};
 
 mod de;
 mod error;

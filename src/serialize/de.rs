@@ -65,9 +65,9 @@ macro_rules! impl_deserializer {
 /// assert!(officer.married);
 /// assert_eq!(46, officer.age);
 /// ```
-pub fn from_str<'d, D>(doc: &str) -> Result<Vec<D>, SerdeError>
+pub fn from_str<D>(doc: &str) -> Result<Vec<D>, SerdeError>
 where
-    D: Deserialize<'d>,
+    D: for<'d> Deserialize<'d>,
 {
     let (nodes, _) = parse(doc)?;
     nodes.into_iter().map(|n| D::deserialize(n)).collect()

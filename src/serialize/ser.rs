@@ -1,5 +1,6 @@
 use super::SerdeError;
-use crate::{repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase};
+use crate::{dump, repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase};
+use alloc::string::String;
 use core::{fmt::Display, marker::PhantomData};
 use serde::{
     ser::{
@@ -71,7 +72,7 @@ macro_rules! impl_map_serializer {
 
 /// Serialize data into [`Node`].
 ///
-/// For example, if a serializable data is provide,
+/// If a serializable data is provide,
 /// it should be able to transform into YAML format.
 ///
 /// ```
@@ -124,6 +125,32 @@ pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
 /// There is another version for single-thread reference counter: [`to_node`].
 pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
+}
+
+/// Serialize data into [`Node`] then dump into string.
+///
+/// ```
+/// use serde::Serialize;
+/// use yaml_peg::serialize::to_string;
+///
+/// #[derive(Serialize)]
+/// struct Member<'a> {
+///     name: &'a str,
+///     married: bool,
+///     age: u8,
+/// }
+///
+/// let officer = Member { name: "Bob", married: true, age: 46 };
+/// let officer_doc = "\
+/// name: Bob
+/// married: true
+/// age: 46
+/// ";
+/// assert_eq!(officer_doc, to_string(officer).unwrap());
+/// ```
+pub fn to_string(any: impl Serialize) -> Result<String, SerdeError> {
+    let node = to_node(any)?;
+    Ok(dump([node]))
 }
 
 struct NodeSerializer<R: Repr>(PhantomData<R>);
