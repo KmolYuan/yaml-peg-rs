@@ -4,7 +4,7 @@
 
 A YAML 1.2 parser using greedy parsing algorithm with PEG atoms. Support anchor visitor and no-std.
 
-Inspired from [`yaml-rust`](https://github.com/chyh1990/yaml-rust).
+Inspired from [`yaml-rust`](https://github.com/chyh1990/yaml-rust) and [`serde-yaml`](https://github.com/dtolnay/serde-yaml).
 
 This parser is not ensure about YAML spec but almost functions are well-implemented. The buffer reader has also not yet been implemented, but the chunks can be read by sub-parsers.
 
