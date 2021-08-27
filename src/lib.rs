@@ -120,6 +120,8 @@ macro_rules! node_arc {
 
 /// Create [`YamlBase::Array`] items literally.
 ///
+/// All items will convert to [`NodeBase`] automatically.
+///
 /// ```
 /// use yaml_peg::{node, yaml_array, Yaml};
 ///
@@ -142,6 +144,8 @@ macro_rules! yaml_array {
 
 /// Create [`YamlBase::Map`] items literally.
 ///
+/// All items will convert to [`NodeBase`] automatically.
+///
 /// ```
 /// use yaml_peg::{node, yaml_map, Yaml};
 ///
@@ -163,6 +167,7 @@ macro_rules! yaml_map {
 /// Create a custom anchor visitor.
 ///
 /// The anchor name should implement [`alloc::string::ToString`] trait.
+/// All items will convert to [`NodeBase`] automatically.
 ///
 /// ```
 /// use yaml_peg::{node, anchors};
