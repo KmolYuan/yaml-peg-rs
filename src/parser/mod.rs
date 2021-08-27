@@ -382,9 +382,19 @@ impl_parser! {
     /// ```
     /// use yaml_peg::{parse, node};
     ///
-    /// let (n, anchors) = parse("true").unwrap();
+    /// let doc = "
+    /// ---
+    /// name: Bob
+    /// married: true
+    /// age: 46
+    /// ";
+    /// let (n, anchors) = parse(doc).unwrap();
     /// assert_eq!(anchors.len(), 0);
-    /// assert_eq!(n, vec![node!(true)]);
+    /// assert_eq!(n, vec![node!({
+    ///     "name" => "Bob",
+    ///     "married" => true,
+    ///     "age" => 46,
+    /// })]);
     /// ```
     parse -> repr::RcRepr
 }
@@ -396,9 +406,19 @@ impl_parser! {
     /// ```
     /// use yaml_peg::{parse_arc, node_arc};
     ///
-    /// let (n, anchors) = parse_arc("true").unwrap();
+    /// let doc = "
+    /// ---
+    /// name: Bob
+    /// married: true
+    /// age: 46
+    /// ";
+    /// let (n, anchors) = parse_arc(doc).unwrap();
     /// assert_eq!(anchors.len(), 0);
-    /// assert_eq!(n, vec![node_arc!(true)]);
+    /// assert_eq!(n, vec![node_arc!({
+    ///     "name" => "Bob",
+    ///     "married" => true,
+    ///     "age" => 46,
+    /// })]);
     /// ```
     parse_arc -> repr::ArcRepr
 }

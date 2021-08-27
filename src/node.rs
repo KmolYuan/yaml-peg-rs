@@ -79,7 +79,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// ```
 /// use yaml_peg::{node, Ind};
 ///
-/// let n = node!([node!("a"), node!("b"), node!("c")]);
+/// let n = node!(["a", "b", "c"]);
 /// assert_eq!(node!("b"), n[Ind(1)]);
 /// ```
 ///
@@ -104,7 +104,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// fn main() -> Result<(), (&'static str, u64)> {
 ///     let n = node!({
-///         node!("title") => node!(12.)
+///         "title" => 12.
 ///     });
 ///     let n = n.get("title").map_err(|p| ("missing \"title\"", p))?;
 ///     assert_eq!(
@@ -278,7 +278,7 @@ impl<R: Repr> NodeBase<R> {
     /// use yaml_peg::{node, anchors};
     ///
     /// let node_a = node!(*"a");
-    /// let v = anchors!["a" => node!(20.)];
+    /// let v = anchors!["a" => 20.];
     /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
     /// ```
     pub fn as_anchor<'a, 'b: 'a>(&'a self, v: &'b AnchorBase<R>) -> &'a Self {
@@ -294,7 +294,7 @@ impl<R: Repr> NodeBase<R> {
         /// ```
         /// use yaml_peg::node;
         ///
-        /// let n = node!([node!("55")]);
+        /// let n = node!(["55"]);
         /// assert_eq!(node!("55"), n.as_array().unwrap()[0]);
         /// for n in n.as_array().unwrap() {
         ///     assert_eq!(node!("55"), n);
@@ -309,7 +309,7 @@ impl<R: Repr> NodeBase<R> {
         /// ```
         /// use yaml_peg::node;
         ///
-        /// let n = node!({node!(1) => node!(2)});
+        /// let n = node!({1 => 2});
         /// assert_eq!(node!(2), n.as_map().unwrap()[&node!(1)]);
         /// for (k, v) in n.as_map().unwrap() {
         ///     assert_eq!(node!(1), k);
@@ -412,7 +412,7 @@ impl<R: Repr> NodeBase<R> {
     /// # fn main() -> Result<(), u64> {
     /// use yaml_peg::{anchors, node, Node};
     ///
-    /// let v = anchors!["c" => node!(10)];
+    /// let v = anchors!["c" => 10];
     /// let a = node!({node!("a") => node!({node!("b") => node!(*"c")})});
     /// let c = a.get("a")?.with(&v, "b", 0, Node::as_int)?;
     /// assert_eq!(10, c);

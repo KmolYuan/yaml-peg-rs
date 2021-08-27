@@ -122,8 +122,8 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
 ///
 /// let doc = dump(vec![
 ///     node!({
-///         node!("a") => node!("b"),
-///         node!("c") => node!("d"),
+///         "a" => "b",
+///         "c" => "d",
 ///     }),
 /// ]);
 /// assert_eq!(doc, format!("a: b{0}c: d{0}", NL));

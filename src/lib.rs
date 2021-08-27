@@ -64,8 +64,8 @@ pub use crate::yaml::*;
 /// ```
 /// use yaml_peg::{node, yaml_array, yaml_map};
 ///
-/// assert_eq!(node!([node!(1), node!(2)]), node!(yaml_array![node!(1), node!(2)]));
-/// assert_eq!(node!({node!(1) => node!(2)}), node!(yaml_map![node!(1) => node!(2)]));
+/// assert_eq!(node!([1, 2]), node!(yaml_array![1, 2]));
+/// assert_eq!(node!({1 => 2}), node!(yaml_map! { 1 => 2 }));
 /// ```
 ///
 /// The [`YamlBase::Anchor`] is also supported by the syntax:
@@ -83,7 +83,7 @@ macro_rules! node {
         $crate::node!($crate::yaml_array![$($token)*])
     };
     ({$($token:tt)*}) => {
-        $crate::node!($crate::yaml_map![$($token)*])
+        $crate::node!($crate::yaml_map! { $($token)* })
     };
     (*$anchor:expr) => {
         $crate::node!($crate::YamlBase::Anchor($anchor.into()))
@@ -121,33 +121,42 @@ macro_rules! node_arc {
 /// Create [`YamlBase::Array`] items literally.
 ///
 /// ```
-/// use yaml_peg::{node, yaml_array};
+/// use yaml_peg::{node, yaml_array, Yaml};
 ///
-/// yaml_array![node!("a"), node!("b"), node!("c")];
+/// assert_eq!(
+///     yaml_array!["a", "b", "c"],
+///     Yaml::Array(vec![node!("a"), node!("b"), node!("c")])
+/// );
 /// ```
 #[macro_export]
 macro_rules! yaml_array {
-    ($($token:tt)*) => {{
+    ($v:expr; $n:expr) => {{
         extern crate alloc;
-        $crate::YamlBase::Array(alloc::vec![$($token)*])
+        $crate::YamlBase::Array(alloc::vec![$crate::NodeBase::from($v); $n])
+    }};
+    ($($v:expr),* $(,)?) => {{
+        extern crate alloc;
+        $crate::YamlBase::Array(alloc::vec![$($crate::NodeBase::from($v)),*])
     }};
 }
 
 /// Create [`YamlBase::Map`] items literally.
 ///
 /// ```
-/// use yaml_peg::{node, yaml_map};
+/// use yaml_peg::{node, yaml_map, Yaml};
 ///
-/// yaml_map!{
-///     node!("a") => node!("b"),
-///     node!("c") => node!("d"),
-/// };
+/// assert_eq!(
+///     yaml_map! { "a" => "b", "c" => "d" },
+///     Yaml::Map(vec![(node!("a"), node!("b")), (node!("c"), node!("d"))].into_iter().collect())
+/// );
 /// ```
 #[macro_export]
 macro_rules! yaml_map {
     ($($k:expr => $v:expr),* $(,)?) => {{
         extern crate alloc;
-        $crate::YamlBase::Map(alloc::vec![$(($k, $v)),*].into_iter().collect())
+        $crate::YamlBase::Map(alloc::vec![
+            $(($crate::NodeBase::from($k), $crate::NodeBase::from($v))),*
+        ].into_iter().collect())
     }};
 }
 
@@ -159,7 +168,7 @@ macro_rules! yaml_map {
 /// use yaml_peg::{node, anchors};
 ///
 /// let v = anchors![
-///     "my-boss" => node!({node!("name") => node!("Henry")}),
+///     "my-boss" => node!({"name" => "Henry"}),
 /// ];
 /// assert_eq!(v["my-boss"]["name"], node!("Henry"));
 /// ```
@@ -167,7 +176,7 @@ macro_rules! yaml_map {
 macro_rules! anchors {
     ($($k:expr => $v:expr),* $(,)?) => {{
         extern crate alloc;
-        alloc::vec![$(($k.to_string(), $v)),*].into_iter().collect::<$crate::AnchorBase<_>>()
+        alloc::vec![$(($k.to_string(), $crate::NodeBase::from($v))),*].into_iter().collect::<$crate::AnchorBase<_>>()
     }};
 }
 

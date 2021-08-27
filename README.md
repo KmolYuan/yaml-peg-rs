@@ -8,6 +8,24 @@ Inspired from [`yaml-rust`](https://github.com/chyh1990/yaml-rust).
 
 This parser is not ensure about YAML spec but almost functions are well-implemented. The buffer reader has also not yet been implemented, but the chunks can be read by sub-parsers.
 
+```rust
+use yaml_peg::{parse, node};
+
+let doc = "
+---
+name: Bob
+married: true
+age: 46
+";
+let (n, anchors) = parse(doc).unwrap();
+assert_eq!(anchors.len(), 0);
+assert_eq!(n, vec![node!({
+    "name" => "Bob",
+    "married" => true,
+    "age" => 46,
+})]);
+```
+
 See the API doc for more information.
 
 ## Features
@@ -22,4 +40,27 @@ See the API doc for more information.
   % TAG !x! tag:my.prefix:
   ---
   ```
-+ Support [`serde`](https://github.com/serde-rs/serde) as a feature.
++ Support [`serde`](https://github.com/serde-rs/serde) to help you serialize and deserialize a specific type.
+  ```rust
+  use serde::Deserialize;
+  use yaml_peg::serialize::from_str;
+
+  #[derive(Deserialize)]
+  struct Member {
+     name: String,
+     married: bool,
+     age: u8,
+  }
+
+  let doc = "
+  ---
+  name: Bob
+  married: true
+  age: 46
+  ";
+  // Return Vec<Member>, use `.remove(0)` to get the first one
+  let officer = from_str::<Member>(doc).unwrap().remove(0);
+  assert_eq!("Bob", officer.name);
+  assert!(officer.married);
+  assert_eq!(46, officer.age);
+  ```

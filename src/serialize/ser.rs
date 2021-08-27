@@ -21,7 +21,7 @@ macro_rules! impl_serializer {
 
 macro_rules! impl_end {
     (@ $self:ident) => { $self.0.into() };
-    (@map $self:ident) => { yaml_map!($self.1.into() => $self.0.into()).into() };
+    (@map $self:ident) => { yaml_map!{ $self.1 => $self.0 }.into() };
 }
 
 macro_rules! impl_seq_serializer {
@@ -87,9 +87,9 @@ macro_rules! impl_map_serializer {
 ///
 /// let officer = Member { name: "Bob", married: true, age: 46 };
 /// let officer_yaml = node!({
-///     node!("name") => node!("Bob"),
-///     node!("married") => node!(true),
-///     node!("age") => node!(46),
+///     "name" => "Bob",
+///     "married" => true,
+///     "age" => 46,
 /// });
 /// assert_eq!(officer_yaml, to_node(officer).unwrap());
 /// ```
@@ -114,9 +114,9 @@ pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
 ///
 /// let officer = Member { name: "Bob", married: true, age: 46 };
 /// let officer_yaml = node_arc!({
-///     node_arc!("name") => node_arc!("Bob"),
-///     node_arc!("married") => node_arc!(true),
-///     node_arc!("age") => node_arc!(46),
+///     "name" => "Bob",
+///     "married" => true,
+///     "age" => 46,
 /// });
 /// assert_eq!(officer_yaml, to_arc_node(officer).unwrap());
 /// ```
@@ -209,7 +209,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     where
         T: Serialize + ?Sized,
     {
-        Ok(yaml_map!(variant.into() => value.serialize(NodeSerializer(PhantomData))?).into())
+        Ok(yaml_map! { variant => value.serialize(NodeSerializer(PhantomData))? }.into())
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {

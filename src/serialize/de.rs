@@ -59,7 +59,7 @@ macro_rules! impl_deserializer {
 /// married: true
 /// age: 46
 /// ";
-/// // Return Vec<Member>, use `.remove(0)` to get te first one
+/// // Return Vec<Member>, use `.remove(0)` to get the first one
 /// let officer = from_str::<Member>(doc).unwrap().remove(0);
 /// assert_eq!("Bob", officer.name);
 /// assert!(officer.married);

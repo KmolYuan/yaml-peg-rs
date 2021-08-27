@@ -14,9 +14,9 @@
 //! }
 //!
 //! let n = node!({
-//!     node!("name") => node!("Bob"),
-//!     node!("married") => node!(true),
-//!     node!("age") => node!(46),
+//!     "name" => "Bob",
+//!     "married" => true,
+//!     "age" => 46,
 //! });
 //! let officer = Member::deserialize(n).unwrap();
 //! assert_eq!("Bob", officer.name);
