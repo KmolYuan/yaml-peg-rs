@@ -14,6 +14,12 @@ See the API doc for more information.
 
 + Support no standard library `#![no_std]`.
 + Support anchor visitor through reference counter.
-+ Different data holder provides parallel visiting and less copy cost.
-+ Support document position, type annotation and anchor reference on the nodes.
++ Different data holder `Rc` / `Arc` provides parallel visiting and less copy cost.
++ Provide document position, tag and anchor reference on the nodes.
++ YAML directives `YAML` and `TAG` are allowed.
+  ```yaml
+  % YAML 1.2
+  % TAG !x! tag:my.prefix:
+  ---
+  ```
 + Support [`serde`](https://github.com/serde-rs/serde) as a feature.
