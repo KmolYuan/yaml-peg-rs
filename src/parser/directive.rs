@@ -22,15 +22,14 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     fn directive_yaml(&mut self) -> Result<(), PError> {
         self.ws(TakeOpt::More(1))?;
-        self.context(|p| {
-            p.float()?;
-            if p.version_checked || p.text() != "1.2" {
-                Err(PError::Terminate(p.indicator(), "wrong version"))
-            } else {
-                p.version_checked = true;
-                Ok(())
-            }
-        })
+        if self.version_checked {
+            self.err("checked version")
+        } else if self.seq(b"1.2").is_err() {
+            self.err("version")
+        } else {
+            self.version_checked = true;
+            Ok(())
+        }
     }
 
     fn directive_tag(&mut self) -> Result<(), PError> {
