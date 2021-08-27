@@ -69,6 +69,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 break;
             }
         }
+        self.gap(true).unwrap_or_default();
         self.seq(b"---").unwrap_or_default();
         self.gap(true).unwrap_or_default();
         self.forward();

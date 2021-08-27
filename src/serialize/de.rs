@@ -1,6 +1,6 @@
 use super::SerdeError;
-use crate::{repr::Repr, Array, Map, NodeBase, YamlBase};
-use alloc::format;
+use crate::{parse, repr::Repr, Array, Map, NodeBase, YamlBase};
+use alloc::{format, vec::Vec};
 use core::marker::PhantomData;
 use serde::{
     de::{
@@ -35,6 +35,42 @@ macro_rules! impl_deserializer {
             }
         })+
     };
+}
+
+/// Parse the document and deserialize nodes to a specific type.
+///
+/// Since the document can be split into multiple parts,
+/// so this function will return a vector container.
+///
+/// ```
+/// use serde::Deserialize;
+/// use yaml_peg::serialize::from_str;
+///
+/// #[derive(Deserialize)]
+/// struct Member {
+///     name: String,
+///     married: bool,
+///     age: u8,
+/// }
+///
+/// let doc = "
+/// ---
+/// name: Bob
+/// married: true
+/// age: 46
+/// ";
+/// // Return Vec<Member>, use `.remove(0)` to get te first one
+/// let officer = from_str::<Member>(doc).unwrap().remove(0);
+/// assert_eq!("Bob", officer.name);
+/// assert!(officer.married);
+/// assert_eq!(46, officer.age);
+/// ```
+pub fn from_str<'d, D>(doc: &str) -> Result<Vec<D>, SerdeError>
+where
+    D: Deserialize<'d>,
+{
+    let (nodes, _) = parse(doc)?;
+    nodes.into_iter().map(|n| D::deserialize(n)).collect()
 }
 
 struct NodeVisitor<R: Repr>(PhantomData<R>);

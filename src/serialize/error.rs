@@ -6,6 +6,12 @@ use serde::{de::Error as DeError, ser::Error as SerError};
 #[derive(Debug)]
 pub struct SerdeError(String);
 
+impl From<String> for SerdeError {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
 impl Display for SerdeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Debug::fmt(self, f)

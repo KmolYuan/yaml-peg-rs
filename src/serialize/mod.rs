@@ -18,7 +18,7 @@
 //!     node!("married") => node!(true),
 //!     node!("age") => node!(46),
 //! });
-//! let officer = <Member as Deserialize>::deserialize(n).unwrap();
+//! let officer = Member::deserialize(n).unwrap();
 //! assert_eq!("Bob", officer.name);
 //! assert!(officer.married);
 //! assert_eq!(46, officer.age);
@@ -28,7 +28,9 @@
 //! The `serde/derive` feature provides derive macro for the custom data,
 //! and if `serde/alloc` is not used, you cannot deserialize [`alloc::string::String`] or [`alloc::vec::Vec`] type.
 //!
-//! For converting custom data into YAML data, please see [`to_node`] and [`to_arc_node`].
+//! For converting custom data into YAML data, please see [`to_node`] and [`to_arc_node`],
+//! and if you went to parse YAML document before deserializing, use [`from_str`].
+pub use self::de::from_str;
 pub use self::error::SerdeError;
 pub use self::ser::{to_arc_node, to_node};
 
