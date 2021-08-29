@@ -18,6 +18,9 @@ impl Display for SerdeError {
     }
 }
 
+#[cfg(feature = "serde-std")]
+impl std::error::Error for SerdeError {}
+
 impl SerError for SerdeError {
     fn custom<T>(msg: T) -> Self
     where

@@ -26,19 +26,20 @@
 //!
 //! # Serialization and Deserialization
 //!
-//! Enable `serialize` feature to use `serde` crate.
+//! Enable `serde` / `serde-std` feature to use `serde` crate.
 //! The crate provides a set of protocol traits to convert between custom Rust data.
 //! Please be aware that the additional fields will be discard when convert to a fix-sized structure.
 //! For example, the structure fields can be turned into map keys as well.
 //!
 //! On the other hand, the primitive types still able to transform to YAML data without serialization,
 //! according to `From` and `Into` traits.
-//!
-//! See [`serialize`] module for more information.
-#![no_std]
+#![cfg_attr(
+    feature = "serde",
+    doc = "See [`serialize`] module for more information."
+)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
+#![cfg_attr(not(feature = "serde-std"), no_std)]
 extern crate alloc;
-extern crate core;
 
 pub use crate::anchors::*;
 pub use crate::dumper::dump;
@@ -191,8 +192,8 @@ mod indicator;
 mod node;
 pub mod parser;
 pub mod repr;
-#[cfg(feature = "serialize")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "serialize")))]
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 pub mod serialize;
 #[cfg(test)]
 mod tests;

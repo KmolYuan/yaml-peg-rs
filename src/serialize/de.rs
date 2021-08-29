@@ -70,7 +70,7 @@ where
     D: for<'d> Deserialize<'d>,
 {
     let (nodes, _) = parse(doc)?;
-    nodes.into_iter().map(|n| D::deserialize(n)).collect()
+    nodes.into_iter().map(D::deserialize).collect()
 }
 
 struct NodeVisitor<R: Repr>(PhantomData<R>);

@@ -1,7 +1,7 @@
 use super::SerdeError;
 use crate::{dump, repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase};
 use alloc::string::String;
-use core::{fmt::Display, marker::PhantomData};
+use core::marker::PhantomData;
 use serde::{
     ser::{
         SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
@@ -297,11 +297,11 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         Ok(StructVariant(Map::with_capacity(len), variant))
     }
 
+    #[cfg(not(feature = "serde-std"))]
     fn collect_str<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Display + ?Sized,
+        T: std::fmt::Display + ?Sized,
     {
-        use alloc::string::ToString;
         self.serialize_str(&value.to_string())
     }
 }
