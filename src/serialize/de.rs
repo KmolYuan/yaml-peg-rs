@@ -4,8 +4,8 @@ use alloc::{format, vec::Vec};
 use core::marker::PhantomData;
 use serde::{
     de::{
-        DeserializeSeed, EnumAccess, Error, MapAccess, SeqAccess, Unexpected, VariantAccess,
-        Visitor,
+        DeserializeSeed, EnumAccess, Error, Expected, MapAccess, SeqAccess, Unexpected,
+        VariantAccess, Visitor,
     },
     serde_if_integer128, Deserialize, Deserializer,
 };
@@ -31,7 +31,7 @@ macro_rules! impl_deserializer {
         {
             match self.yaml() {
                 YamlBase::$ty($n) => visitor.$visit($value),
-                _ => Err(Error::invalid_type(self.unexpected(), &visitor)),
+                _ => Err(self.unexpected(visitor)),
             }
         })+
     };
@@ -79,7 +79,7 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
     type Value = NodeBase<R>;
 
     fn expecting(&self, fmt: &mut core::fmt::Formatter) -> core::fmt::Result {
-        fmt.write_str("any YAML value")
+        fmt.write_str("YAML value")
     }
 
     impl_visitor! {
@@ -214,7 +214,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
         match self.0 {
             Some(node) => match node.yaml() {
                 YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
-                _ => Err(Error::invalid_type(node.unexpected(), &"tuple variant")),
+                _ => Err(node.unexpected("tuple variant")),
             },
             None => Err(Error::invalid_type(
                 Unexpected::TupleVariant,
@@ -234,7 +234,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
         match self.0 {
             Some(node) => match node.yaml() {
                 YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
-                _ => Err(Error::invalid_type(node.unexpected(), &"struct variant")),
+                _ => Err(node.unexpected("struct variant")),
             },
             None => Err(Error::invalid_type(
                 Unexpected::UnitVariant,
@@ -313,7 +313,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         match self.yaml() {
             YamlBase::Str(s) => visitor.visit_str(s),
             YamlBase::Array(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
-            _ => Err(Error::invalid_type(self.unexpected(), &visitor)),
+            _ => Err(self.unexpected(visitor)),
         }
     }
 
@@ -334,7 +334,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         if self.is_null() {
             visitor.visit_unit()
         } else {
-            Err(Error::invalid_type(self.unexpected(), &visitor))
+            Err(self.unexpected(visitor))
         }
     }
 
@@ -391,7 +391,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         match self.yaml() {
             YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
-            _ => Err(Error::invalid_type(self.unexpected(), &visitor)),
+            _ => Err(self.unexpected(visitor)),
         }
     }
 
@@ -407,10 +407,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         let (k, v) = match self.yaml() {
             YamlBase::Map(m) => {
                 if m.len() != 1 {
-                    return Err(Error::invalid_type(
-                        self.unexpected(),
-                        &"map with single pair",
-                    ));
+                    return Err(self.unexpected("map with single pair"));
                 }
                 if let Some((k, v)) = m.into_iter().next() {
                     (k.clone(), Some(v.clone()))
@@ -419,7 +416,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
                 }
             }
             YamlBase::Str(_) => (self.clone(), None),
-            _ => return Err(Error::invalid_type(self.unexpected(), &visitor)),
+            _ => return Err(self.unexpected(visitor)),
         };
         visitor.visit_enum(EnumVisitor(k, v))
     }
@@ -434,8 +431,8 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
 
 impl<R: Repr> NodeBase<R> {
     #[cold]
-    fn unexpected(&self) -> Unexpected {
-        match self.yaml() {
+    fn unexpected(&self, exp: impl Expected) -> SerdeError {
+        let ty = match self.yaml() {
             YamlBase::Null => Unexpected::Unit,
             YamlBase::Bool(b) => Unexpected::Bool(*b),
             YamlBase::Int(n) => Unexpected::Signed(n.parse().unwrap()),
@@ -444,6 +441,7 @@ impl<R: Repr> NodeBase<R> {
             YamlBase::Array(_) => Unexpected::Seq,
             YamlBase::Map(_) => Unexpected::Map,
             YamlBase::Anchor(_) => Unexpected::Other("anchor"),
-        }
+        };
+        SerdeError::invalid_type(ty, &exp).pos(self.pos())
     }
 }
