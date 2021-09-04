@@ -15,7 +15,7 @@ macro_rules! impl_error {
 /// The error type for the serialization.
 ///
 /// If the error is used at deserializing to a custom data,
-/// the field [`SerdeError::pos`] will provide the position of the original YAML document.
+/// the field [`SerdeError.pos`] will provide the position of the original YAML document.
 #[derive(Debug)]
 pub struct SerdeError {
     /// Message.

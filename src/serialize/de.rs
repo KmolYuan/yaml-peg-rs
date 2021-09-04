@@ -1,6 +1,6 @@
 use super::SerdeError;
 use crate::{parse, repr::Repr, Array, Map, NodeBase, YamlBase};
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use serde::{
     de::{
@@ -114,9 +114,16 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
     where
         A: MapAccess<'a>,
     {
-        let mut m = Map::new();
+        let mut m = Map::<R>::new();
         while let Some((k, v)) = map.next_entry()? {
             m.insert(k, v);
+        }
+        if m.len() == 1 {
+            if let Some(n) = m.get(&NodeBase::from("anchor")) {
+                if let Ok(anchor) = n.as_str() {
+                    return Ok(NodeBase::from(YamlBase::Anchor(anchor.to_string())));
+                }
+            }
         }
         Ok(m.into_iter().collect())
     }
@@ -268,7 +275,11 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
             YamlBase::Str(s) => visitor.visit_str(s),
             YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
-            YamlBase::Anchor(s) => visitor.visit_str(&format!("*{}", s)),
+            YamlBase::Anchor(s) => {
+                let mut m = Map::<R>::new();
+                m.insert(NodeBase::from("anchor"), NodeBase::from(s));
+                visitor.visit_map(MapVisitor(m.clone().into_iter(), None))
+            }
         }
     }
 

@@ -1,5 +1,5 @@
 use super::SerdeError;
-use crate::{dump, repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase};
+use crate::{dump, repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase, YamlBase};
 use alloc::string::String;
 use core::marker::PhantomData;
 use serde::{
@@ -64,6 +64,13 @@ macro_rules! impl_map_serializer {
             }
 
             fn end(self) -> Result<Self::Ok, Self::Error> {
+                if self.0.len() == 1 {
+                    if let Some(n) = self.0.get(&NodeBase::from("anchor")) {
+                        if let Ok(anchor) = n.as_str() {
+                            return Ok(NodeBase::from(YamlBase::Anchor(anchor.to_string())));
+                        }
+                    }
+                }
                 Ok(impl_end!(@$($tt)? self))
             }
         })+
@@ -362,6 +369,13 @@ impl<R: Repr> SerializeMap for MapSerializer<R> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
+        if self.0.len() == 1 {
+            if let Some(n) = self.0.get(&NodeBase::from("anchor")) {
+                if let Ok(anchor) = n.as_str() {
+                    return Ok(NodeBase::from(YamlBase::Anchor(anchor.to_string())));
+                }
+            }
+        }
         Ok(self.0.into())
     }
 }

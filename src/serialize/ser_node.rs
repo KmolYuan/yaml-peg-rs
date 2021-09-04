@@ -1,5 +1,4 @@
 use crate::{repr::Repr, NodeBase, YamlBase};
-use alloc::format;
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
 impl<R: Repr> Serialize for NodeBase<R> {
@@ -21,7 +20,11 @@ impl<R: Repr> Serialize for NodeBase<R> {
                 }
                 map.end()
             }
-            YamlBase::Anchor(s) => format!("*{}", s).serialize(serializer),
+            YamlBase::Anchor(s) => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry("anchor", s)?;
+                map.end()
+            }
         }
     }
 }

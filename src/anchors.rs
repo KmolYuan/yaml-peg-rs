@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 use alloc::string::{String, ToString};
 use ritelinked::LinkedHashMap;
 
@@ -6,6 +6,8 @@ use ritelinked::LinkedHashMap;
 ///
 /// Since [`NodeBase`] type is holding a reference counter,
 /// the data are just a viewer to the original memory.
+///
+/// There is a macro [`anchors!`] can build the index tree literally.
 pub type AnchorBase<R> = LinkedHashMap<String, NodeBase<R>>;
 /// An anchor visitor with [`alloc::rc::Rc`] holder.
 pub type Anchors = AnchorBase<repr::RcRepr>;
