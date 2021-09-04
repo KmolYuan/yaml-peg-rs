@@ -72,7 +72,7 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     /// A short function to raise error.
     pub fn err<Ret>(&self, msg: &'static str) -> Result<Ret, PError> {
-        Err(PError::Terminate(self.indicator(), msg))
+        Err(PError::Terminate(msg, self.indicator()))
     }
 
     /// Consume and move the pointer.

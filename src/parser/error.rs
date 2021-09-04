@@ -10,7 +10,7 @@ pub enum PError {
     /// If parser mismatched, just choose another one.
     Mismatch,
     /// The parser is the only one can be matched.
-    Terminate(u64, &'static str),
+    Terminate(&'static str, u64),
 }
 
 impl PError {
@@ -18,7 +18,7 @@ impl PError {
     pub fn into_error(self, doc: &str) -> String {
         match self {
             Self::Mismatch => String::from("not matched"),
-            Self::Terminate(pos, name) => {
+            Self::Terminate(name, pos) => {
                 format!("invalid {}: \n\n{}", name, indicated_msg(doc, pos))
             }
         }
