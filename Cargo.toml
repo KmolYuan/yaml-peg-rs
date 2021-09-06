@@ -11,7 +11,7 @@ keywords = ["yaml", "parser"]
 categories = ["parser-implementations", "no-std"]
 
 [features]
-serde-std = ["serde", "serde/std"]
+serde-std = ["serde/std"]
 
 [dependencies]
 ritelinked = "0.3"
