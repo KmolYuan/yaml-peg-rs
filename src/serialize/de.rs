@@ -278,7 +278,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
             YamlBase::Anchor(s) => {
                 let mut m = Map::<R>::new();
                 m.insert(NodeBase::from("anchor"), NodeBase::from(s));
-                visitor.visit_map(MapVisitor(m.clone().into_iter(), None))
+                visitor.visit_map(MapVisitor(m.into_iter(), None))
             }
         }
     }
