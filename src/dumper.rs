@@ -1,5 +1,5 @@
 //! Dumper components.
-use crate::*;
+use crate::{repr::Repr, *};
 use alloc::{
     format,
     string::{String, ToString},
@@ -11,26 +11,14 @@ pub const NL: &str = "\r\n";
 #[cfg(not(windows))]
 pub const NL: &str = "\n";
 
-/// The root type.
 #[derive(Eq, PartialEq)]
-pub enum Root {
+enum Root {
     Map,
     Array,
     Scalar,
 }
 
-/// The interface for dumping data structure.
-pub trait Dumper {
-    /// Generate indentation.
-    fn ind(level: usize) -> String {
-        "  ".repeat(level)
-    }
-
-    /// Recursive dump function.
-    fn dump(&self, level: usize, root: Root) -> String;
-}
-
-impl<R: repr::Repr> Dumper for NodeBase<R> {
+impl<R: Repr> NodeBase<R> {
     fn dump(&self, level: usize, root: Root) -> String {
         let mut doc = String::new();
         let anchor = self.anchor();
@@ -50,7 +38,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
                 format!("!<{}> ", tag)
             };
         }
-        let ind = Self::ind(level);
+        let ind = "  ".repeat(level);
         doc += &match self.yaml() {
             YamlBase::Null => "null".to_string(),
             YamlBase::Bool(b) => b.to_string(),
@@ -92,7 +80,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
                     }
                     let s = k.dump(level + 1, Root::Map);
                     if let YamlBase::Map(_) | YamlBase::Array(_) = k.yaml() {
-                        doc += &format!("?{}{}{}{}{}", Self::ind(level + 1), NL, s, NL, ind);
+                        doc += &format!("?{}{}{}{}{}", "  ".repeat(level + 1), NL, s, NL, ind);
                     } else {
                         doc += &s;
                     }
@@ -131,7 +119,7 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
 /// ```
 /// use yaml_peg::{dump, node, dumper::NL};
 ///
-/// let doc = dump(vec![
+/// let doc = dump(&[
 ///     node!({
 ///         "a" => "b",
 ///         "c" => "d",
@@ -141,19 +129,16 @@ impl<R: repr::Repr> Dumper for NodeBase<R> {
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
-pub fn dump<I>(nodes: I) -> String
-where
-    I: IntoIterator,
-    I::Item: Dumper,
-{
+pub fn dump<R: Repr>(nodes: &[NodeBase<R>]) -> String {
     nodes
-        .into_iter()
+        .iter()
         .enumerate()
         .map(|(i, node)| {
+            let doc = node.dump(0, Root::Scalar) + NL;
             if i == 0 {
-                format!("{}{}", node.dump(0, Root::Scalar).trim_start(), NL)
+                doc
             } else {
-                format!("---{}{}{}", NL, node.dump(0, Root::Scalar).trim_start(), NL)
+                format!("---{}{}", NL, doc)
             }
         })
         .collect()
