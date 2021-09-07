@@ -1,5 +1,4 @@
 use super::*;
-use alloc::{format, string::ToString, vec};
 
 const TEST_JSON: &str = include_str!("test.json");
 const TEST_YAML: &str = include_str!("test.yaml");
@@ -79,7 +78,7 @@ fn test_yaml() {
 #[test]
 fn test_dump() {
     use crate::dumper::NL;
-    let doc = dump(vec![
+    let doc = dump(&[
         node!({
             "a" => "b",
             "c" => node!([
@@ -90,11 +89,17 @@ fn test_dump() {
         }),
         node!(["a", "b"]),
     ]);
-    assert_eq!(
-        doc,
-        format!(
-            "a: b{0}c:{0}  - d: e{0}  - f:{0}      g: h{0}  - i:{0}    - j{0}---{0}- a{0}- b{0}",
-            NL
-        )
-    );
+    let ans = "\
+a: b
+c:
+  - d: e
+  - f:
+      g: h
+  - i:
+    - j
+---
+- a
+- b
+";
+    assert_eq!(doc, ans.replace('\n', NL));
 }

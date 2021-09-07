@@ -125,7 +125,11 @@ impl<R: Repr> NodeBase<R> {
 ///         "c" => "d",
 ///     }),
 /// ]);
-/// assert_eq!(doc, format!("a: b{0}c: d{0}", NL));
+/// let ans = "\
+/// a: b
+/// c: d
+/// ";
+/// assert_eq!(doc, ans.replace('\n', NL));
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
@@ -138,7 +142,7 @@ pub fn dump<R: Repr>(nodes: &[NodeBase<R>]) -> String {
             if i == 0 {
                 doc
             } else {
-                format!("---{}{}", NL, doc)
+                format!("---{}{}", NL, doc.trim_start())
             }
         })
         .collect()
