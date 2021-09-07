@@ -33,11 +33,22 @@ pub trait Dumper {
 impl<R: repr::Repr> Dumper for NodeBase<R> {
     fn dump(&self, level: usize, root: Root) -> String {
         let mut doc = String::new();
-        if !self.anchor().is_empty() {
-            doc += &format!("&{} ", self.anchor());
+        let anchor = self.anchor();
+        if !anchor.is_empty() {
+            doc += &format!("&{} ", anchor);
         }
-        if !self.tag().is_empty() {
-            doc += &format!("!!{} ", self.tag());
+        let tag = self.tag();
+        if !tag.is_empty() {
+            doc += &if tag.starts_with(parser::DEFAULT_PREFIX) {
+                format!("!!{} ", tag)
+            } else if parser::Parser::<R>::new(tag.as_bytes())
+                .identifier()
+                .is_ok()
+            {
+                format!("!{} ", tag)
+            } else {
+                format!("!<{}> ", tag)
+            };
         }
         let ind = Self::ind(level);
         doc += &match self.yaml() {
