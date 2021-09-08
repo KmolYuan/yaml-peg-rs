@@ -6,14 +6,13 @@ impl<R: repr::Repr> Parser<'_, R> {
     /// Match directives.
     pub fn directive(&mut self) -> Result<(), PError> {
         self.sym(b'%')?;
-        self.ws(TakeOpt::More(0))?;
         self.context(|p| {
             if p.seq(b"YAML").is_ok() {
                 p.directive_yaml()
             } else if p.seq(b"TAG").is_ok() {
                 p.directive_tag()
             } else {
-                // Unknown
+                // Unknown - ignore
                 p.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))
             }
         })?;

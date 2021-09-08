@@ -37,8 +37,8 @@ See the API doc for more information.
 + Provide document position, tag and anchor reference on the nodes.
 + YAML directives `YAML` and `TAG` are allowed.
   ```yaml
-  % YAML 1.2
-  % TAG !x! tag:my.prefix:
+  %YAML 1.2
+  %TAG !x! tag:my.prefix:
   ---
   ```
 + Support [`serde`](https://github.com/serde-rs/serde) to help you serialize and deserialize a specific type. (as well as the anchors)
