@@ -6,10 +6,9 @@ use alloc::{
     vec::Vec,
 };
 
+/// Newline symbol in common platforms.
 #[cfg(windows)]
-pub const NL: &str = "\r\n";
-#[cfg(not(windows))]
-pub const NL: &str = "\n";
+pub const NL: &str = if cfg!(windows) { "\r\n" } else { "\n" };
 
 #[derive(Eq, PartialEq)]
 enum Root {

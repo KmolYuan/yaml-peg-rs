@@ -327,7 +327,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
-                    return Ok(k.into_yaml());
+                    return Ok(k.yaml().clone());
                 }
                 k
             } else {

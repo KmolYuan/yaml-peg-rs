@@ -39,6 +39,7 @@
 )]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![cfg_attr(not(feature = "serde-std"), no_std)]
+#![warn(missing_docs)]
 extern crate alloc;
 
 pub use crate::anchors::*;

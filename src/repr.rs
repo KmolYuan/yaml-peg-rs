@@ -50,8 +50,8 @@ impl<R: Repr> PartialEq for Inner<R> {
 ///
 /// See the implementor list for the choose.
 pub trait Repr: AsRef<Inner<Self>> + Deref + Hash + Eq + Clone + Debug {
+    /// The creation function of this type.
     fn repr(yaml: YamlBase<Self>, pos: u64, tag: String, anchor: String) -> Self;
-    fn into_yaml(self) -> YamlBase<Self>;
 }
 
 macro_rules! impl_repr {
@@ -64,11 +64,6 @@ macro_rules! impl_repr {
                     anchor,
                     yaml,
                 }))
-            }
-
-            #[inline(always)]
-            fn into_yaml(self) -> YamlBase<Self> {
-                $inner::try_unwrap(self.0).unwrap().yaml
             }
         }
 

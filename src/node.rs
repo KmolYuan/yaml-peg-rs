@@ -175,11 +175,6 @@ impl<R: Repr> NodeBase<R> {
         &self.0.as_ref().yaml
     }
 
-    /// Drop the node and get the YAML data.
-    pub fn into_yaml(self) -> YamlBase<R> {
-        self.0.into_yaml()
-    }
-
     /// Check the value is null.
     pub fn is_null(&self) -> bool {
         *self.yaml() == YamlBase::Null
