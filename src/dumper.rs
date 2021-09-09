@@ -7,7 +7,6 @@ use alloc::{
 };
 
 /// Newline symbol in common platforms.
-#[cfg(windows)]
 pub const NL: &str = if cfg!(windows) { "\r\n" } else { "\n" };
 
 #[derive(Eq, PartialEq)]
