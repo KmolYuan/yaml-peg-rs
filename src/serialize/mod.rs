@@ -35,46 +35,35 @@
 //!
 //! The anchors are represented as a **single** key-value pair `{ "anchor": anchor }` in the serialization.
 //! In actual use, this can be achieved with a `enum` type field.
+//! This implementation is done by [`Foreign`] type.
 //!
-//! 1. First, create a enumeration type with multiple type variants.
-//! 1. Then define a type variant with a field named "anchor", contains [`String`] type.
-//! 1. Mark the `enum` type as "untagged". (the variant name will be ignored)
-//!
-//! And you are done!
 //! The parent field will support anchor insertion when deserialized from [`NodeBase`](crate::NodeBase).
 //! In the same way, anchor insertion can also be achieved when serializing into a node.
 //!
 //! ```
 //! use serde::{Serialize, Deserialize};
-//! use yaml_peg::{node, serialize::to_node};
-//!
-//! #[derive(Serialize, Deserialize, Debug, PartialEq)]
-//! #[serde(untagged)]
-//! enum Data {
-//!     Doc(String),
-//!     Anchor { anchor: String },
-//! }
+//! use yaml_peg::{node, serialize::{to_node, Foreign}};
 //!
 //! #[derive(Serialize, Deserialize, Debug, PartialEq)]
 //! struct Content {
-//!     doc: Data,
+//!     doc: Foreign<String>,
 //! }
 //!
 //! let doc = Content {
-//!     doc: Data::Doc("my doc".to_string()),
+//!     doc: Foreign::Data("my doc".to_string()),
 //! };
 //! let anchor = Content {
-//!     doc: Data::Anchor { anchor: "my-anchor".to_string() },
+//!     doc: Foreign::anchor("my-anchor"),
 //! };
 //! let n_doc = node!({"doc" => "my doc"});
 //! let n_anchor = node!({"doc" => node!(*"my-anchor")});
-//! // Node -> Content (Data::Doc)
+//! // Node -> Content (Data)
 //! assert_eq!(doc, Content::deserialize(n_doc.clone()).unwrap());
-//! // Content -> Node (Data::Doc)
+//! // Content -> Node (Data)
 //! assert_eq!(n_doc, to_node(doc).unwrap());
-//! // Node -> Content (Data::Anchor)
+//! // Node -> Content (Anchor)
 //! assert_eq!(anchor, Content::deserialize(n_anchor.clone()).unwrap());
-//! // Content -> Node (Data::Anchor)
+//! // Content -> Node (Anchor)
 //! assert_eq!(n_anchor, to_node(anchor).unwrap());
 //! ```
 //!
@@ -84,9 +73,11 @@
 //! For anchor indexing, please see [`AnchorBase`](crate::AnchorBase) type.
 pub use self::de::from_str;
 pub use self::error::SerdeError;
+pub use self::foreign::Foreign;
 pub use self::ser::{to_arc_node, to_node, to_string};
 
 mod de;
 mod error;
+mod foreign;
 mod ser;
 mod ser_node;
