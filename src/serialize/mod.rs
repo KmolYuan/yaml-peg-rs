@@ -1,4 +1,4 @@
-//! The implementation of serializer.
+//! The implementation of serialization. The technique is come from [`serde`].
 //!
 //! Here is an example for converting YAML data into a custom structure.
 //!

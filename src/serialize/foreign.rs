@@ -1,27 +1,33 @@
 use serde::{Deserialize, Serialize};
 
 /// The serializable type provide anchor insertion.
+///
+/// The inner type `D` should be implement one of the [`Serialize`] or [`Deserialize`] traits.
+///
+/// Please see the [module page about anchors](super#anchors) for more information.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
-pub enum Foreign<T> {
-    /// A Normal data type.
-    #[serde(bound(deserialize = "T: for<'a> Deserialize<'a>", serialize = "T: Serialize"))]
-    Data(T),
-    /// A data structure can be serialized into anchor.
-    Anchor {
-        /// Inner anchor field.
-        anchor: String,
-    },
+pub enum Foreign<D> {
+    #[doc(hidden)]
+    #[serde(bound(deserialize = "D: for<'a> Deserialize<'a>", serialize = "D: Serialize"))]
+    Data(D),
+    #[doc(hidden)]
+    Anchor { anchor: String },
 }
 
-impl<T: Default> Default for Foreign<T> {
+impl<D: Default> Default for Foreign<D> {
     fn default() -> Self {
         Self::Data(Default::default())
     }
 }
 
-impl<T> Foreign<T> {
-    /// Create a anchor insertion.
+impl<D> Foreign<D> {
+    /// Create a data.
+    pub fn data(data: D) -> Self {
+        Self::Data(data)
+    }
+
+    /// Create an anchor insertion.
     pub fn anchor(s: impl ToString) -> Self {
         Self::Anchor {
             anchor: s.to_string(),
