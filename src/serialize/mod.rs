@@ -50,7 +50,7 @@
 //! }
 //!
 //! let doc = Content {
-//!     doc: Foreign::Data("my doc".to_string()),
+//!     doc: Foreign::data("my doc".to_string()),
 //! };
 //! let anchor = Content {
 //!     doc: Foreign::anchor("my-anchor"),
