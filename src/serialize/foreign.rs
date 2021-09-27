@@ -1,4 +1,8 @@
+use super::SerdeError;
+use crate::{repr::Repr, AnchorBase};
+use alloc::borrow::Cow;
 use serde::{Deserialize, Serialize};
+use std::option::Option::None;
 
 /// The serializable type provide anchor insertion.
 ///
@@ -31,6 +35,51 @@ impl<D> Foreign<D> {
     pub fn anchor(s: impl ToString) -> Self {
         Self::Anchor {
             anchor: s.to_string(),
+        }
+    }
+}
+
+impl<D: for<'a> Deserialize<'a> + Clone> Foreign<D> {
+    /// Get the deserializable value from exist anchor.
+    ///
+    /// Where returned type is [`Cow`], a reference container that can also save the actual data.
+    /// If the value is saved in the anchor visitor, it will be deserialized and saved in [`Cow::Owned`],
+    /// otherwise it is already deserialized, which will be borrowed as [`Cow::Borrowed`].
+    ///
+    /// The borrowed reference will be copied by [`Cow::into_owned`], but the owned data will just move itself.
+    ///
+    /// ```
+    /// use serde::Deserialize;
+    /// use yaml_peg::{anchors, node, Node, serialize::Foreign};
+    ///
+    /// #[derive(Deserialize, Debug, PartialEq)]
+    /// struct Content {
+    ///     doc: Foreign<String>,
+    /// }
+    ///
+    /// let visitor = anchors!["my-anchor" => "doc in anchor"];
+    /// let doc = Content {
+    ///     doc: Foreign::data("my doc".to_string()),
+    /// };
+    /// let anchor = Content {
+    ///     doc: Foreign::anchor("my-anchor"),
+    /// };
+    /// let n_doc = node!({"doc" => "my doc"});
+    /// let n_anchor = node!({"doc" => node!(*"my-anchor")});
+    /// assert_eq!("my doc", n_doc.with(&visitor, "doc", "error!", Node::as_str).unwrap());
+    /// assert_eq!("doc in anchor", n_anchor.with(&visitor, "doc", "error!", Node::as_str).unwrap());
+    /// let content_doc = Content::deserialize(n_doc).unwrap();
+    /// let content_anchor = Content::deserialize(n_anchor).unwrap();
+    /// assert_eq!("my doc", content_doc.doc.visit(&visitor).unwrap().into_owned());
+    /// assert_eq!("doc in anchor", content_anchor.doc.visit(&visitor).unwrap().into_owned());
+    /// ```
+    pub fn visit<R: Repr>(&self, anchor: &AnchorBase<R>) -> Result<Cow<D>, SerdeError> {
+        match self {
+            Self::Data(data) => Ok(Cow::Borrowed(data)),
+            Self::Anchor { anchor: tag } => match anchor.get(tag) {
+                Some(n) => Ok(Cow::Owned(D::deserialize(n.clone())?)),
+                None => Err(SerdeError::from("missing anchor".to_string())),
+            },
         }
     }
 }

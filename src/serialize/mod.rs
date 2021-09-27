@@ -69,8 +69,7 @@
 //!
 //! The first-step inference is fine.
 //! Since there are recursive issue in the YAML data,
-//! so just keep replace the `Data::Anchor` variant with another one (`Data::Doc`).
-//! For anchor indexing, please see [`AnchorBase`](crate::AnchorBase) type.
+//! please see the method [`Foreign::visit`].
 pub use self::de::from_str;
 pub use self::error::SerdeError;
 pub use self::foreign::Foreign;
