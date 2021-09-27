@@ -31,6 +31,10 @@
 //! For converting custom data into YAML data, please see [`to_node`] and [`to_arc_node`],
 //! and if you went to parse / dump YAML document, use [`from_str`] and [`to_string`].
 //!
+//! # Mixed String Type
+//!
+//! If the data needs to deserialized from any type into string, please see [`Stringify`].
+//!
 //! # Anchors
 //!
 //! The anchors are represented as a **single** key-value pair `{ "anchor": anchor }` in the serialization.
@@ -74,9 +78,11 @@ pub use self::de::from_str;
 pub use self::error::SerdeError;
 pub use self::foreign::Foreign;
 pub use self::ser::{to_arc_node, to_node, to_string};
+pub use self::stringify::Stringify;
 
 mod de;
 mod error;
 mod foreign;
 mod ser;
 mod ser_node;
+mod stringify;

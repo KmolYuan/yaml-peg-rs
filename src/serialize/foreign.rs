@@ -2,7 +2,6 @@ use super::SerdeError;
 use crate::{repr::Repr, AnchorBase};
 use alloc::borrow::Cow;
 use serde::{Deserialize, Serialize};
-use std::option::Option::None;
 
 /// The serializable type provide anchor insertion.
 ///
@@ -58,20 +57,14 @@ impl<D: for<'a> Deserialize<'a> + Clone> Foreign<D> {
     /// }
     ///
     /// let visitor = anchors!["my-anchor" => "doc in anchor"];
-    /// let doc = Content {
-    ///     doc: Foreign::data("my doc".to_string()),
-    /// };
-    /// let anchor = Content {
-    ///     doc: Foreign::anchor("my-anchor"),
-    /// };
     /// let n_doc = node!({"doc" => "my doc"});
     /// let n_anchor = node!({"doc" => node!(*"my-anchor")});
     /// assert_eq!("my doc", n_doc.with(&visitor, "doc", "error!", Node::as_str).unwrap());
     /// assert_eq!("doc in anchor", n_anchor.with(&visitor, "doc", "error!", Node::as_str).unwrap());
-    /// let content_doc = Content::deserialize(n_doc).unwrap();
-    /// let content_anchor = Content::deserialize(n_anchor).unwrap();
-    /// assert_eq!("my doc", content_doc.doc.visit(&visitor).unwrap().into_owned());
-    /// assert_eq!("doc in anchor", content_anchor.doc.visit(&visitor).unwrap().into_owned());
+    /// let doc = Content::deserialize(n_doc).unwrap();
+    /// let anchor = Content::deserialize(n_anchor).unwrap();
+    /// assert_eq!("my doc", doc.doc.visit(&visitor).unwrap().into_owned());
+    /// assert_eq!("doc in anchor", anchor.doc.visit(&visitor).unwrap().into_owned());
     /// ```
     pub fn visit<R: Repr>(&self, anchor: &AnchorBase<R>) -> Result<Cow<D>, SerdeError> {
         match self {
