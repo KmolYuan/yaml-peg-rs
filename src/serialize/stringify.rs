@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 /// A type that can deserialize from any data to string type.
 ///
-/// It just like [`YamlBase`](crate::YamlBase) but no anchor type and containers.
+/// It just like [`YamlBase`](crate::YamlBase) but no null value, anchor type and containers.
 ///
 /// Calling [`ToString::to_string`] can convert the data into string.
 ///
@@ -25,8 +25,6 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Stringify {
-    /// Null value.
-    Null(()),
     /// Boolean value.
     Bool(bool),
     /// Integer value.
@@ -40,7 +38,6 @@ pub enum Stringify {
 impl ToString for Stringify {
     fn to_string(&self) -> String {
         match self {
-            Self::Null(()) => "~".to_string(),
             Self::Bool(true) => "true".to_string(),
             Self::Bool(false) => "false".to_string(),
             Self::Int(n) => n.to_string(),
