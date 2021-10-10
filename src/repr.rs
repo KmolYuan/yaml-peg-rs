@@ -4,10 +4,10 @@
 //! and [`Arc`] is the multiple thread reference counter.
 use crate::*;
 use alloc::{rc::Rc, string::String, sync::Arc};
-use core::ops::Deref;
 use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
+    ops::Deref,
 };
 
 /// The representation holder for [`Rc`].

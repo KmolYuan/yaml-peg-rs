@@ -74,11 +74,13 @@
 //! The first-step inference is fine.
 //! Since there are recursive issue in the YAML data,
 //! please see the method [`Foreign::visit`].
-pub use self::de::from_str;
-pub use self::error::SerdeError;
-pub use self::foreign::Foreign;
-pub use self::ser::{to_arc_node, to_node, to_string};
-pub use self::stringify::Stringify;
+pub use self::{
+    de::from_str,
+    error::SerdeError,
+    foreign::Foreign,
+    ser::{to_arc_node, to_node, to_string},
+    stringify::Stringify,
+};
 
 mod de;
 mod error;

@@ -21,8 +21,12 @@ macro_rules! impl_serializer {
 }
 
 macro_rules! impl_end {
-    (@ $self:ident) => { $self.0.into() };
-    (@map $self:ident) => { yaml_map!{ $self.1 => $self.0 }.into() };
+    (@ $self:ident) => {
+        $self.0.into()
+    };
+    (@map $self:ident) => {
+        yaml_map! { $self.1 => $self.0 }.into()
+    };
 }
 
 macro_rules! impl_seq_serializer {

@@ -42,12 +42,14 @@
 #![warn(missing_docs)]
 extern crate alloc;
 
-pub use crate::anchors::*;
-pub use crate::dumper::dump;
-pub use crate::indicator::*;
-pub use crate::node::*;
-pub use crate::parser::{parse, parse_arc};
-pub use crate::yaml::*;
+pub use crate::{
+    anchors::*,
+    dumper::dump,
+    indicator::*,
+    node::*,
+    parser::{parse, parse_arc},
+    yaml::*,
+};
 
 /// Create [`Node`] items literally.
 ///

@@ -1,6 +1,8 @@
 //! Parser components.
-pub use self::base::{TakeOpt, DEFAULT_PREFIX};
-pub use self::error::PError;
+pub use self::{
+    base::{TakeOpt, DEFAULT_PREFIX},
+    error::PError,
+};
 use crate::*;
 use alloc::{string::String, vec};
 use ritelinked::LinkedHashMap;

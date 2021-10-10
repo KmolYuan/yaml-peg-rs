@@ -1,11 +1,10 @@
 use crate::{repr::*, *};
 use alloc::string::ToString;
-use core::ops::Deref;
 use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::Hash,
     iter::FromIterator,
-    ops::Index,
+    ops::{Deref, Index},
     str::FromStr,
 };
 
