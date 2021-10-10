@@ -46,3 +46,9 @@ impl ToString for Stringify {
         }
     }
 }
+
+impl Default for Stringify {
+    fn default() -> Self {
+        Self::Str(String::new())
+    }
+}
