@@ -1,5 +1,5 @@
 use alloc::string::{String, ToString};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A type that can deserialize from any data to string type.
 ///
@@ -23,7 +23,7 @@ use serde::Deserialize;
 /// assert_eq!("20", value.width.to_string());
 /// assert_eq!("20%", percent.width.to_string());
 /// ```
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Stringify {
     /// Boolean value.

@@ -3,7 +3,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A data type that can support listed items,
 /// or inline it if there is single item.
@@ -33,7 +33,7 @@ use serde::Deserialize;
 ///     assert_eq!(format!("img/{}.png", i + 1), img.src);
 /// }
 /// ```
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum InlineList<T> {
     /// Listed representation.
@@ -61,5 +61,11 @@ impl<T> IntoIterator for InlineList<T> {
             Self::List(v) => v.into_iter(),
             Self::Inline(e) => vec![e].into_iter(),
         }
+    }
+}
+
+impl<T> Default for InlineList<T> {
+    fn default() -> Self {
+        Self::List(Vec::new())
     }
 }

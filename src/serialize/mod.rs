@@ -47,6 +47,7 @@ pub use self::{
     error::SerdeError,
     foreign::Foreign,
     inline_list::InlineList,
+    optional::Optional,
     ser::{to_arc_node, to_node, to_string},
     stringify::Stringify,
 };
@@ -55,6 +56,7 @@ mod de;
 mod error;
 mod foreign;
 mod inline_list;
+mod optional;
 mod ser;
 mod ser_node;
 mod stringify;
