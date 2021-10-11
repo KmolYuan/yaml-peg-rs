@@ -1,5 +1,5 @@
 use alloc::{
-    slice::{from_raw_parts, Iter},
+    slice::{from_ref, Iter},
     vec,
     vec::Vec,
 };
@@ -47,7 +47,7 @@ impl<T> InlineList<T> {
     pub fn iter(&self) -> Iter<T> {
         match self {
             Self::List(v) => v.iter(),
-            Self::Inline(e) => unsafe { from_raw_parts(e, 1) }.iter(),
+            Self::Inline(e) => from_ref(e).iter(),
         }
     }
 }
