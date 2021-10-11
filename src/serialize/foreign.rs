@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub enum Foreign<D> {
     #[doc(hidden)]
-    #[serde(bound(deserialize = "D: for<'a> Deserialize<'a>", serialize = "D: Serialize"))]
     Data(D),
     #[doc(hidden)]
     Anchor { anchor: String },
