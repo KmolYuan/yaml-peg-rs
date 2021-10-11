@@ -31,53 +31,22 @@
 //! For converting custom data into YAML data, please see [`to_node`] and [`to_arc_node`],
 //! and if you went to parse / dump YAML document, use [`from_str`] and [`to_string`].
 //!
-//! # Mixed String Type
-//!
-//! If the data needs to deserialized from any type into string, please see [`Stringify`].
-//!
 //! # Anchors
 //!
-//! The anchors are represented as a **single** key-value pair `{ "anchor": anchor }` in the serialization.
-//! In actual use, this can be achieved with a `enum` type field.
-//! This implementation is done by [`Foreign`] type.
+//! If the data supports anchor insertion, please see [`Foreign`] type.
 //!
-//! The parent field will support anchor insertion when deserialized from [`NodeBase`](crate::NodeBase).
-//! In the same way, anchor insertion can also be achieved when serializing into a node.
+//! # Mixed String Type
 //!
-//! ```
-//! use serde::{Serialize, Deserialize};
-//! use yaml_peg::{node, serialize::{to_node, Foreign}};
+//! If the data needs to deserialized from any type into string, please see [`Stringify`] type.
 //!
-//! #[derive(Serialize, Deserialize, Debug, PartialEq)]
-//! struct Content {
-//!     doc: Foreign<String>,
-//! }
+//! # Mixed Listed Map
 //!
-//! let doc = Content {
-//!     doc: Foreign::data("my doc".to_string()),
-//! };
-//! let anchor = Content {
-//!     doc: Foreign::anchor("my-anchor"),
-//! };
-//! let n_doc = node!({"doc" => "my doc"});
-//! let n_anchor = node!({"doc" => node!(*"my-anchor")});
-//! // Node -> Content (Data)
-//! assert_eq!(doc, Content::deserialize(n_doc.clone()).unwrap());
-//! // Content -> Node (Data)
-//! assert_eq!(n_doc, to_node(doc).unwrap());
-//! // Node -> Content (Anchor)
-//! assert_eq!(anchor, Content::deserialize(n_anchor.clone()).unwrap());
-//! // Content -> Node (Anchor)
-//! assert_eq!(n_anchor, to_node(anchor).unwrap());
-//! ```
-//!
-//! The first-step inference is fine.
-//! Since there are recursive issue in the YAML data,
-//! please see the method [`Foreign::visit`].
+//! If the data supports listed items but allows single mapped item, please see [`InlineList`] type.
 pub use self::{
     de::from_str,
     error::SerdeError,
     foreign::Foreign,
+    inline_list::InlineList,
     ser::{to_arc_node, to_node, to_string},
     stringify::Stringify,
 };
@@ -85,6 +54,7 @@ pub use self::{
 mod de;
 mod error;
 mod foreign;
+mod inline_list;
 mod ser;
 mod ser_node;
 mod stringify;

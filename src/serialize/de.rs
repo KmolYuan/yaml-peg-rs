@@ -1,6 +1,6 @@
 use super::SerdeError;
 use crate::{parse, repr::Repr, Array, Map, NodeBase, YamlBase};
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 use core::marker::PhantomData;
 use serde::{
     de::{

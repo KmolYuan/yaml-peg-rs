@@ -1,6 +1,6 @@
 use super::SerdeError;
 use crate::{dump, repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase, YamlBase};
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use core::marker::PhantomData;
 use serde::{
     ser::{
@@ -151,7 +151,11 @@ pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
 ///     age: u8,
 /// }
 ///
-/// let officer = Member { name: "Bob", married: true, age: 46 };
+/// let officer = Member {
+///     name: "Bob",
+///     married: true,
+///     age: 46,
+/// };
 /// let officer_doc = "\
 /// name: Bob
 /// married: true
@@ -310,7 +314,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     #[cfg(not(feature = "serde-std"))]
     fn collect_str<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: std::fmt::Display + ?Sized,
+        T: core::fmt::Display + ?Sized,
     {
         self.serialize_str(&value.to_string())
     }

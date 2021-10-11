@@ -1,13 +1,52 @@
 use super::SerdeError;
 use crate::{repr::Repr, AnchorBase};
-use alloc::borrow::Cow;
+use alloc::{
+    borrow::Cow,
+    string::{String, ToString},
+};
 use serde::{Deserialize, Serialize};
 
 /// The serializable type provide anchor insertion.
 ///
 /// The inner type `D` should be implement one of the [`Serialize`] or [`Deserialize`] traits.
 ///
-/// Please see the [module page about anchors](super#anchors) for more information.
+/// The anchors are represented as a **single** key-value pair `{ "anchor": anchor }` in the serialization.
+/// In actual use, this can be achieved with a `enum` type field.
+/// This implementation is done by [`Foreign`] type.
+///
+/// The parent field will support anchor insertion when deserialized from [`NodeBase`](crate::NodeBase).
+/// In the same way, anchor insertion can also be achieved when serializing into a node.
+///
+/// ```
+/// use serde::{Serialize, Deserialize};
+/// use yaml_peg::{node, serialize::{to_node, Foreign}};
+///
+/// #[derive(Serialize, Deserialize, Debug, PartialEq)]
+/// struct Content {
+///     doc: Foreign<String>,
+/// }
+///
+/// let doc = Content {
+///     doc: Foreign::data("my doc".to_string()),
+/// };
+/// let anchor = Content {
+///     doc: Foreign::anchor("my-anchor"),
+/// };
+/// let n_doc = node!({"doc" => "my doc"});
+/// let n_anchor = node!({"doc" => node!(*"my-anchor")});
+/// // Node -> Content (Data)
+/// assert_eq!(doc, Content::deserialize(n_doc.clone()).unwrap());
+/// // Content -> Node (Data)
+/// assert_eq!(n_doc, to_node(doc).unwrap());
+/// // Node -> Content (Anchor)
+/// assert_eq!(anchor, Content::deserialize(n_anchor.clone()).unwrap());
+/// // Content -> Node (Anchor)
+/// assert_eq!(n_anchor, to_node(anchor).unwrap());
+/// ```
+///
+/// The first-step inference is fine.
+/// Since there are recursive issue in the YAML data,
+/// please see the method [`Foreign::visit`].
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Foreign<D> {

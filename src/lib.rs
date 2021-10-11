@@ -155,7 +155,11 @@ macro_rules! yaml_array {
 ///
 /// assert_eq!(
 ///     yaml_map! { "a" => "b", "c" => "d" },
-///     Yaml::Map(vec![(node!("a"), node!("b")), (node!("c"), node!("d"))].into_iter().collect())
+///     Yaml::Map(
+///         vec![(node!("a"), node!("b")), (node!("c"), node!("d"))]
+///             .into_iter()
+///             .collect()
+///     )
 /// );
 /// ```
 #[macro_export]

@@ -49,8 +49,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// Also, the iterators can turn into arrays and maps.
 ///
 /// ```
-/// use yaml_peg::{Yaml, node};
-/// use yaml_peg::{yaml_array, yaml_map};
+/// use yaml_peg::{node, yaml_array, yaml_map, Yaml};
 ///
 /// use std::iter::FromIterator;
 /// let v = vec![node!(1), node!(2), node!(3)];

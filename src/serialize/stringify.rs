@@ -1,3 +1,4 @@
+use alloc::string::{String, ToString};
 use serde::Deserialize;
 
 /// A type that can deserialize from any data to string type.

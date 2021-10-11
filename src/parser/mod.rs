@@ -27,7 +27,7 @@ macro_rules! err {
 /// A simple example for parsing YAML only:
 ///
 /// ```
-/// use yaml_peg::{parser::Parser, node};
+/// use yaml_peg::{node, parser::Parser};
 ///
 /// let n = Parser::new(b"true").parse().unwrap();
 /// assert_eq!(n, vec![node!(true)]);
