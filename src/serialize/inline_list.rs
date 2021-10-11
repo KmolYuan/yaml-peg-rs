@@ -50,6 +50,30 @@ impl<T> InlineList<T> {
             Self::Inline(e) => from_ref(e).iter(),
         }
     }
+
+    /// Get the length of the list.
+    pub fn len(&self) -> usize {
+        match self {
+            Self::List(v) => v.len(),
+            Self::Inline(_) => 1,
+        }
+    }
+
+    /// Return true if the list is empty.
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::List(v) => v.is_empty(),
+            Self::Inline(_) => false,
+        }
+    }
+
+    /// Return true if the list has only one item.
+    pub fn is_single(&self) -> bool {
+        match self {
+            Self::List(v) => v.len() == 1,
+            Self::Inline(_) => true,
+        }
+    }
 }
 
 impl<T> IntoIterator for InlineList<T> {
