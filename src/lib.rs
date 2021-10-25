@@ -68,14 +68,24 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// The [`YamlBase::Anchor`] is also supported by the syntax:
 ///
 /// ```
-/// use yaml_peg::{node, YamlBase};
+/// use yaml_peg::{node, ArcNode, YamlBase};
 ///
 /// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
+/// assert_eq!(node!(arc ()), ArcNode::from(()));
 /// ```
 ///
-/// For [`ArcNode`], please use [`node_arc!`], which has same API.
+/// For [`ArcNode`], please use "arc" token at front, which has same API.
 #[macro_export]
 macro_rules! node {
+    (arc [$($token:tt)*]) => {
+        $crate::node!(arc $crate::yaml_array![$($token)*])
+    };
+    (arc {$($token:tt)*}) => {
+        $crate::node!(arc $crate::yaml_map! { $($token)* })
+    };
+    (arc *$anchor:expr) => {
+        $crate::node!(arc $crate::YamlBase::Anchor($anchor.into()))
+    };
     ([$($token:tt)*]) => {
         $crate::node!($crate::yaml_array![$($token)*])
     };
@@ -85,33 +95,11 @@ macro_rules! node {
     (*$anchor:expr) => {
         $crate::node!($crate::YamlBase::Anchor($anchor.into()))
     };
+    (arc $yaml:expr) => {
+        $crate::ArcNode::from($yaml)
+    };
     ($yaml:expr) => {
         $crate::Node::from($yaml)
-    };
-}
-
-/// Create [`ArcNode`] items literally.
-///
-/// The API is same as [`node!`] macro.
-///
-/// ```
-/// use yaml_peg::{node_arc as node, ArcNode};
-///
-/// assert_eq!(node!(()), ArcNode::from(()));
-/// ```
-#[macro_export]
-macro_rules! node_arc {
-    ([$($token:tt)*]) => {
-        $crate::node_arc!($crate::yaml_array![$($token)*])
-    };
-    ({$($token:tt)*}) => {
-        $crate::node_arc!($crate::yaml_map![$($token)*])
-    };
-    (*$anchor:expr) => {
-        $crate::node_arc!($crate::YamlBase::Anchor($anchor.into()))
-    };
-    ($yaml:expr) => {
-        $crate::ArcNode::from($yaml)
     };
 }
 

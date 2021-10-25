@@ -382,7 +382,7 @@ impl<R: Repr> Parser<'_, R> {
 /// Return an array of nodes and the anchors.
 ///
 /// ```
-/// use yaml_peg::{parse, node, node_arc};
+/// use yaml_peg::{parse, node};
 ///
 /// let doc = "
 /// ---
@@ -401,7 +401,7 @@ impl<R: Repr> Parser<'_, R> {
 /// // Node with Arc repr
 /// let (n, anchors) = parse(doc).unwrap();
 /// assert_eq!(anchors.len(), 0);
-/// assert_eq!(n, vec![node_arc!({
+/// assert_eq!(n, vec![node!(arc{
 ///     "name" => "Bob",
 ///     "married" => true,
 ///     "age" => 46,

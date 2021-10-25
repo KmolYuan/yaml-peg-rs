@@ -115,7 +115,7 @@ pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
 ///
 /// ```
 /// use serde::Serialize;
-/// use yaml_peg::{serialize::to_arc_node, node_arc};
+/// use yaml_peg::{serialize::to_arc_node, node};
 ///
 /// #[derive(Serialize)]
 /// struct Member<'a> {
@@ -125,7 +125,7 @@ pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
 /// }
 ///
 /// let officer = Member { name: "Bob", married: true, age: 46 };
-/// let officer_yaml = node_arc!({
+/// let officer_yaml = node!(arc{
 ///     "name" => "Bob",
 ///     "married" => true,
 ///     "age" => 46,
