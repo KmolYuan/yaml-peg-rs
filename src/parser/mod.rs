@@ -4,7 +4,7 @@ pub use self::{
     error::PError,
 };
 use crate::{repr::Repr, *};
-use alloc::{string::String, vec};
+use alloc::{string::String, vec, vec::Vec};
 use ritelinked::LinkedHashMap;
 
 mod base;
@@ -47,7 +47,7 @@ macro_rules! err {
 /// + Method [`Parser::backward`] is used to get back if mismatched.
 pub struct Parser<'a, R: Repr> {
     doc: &'a [u8],
-    indent: usize,
+    indent: Vec<usize>,
     consumed: u64,
     pub(crate) version_checked: bool,
     pub(crate) tag: LinkedHashMap<String, String>,
@@ -63,6 +63,17 @@ pub struct Parser<'a, R: Repr> {
 ///
 /// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
 /// Additionally, they should eat the string by themself.
+///
+/// # Parameter `nest`
+///
+/// The `nest` parameter presents that the expression is in a **map** structure,
+/// includes grand parents.
+///
+/// If `nest` is false, the expression might in the document root.
+///
+/// # Parameter `inner`
+///
+/// The `inner` parameter presents that the expression is in a **flow** expression.
 impl<R: Repr> Parser<'_, R> {
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Array<R>, PError> {
@@ -267,11 +278,12 @@ impl<R: Repr> Parser<'_, R> {
             self.forward();
             let mut downgrade = false;
             if v.is_empty() {
-                // Mismatch
+                // First item
                 if nest {
                     self.gap(true)?;
                     downgrade = self.unind(level)?;
                 } else if self.gap(true).is_ok() {
+                    // Root
                     downgrade = self.unind(level)?;
                 }
                 self.sym(b'-')?;
@@ -309,11 +321,12 @@ impl<R: Repr> Parser<'_, R> {
         loop {
             self.forward();
             let k = if m.is_empty() {
-                // Mismatch
+                // First item
                 if nest {
                     self.gap(true)?;
                     self.ind(level)?;
                 } else if self.gap(true).is_ok() {
+                    // Root
                     self.ind(level)?;
                 }
                 self.forward();

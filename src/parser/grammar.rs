@@ -383,12 +383,14 @@ impl<R: repr::Repr> Parser<'_, R> {
     /// Match indent with previous level.
     ///
     /// This sub-parser returns `true` if downgrading indent is used.
+    ///
+    /// The downgrading can only use a level as unit, not a whitespace.
     pub fn unind(&mut self, level: usize) -> Result<bool, PError> {
         if level > 0 {
             self.ind(level - 1)?;
             self.context(|p| Ok(p.ind(1).is_err()))
         } else {
-            self.ind(level)?;
+            self.ind(0)?;
             Ok(false)
         }
     }

@@ -91,3 +91,22 @@ fn test_dump() {
     ]);
     assert_eq!(doc, DOC.replace('\n', NL));
 }
+
+// #[test]
+fn test_indent() {
+    const DOC: &str = include_str!("indent.yaml");
+    let (ans, _) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
+    assert_eq!(
+        ans[0],
+        node!({
+            "version" => 2,
+            "models" => node!([node!({
+                "name" => "orders",
+                "columns" => node!([node!({
+                    "name" => "c_custkey",
+                    "tests" => node!(["not_null"]),
+                })]),
+            })]),
+        })
+    );
+}

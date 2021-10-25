@@ -1,5 +1,5 @@
 use super::*;
-use alloc::string::ToString;
+use alloc::{string::ToString, vec};
 use ritelinked::LinkedHashMap;
 
 /// The default prefix of the YAML sub tag.
@@ -17,16 +17,14 @@ pub enum TakeOpt {
     More(usize),
 }
 
-/// The implementation of string pointer.
-impl<'a, R: repr::Repr> Parser<'a, R> {
-    /// Create a PEG parser with the string.
-    pub fn new(doc: &'a [u8]) -> Self {
+impl<R: repr::Repr> Default for Parser<'_, R> {
+    fn default() -> Self {
         let mut tag = LinkedHashMap::new();
         tag.insert("!".to_string(), String::new());
         tag.insert("!!".to_string(), DEFAULT_PREFIX.to_string());
         Self {
-            doc,
-            indent: 2,
+            doc: b"",
+            indent: vec![0, 2],
             consumed: 0,
             version_checked: false,
             tag,
@@ -34,6 +32,20 @@ impl<'a, R: repr::Repr> Parser<'a, R> {
             eaten: 0,
             anchors: AnchorBase::new(),
         }
+    }
+}
+
+/// The implementation of string pointer.
+impl<'a, R: repr::Repr> Parser<'a, R> {
+    /// Create a PEG parser with the string.
+    pub fn new(doc: &'a [u8]) -> Self {
+        Self::default().with_doc(doc)
+    }
+
+    /// Attach document on the parser.
+    pub fn with_doc(mut self, doc: &'a [u8]) -> Self {
+        self.doc = doc;
+        self
     }
 
     /// Show the right hand side string after the current cursor.
@@ -55,12 +67,6 @@ impl<'a, R: repr::Repr> Parser<'a, R> {
 ///
 /// These sub-parser returns `Result<(), PError>`, and calling [`Parser::backward`] if mismatched.
 impl<R: repr::Repr> Parser<'_, R> {
-    /// Builder method for setting indent.
-    pub fn indent(mut self, indent: usize) -> Self {
-        self.indent = indent;
-        self
-    }
-
     /// Set the starting point if character boundary is valid.
     pub fn pos(mut self, pos: usize) -> Self {
         self.pos = pos;
@@ -162,6 +168,16 @@ impl<R: repr::Repr> Parser<'_, R> {
         }
     }
 
+    /// Count the position that parser goes, expect error.
+    pub fn count<F, Ret>(&mut self, f: F) -> Result<usize, PError>
+    where
+        F: Fn(&mut Self) -> Result<Ret, PError>,
+    {
+        let pos = self.pos;
+        let _ = f(self)?;
+        Ok(self.pos - pos)
+    }
+
     /// A wrapper for saving checkpoint locally.
     pub fn context<F, Ret>(&mut self, f: F) -> Ret
     where
@@ -193,6 +209,14 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     /// Match indent.
     pub fn ind(&mut self, level: usize) -> Result<(), PError> {
-        self.seq(&b" ".repeat(self.indent * level))
+        if level >= self.indent.len() {
+            for _ in 0..level - self.indent.len() + 1 {
+                self.indent.push(self.indent[self.indent.len() - 1]);
+            }
+        }
+        for _ in 0..self.indent[..=level].iter().sum() {
+            self.sym(b' ')?;
+        }
+        Ok(())
     }
 }
