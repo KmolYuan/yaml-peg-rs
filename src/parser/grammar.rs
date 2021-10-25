@@ -382,7 +382,7 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     /// Match indent with previous level.
     ///
-    /// Return `true` if downgrading indent is allowed.
+    /// This sub-parser returns `true` if downgrading indent is used.
     pub fn unind(&mut self, level: usize) -> Result<bool, PError> {
         if level > 0 {
             self.ind(level - 1)?;

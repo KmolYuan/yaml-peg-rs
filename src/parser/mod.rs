@@ -3,7 +3,7 @@ pub use self::{
     base::{TakeOpt, DEFAULT_PREFIX},
     error::PError,
 };
-use crate::*;
+use crate::{repr::Repr, *};
 use alloc::{string::String, vec};
 use ritelinked::LinkedHashMap;
 
@@ -45,7 +45,7 @@ macro_rules! err {
 /// + Method [`Parser::forward`] is used to move on.
 /// + Method [`Parser::text`] is used to get the matched string.
 /// + Method [`Parser::backward`] is used to get back if mismatched.
-pub struct Parser<'a, R: repr::Repr> {
+pub struct Parser<'a, R: Repr> {
     doc: &'a [u8],
     indent: usize,
     consumed: u64,
@@ -63,7 +63,7 @@ pub struct Parser<'a, R: repr::Repr> {
 ///
 /// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
 /// Additionally, they should eat the string by themself.
-impl<R: repr::Repr> Parser<'_, R> {
+impl<R: Repr> Parser<'_, R> {
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Array<R>, PError> {
         loop {
@@ -365,62 +365,38 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 }
 
-macro_rules! impl_parser {
-    ($(#[$meta:meta])* $func:ident -> $repr:ty) => {
-        $(#[$meta])*
-        pub fn $func(doc: &str) -> Result<(Array<$repr>, AnchorBase<$repr>), String> {
-            let mut p = Parser::<$repr>::new(doc.as_bytes());
-            p.parse()
-                .map_err(|e| e.into_error(doc))
-                .map(|a| (a, p.anchors))
-        }
-    };
-}
-
-impl_parser! {
-    /// Parse YAML document into [`alloc::rc::Rc`] data holder.
-    /// Return an array of nodes and the anchors.
-    ///
-    /// ```
-    /// use yaml_peg::{parse, node};
-    ///
-    /// let doc = "
-    /// ---
-    /// name: Bob
-    /// married: true
-    /// age: 46
-    /// ";
-    /// let (n, anchors) = parse(doc).unwrap();
-    /// assert_eq!(anchors.len(), 0);
-    /// assert_eq!(n, vec![node!({
-    ///     "name" => "Bob",
-    ///     "married" => true,
-    ///     "age" => 46,
-    /// })]);
-    /// ```
-    parse -> repr::RcRepr
-}
-
-impl_parser! {
-    /// Parse YAML document into [`alloc::sync::Arc`] data holder.
-    /// Return an array of nodes and the anchors.
-    ///
-    /// ```
-    /// use yaml_peg::{parse_arc, node_arc};
-    ///
-    /// let doc = "
-    /// ---
-    /// name: Bob
-    /// married: true
-    /// age: 46
-    /// ";
-    /// let (n, anchors) = parse_arc(doc).unwrap();
-    /// assert_eq!(anchors.len(), 0);
-    /// assert_eq!(n, vec![node_arc!({
-    ///     "name" => "Bob",
-    ///     "married" => true,
-    ///     "age" => 46,
-    /// })]);
-    /// ```
-    parse_arc -> repr::ArcRepr
+/// Parse YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
+/// Return an array of nodes and the anchors.
+///
+/// ```
+/// use yaml_peg::{parse, node, node_arc};
+///
+/// let doc = "
+/// ---
+/// name: Bob
+/// married: true
+/// age: 46
+/// ";
+/// // Node with Rc repr
+/// let (n, anchors) = parse(doc).unwrap();
+/// assert_eq!(anchors.len(), 0);
+/// assert_eq!(n, vec![node!({
+///     "name" => "Bob",
+///     "married" => true,
+///     "age" => 46,
+/// })]);
+/// // Node with Arc repr
+/// let (n, anchors) = parse(doc).unwrap();
+/// assert_eq!(anchors.len(), 0);
+/// assert_eq!(n, vec![node_arc!({
+///     "name" => "Bob",
+///     "married" => true,
+///     "age" => 46,
+/// })]);
+/// ```
+pub fn parse<R: Repr>(doc: &str) -> Result<(Array<R>, AnchorBase<R>), String> {
+    let mut p = Parser::new(doc.as_bytes());
+    p.parse()
+        .map_err(|e| e.into_error(doc))
+        .map(|a| (a, p.anchors))
 }

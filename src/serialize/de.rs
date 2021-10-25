@@ -1,5 +1,9 @@
 use super::SerdeError;
-use crate::{parse, repr::Repr, Array, Map, NodeBase, YamlBase};
+use crate::{
+    parse,
+    repr::{RcRepr, Repr},
+    Array, Map, NodeBase, YamlBase,
+};
 use alloc::{string::ToString, vec::Vec};
 use core::marker::PhantomData;
 use serde::{
@@ -69,7 +73,7 @@ pub fn from_str<D>(doc: &str) -> Result<Vec<D>, SerdeError>
 where
     D: for<'d> Deserialize<'d>,
 {
-    let (nodes, _) = parse(doc)?;
+    let (nodes, _) = parse::<RcRepr>(doc)?;
     nodes.into_iter().map(D::deserialize).collect()
 }
 

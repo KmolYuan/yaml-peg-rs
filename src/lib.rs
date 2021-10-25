@@ -11,7 +11,7 @@
 //!
 //! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
 //! which has a data holder [`Yaml`].
-//! There also has multiple thread version corresponding to [`parse_arc`], [`ArcNode`], [`ArcYaml`].
+//! There also has multiple thread version corresponding to [`ArcNode`] and [`ArcYaml`].
 //! To get back as string, please use [`dump`] function.
 //!
 //! There are also have some macros for building [`NodeBase`] structure from Rust data.
@@ -42,14 +42,7 @@
 #![warn(missing_docs)]
 extern crate alloc;
 
-pub use crate::{
-    anchors::*,
-    dumper::dump,
-    indicator::*,
-    node::*,
-    parser::{parse, parse_arc},
-    yaml::*,
-};
+pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, yaml::*};
 
 /// Create [`Node`] items literally.
 ///
