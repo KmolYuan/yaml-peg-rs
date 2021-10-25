@@ -1,11 +1,9 @@
-use super::*;
-
-const TEST_JSON: &str = include_str!("test.json");
-const TEST_YAML: &str = include_str!("test.yaml");
+use crate::*;
 
 #[test]
 fn test_json() {
-    let (ans, anchors) = parse(TEST_JSON).unwrap_or_else(|e| panic!("{}", e));
+    const DOC: &str = include_str!("json_compatibility.json");
+    let (ans, anchors) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(anchors.len(), 0);
     assert_eq!(anchor_visit(&ans[0]), anchors);
     assert_eq!(
@@ -22,7 +20,8 @@ fn test_json() {
 
 #[test]
 fn test_yaml() {
-    let (ans, anchors) = parse(TEST_YAML).unwrap_or_else(|e| panic!("{}", e));
+    const DOC: &str = include_str!("complete_doc.yaml");
+    let (ans, anchors) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
     assert_eq!(anchors.len(), 2);
     assert!(anchors.contains_key("x"));
     assert!(anchors.contains_key("y"));
@@ -78,6 +77,7 @@ fn test_yaml() {
 #[test]
 fn test_dump() {
     use crate::dumper::NL;
+    const DOC: &str = include_str!("dump_result.yaml");
     let doc = dump(&[
         node!({
             "a" => "b",
@@ -89,17 +89,5 @@ fn test_dump() {
         }),
         node!(["a", "b"]),
     ]);
-    let ans = "\
-a: b
-c:
-  - d: e
-  - f:
-      g: h
-  - i:
-    - j
----
-- a
-- b
-";
-    assert_eq!(doc, ans.replace('\n', NL));
+    assert_eq!(doc, DOC.replace('\n', NL));
 }
