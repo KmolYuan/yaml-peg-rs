@@ -24,7 +24,7 @@ impl<R: repr::Repr> Default for Parser<'_, R> {
         tag.insert("!!".to_string(), DEFAULT_PREFIX.to_string());
         Self {
             doc: b"",
-            indent: vec![0, 2],
+            indent: vec![0],
             consumed: 0,
             version_checked: false,
             tag,
@@ -211,7 +211,7 @@ impl<R: repr::Repr> Parser<'_, R> {
     pub fn ind(&mut self, level: usize) -> Result<(), PError> {
         if level >= self.indent.len() {
             for _ in 0..level - self.indent.len() + 1 {
-                self.indent.push(self.indent[self.indent.len() - 1]);
+                self.indent.push(2);
             }
         }
         for _ in 0..self.indent[..=level].iter().sum() {

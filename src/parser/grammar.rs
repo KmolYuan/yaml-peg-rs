@@ -380,6 +380,21 @@ impl<R: repr::Repr> Parser<'_, R> {
         self.take_while(u8::is_ascii_whitespace, opt)
     }
 
+    /// Match and define new indent size.
+    pub fn ind_define(&mut self, level: usize) -> Result<(), PError> {
+        assert!(level <= self.indent.len());
+        if level > 0 {
+            self.ind(level - 1)?;
+        }
+        let ind = self.count(|p| p.take_while(Self::is_in(b" "), TakeOpt::More(1)))?;
+        if level == self.indent.len() {
+            self.indent.push(ind);
+        } else {
+            self.indent[level] = ind;
+        }
+        Ok(())
+    }
+
     /// Match indent with previous level.
     ///
     /// This sub-parser returns `true` if downgrading indent is used.

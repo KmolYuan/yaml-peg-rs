@@ -281,10 +281,10 @@ impl<R: Repr> Parser<'_, R> {
                 // First item
                 if nest {
                     self.gap(true)?;
-                    downgrade = self.unind(level)?;
+                    self.ind_define(level)?;
                 } else if self.gap(true).is_ok() {
                     // Root
-                    downgrade = self.unind(level)?;
+                    self.unind(level)?;
                 }
                 self.sym(b'-')?;
                 self.bound()?;
@@ -324,7 +324,7 @@ impl<R: Repr> Parser<'_, R> {
                 // First item
                 if nest {
                     self.gap(true)?;
-                    self.ind(level)?;
+                    self.ind_define(level)?;
                 } else if self.gap(true).is_ok() {
                     // Root
                     self.ind(level)?;

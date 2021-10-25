@@ -92,7 +92,7 @@ fn test_dump() {
     assert_eq!(doc, DOC.replace('\n', NL));
 }
 
-// #[test]
+#[test]
 fn test_indent() {
     const DOC: &str = include_str!("indent.yaml");
     let (ans, _) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
