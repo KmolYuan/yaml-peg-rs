@@ -62,7 +62,7 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// use yaml_peg::{node, yaml_array, yaml_map};
 ///
 /// assert_eq!(node!([1, 2]), node!(yaml_array![1, 2]));
-/// assert_eq!(node!({1 => 2}), node!(yaml_map! { 1 => 2 }));
+/// assert_eq!(node!({1 => 2}), node!(yaml_map![1 => 2]));
 /// ```
 ///
 /// The [`YamlBase::Anchor`] is also supported by the syntax:
@@ -138,7 +138,7 @@ macro_rules! yaml_array {
 /// use yaml_peg::{node, yaml_map, Yaml};
 ///
 /// assert_eq!(
-///     yaml_map! { "a" => "b", "c" => "d" },
+///     yaml_map!["a" => "b", "c" => "d"],
 ///     Yaml::Map(
 ///         vec![(node!("a"), node!("b")), (node!("c"), node!("d"))]
 ///             .into_iter()

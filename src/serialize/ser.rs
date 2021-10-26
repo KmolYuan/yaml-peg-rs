@@ -25,7 +25,7 @@ macro_rules! impl_end {
         $self.0.into()
     };
     (@map $self:ident) => {
-        yaml_map! { $self.1 => $self.0 }.into()
+        yaml_map![$self.1 => $self.0].into()
     };
 }
 
@@ -250,7 +250,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     where
         T: Serialize + ?Sized,
     {
-        Ok(yaml_map! { variant => value.serialize(NodeSerializer(PhantomData))? }.into())
+        Ok(yaml_map![variant => value.serialize(NodeSerializer(PhantomData))?].into())
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {

@@ -55,7 +55,7 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// let v = vec![node!(1), node!(2), node!(3)];
 /// assert_eq!(Yaml::from_iter(v), yaml_array![1, 2, 3]);
 /// let m = vec![(node!(1), node!(2)), (node!(3), node!(4))];
-/// assert_eq!(Yaml::from_iter(m), yaml_map! { 1 => 2, 3 => 4});
+/// assert_eq!(Yaml::from_iter(m), yaml_map![1 => 2, 3 => 4]);
 /// ```
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub enum YamlBase<R: Repr> {
