@@ -15,7 +15,7 @@
 //! To get back as string, please use [`dump`] function.
 //!
 //! There are also have some macros for building [`NodeBase`] structure from Rust data.
-//! Especially [`node!`] / [`node_arc!`] macro, almost data can be built by the macro literally.
+//! Especially [`node!`] macro, almost data can be built by the macro literally.
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
@@ -68,38 +68,41 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// The [`YamlBase::Anchor`] is also supported by the syntax:
 ///
 /// ```
-/// use yaml_peg::{node, ArcNode, YamlBase};
+/// use yaml_peg::{node, YamlBase};
 ///
 /// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
-/// assert_eq!(node!(arc ()), ArcNode::from(()));
 /// ```
 ///
-/// For [`ArcNode`], please use "arc" token at front, which has same API.
+/// This macro is use [`Node`] by default,
+/// to specify them, a "rc" or "arc" prefix token can choose the presentation.
+///
+/// ```
+/// use yaml_peg::{node, ArcNode};
+///
+/// assert_eq!(node!(arc ()), ArcNode::from(()));
+/// ```
 #[macro_export]
 macro_rules! node {
-    (arc [$($token:tt)*]) => {
-        $crate::node!(arc $crate::yaml_array![$($token)*])
+    (@[$($token:tt)*]) => {
+        $crate::node!(@$crate::yaml_array![$($token)*])
     };
-    (arc {$($token:tt)*}) => {
-        $crate::node!(arc $crate::yaml_map! { $($token)* })
+    (@{$($token:tt)*}) => {
+        $crate::node!(@$crate::yaml_map![$($token)*])
     };
-    (arc *$anchor:expr) => {
-        $crate::node!(arc $crate::YamlBase::Anchor($anchor.into()))
+    (@ *$anchor:expr) => {
+        $crate::node!(@$crate::YamlBase::Anchor($anchor.into()))
     };
-    ([$($token:tt)*]) => {
-        $crate::node!($crate::yaml_array![$($token)*])
+    (@ $($tt:tt)+) => {
+        $crate::NodeBase::from($($tt)+)
     };
-    ({$($token:tt)*}) => {
-        $crate::node!($crate::yaml_map! { $($token)* })
+    (arc $($tt:tt)+) => {
+        $crate::ArcNode::from($crate::node!(@$($tt)+))
     };
-    (*$anchor:expr) => {
-        $crate::node!($crate::YamlBase::Anchor($anchor.into()))
+    (rc $($tt:tt)+) => {
+        $crate::Node::from($crate::node!(@$($tt)+))
     };
-    (arc $yaml:expr) => {
-        $crate::ArcNode::from($yaml)
-    };
-    ($yaml:expr) => {
-        $crate::Node::from($yaml)
+    ($($tt:tt)+) => {
+        $crate::node!(rc $($tt)+)
     };
 }
 
@@ -119,11 +122,11 @@ macro_rules! node {
 macro_rules! yaml_array {
     ($v:expr; $n:expr) => {{
         extern crate alloc;
-        $crate::YamlBase::Array(alloc::vec![$crate::NodeBase::from($v); $n])
+        $crate::YamlBase::Array(alloc::vec![$crate::node!(@$v); $n])
     }};
     ($($v:expr),* $(,)?) => {{
         extern crate alloc;
-        $crate::YamlBase::Array(alloc::vec![$($crate::NodeBase::from($v)),*])
+        $crate::YamlBase::Array(alloc::vec![$($crate::node!(@$v)),*])
     }};
 }
 
@@ -147,9 +150,7 @@ macro_rules! yaml_array {
 macro_rules! yaml_map {
     ($($k:expr => $v:expr),* $(,)?) => {{
         extern crate alloc;
-        $crate::YamlBase::Map(alloc::vec![
-            $(($crate::NodeBase::from($k), $crate::NodeBase::from($v))),*
-        ].into_iter().collect())
+        $crate::YamlBase::Map(alloc::vec![$(($crate::node!(@$k), $crate::node!(@$v))),*].into_iter().collect())
     }};
 }
 
