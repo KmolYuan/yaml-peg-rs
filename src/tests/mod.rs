@@ -109,4 +109,5 @@ fn test_indent() {
             })]),
         })
     );
+    assert_eq!(ans[1], node!(["a1", "a2", "a3"]));
 }

@@ -3,7 +3,6 @@
 //! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
 //!
 //! This parser is not ensure about YAML spec but almost functions are well-implemented.
-//! (test case is [here](https://github.com/KmolYuan/yaml-peg-rs/blob/main/src/tests/test.yaml))
 //!
 //! The buffer reader has also not implemented, but the chunks can be read by sub-parsers.
 //!

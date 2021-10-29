@@ -5,3 +5,7 @@ models:
           - name: c_custkey
             tests:
                 - not_null
+---
+ - a1
+ - a2
+ - a3
