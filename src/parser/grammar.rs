@@ -386,7 +386,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         if level > 0 {
             self.ind(level - 1)?;
         }
-        let ind = self.count(|p| p.take_while(Self::is_in(b" "), TakeOpt::More(1)))?;
+        let ind = self.count(|p| p.take_while(Self::is_in(b" "), TakeOpt::More(0)))?;
         if level == self.indent.len() {
             self.indent.push(ind);
         } else {

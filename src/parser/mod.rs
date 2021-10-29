@@ -104,6 +104,8 @@ impl<R: Repr> Parser<'_, R> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<NodeBase<R>, PError> {
+        self.ind_define(0)?;
+        self.forward();
         let ret = self.scalar(0, false, false)?;
         self.gap(true).unwrap_or_default();
         self.seq(b"...").unwrap_or_default();
