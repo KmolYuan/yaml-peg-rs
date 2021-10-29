@@ -1,5 +1,5 @@
 use super::SerdeError;
-use crate::{dump, repr::Repr, yaml_map, ArcNode, Array, Map, Node, NodeBase, YamlBase};
+use crate::{dump, node, repr::Repr, ArcNode, Array, Map, Node, NodeBase, YamlBase};
 use alloc::string::{String, ToString};
 use core::marker::PhantomData;
 use serde::{
@@ -25,7 +25,7 @@ macro_rules! impl_end {
         $self.0.into()
     };
     (@map $self:ident) => {
-        yaml_map![$self.1 => $self.0].into()
+        node!(@{$self.1 => $self.0})
     };
 }
 
@@ -250,7 +250,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     where
         T: Serialize + ?Sized,
     {
-        Ok(yaml_map![variant => value.serialize(NodeSerializer(PhantomData))?].into())
+        Ok(node!(@{variant => value.serialize(NodeSerializer(PhantomData))?}))
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
