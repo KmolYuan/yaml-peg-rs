@@ -42,6 +42,33 @@
 //! # Mixed Listed Map
 //!
 //! If the data supports listed items but allows single mapped item, please see [`InlineList`] type.
+//!
+//! # Error
+//!
+//! The error message will provide the position of the node.
+//!
+//! Please see [`SerdeError`] for more information.
+//!
+//! ```
+//! use serde::Deserialize;
+//! use yaml_peg::serialize::from_str;
+//!
+//! #[derive(Deserialize)]
+//! struct Member {
+//!     name: String,
+//!     married: bool,
+//!     age: u8,
+//! }
+//!
+//! let yaml = "
+//! name: Bob
+//! married: 84
+//! age: 46
+//! ";
+//! let err = from_str::<Member>(yaml).err().unwrap();
+//! assert_eq!("invalid type: integer `84`, expected a boolean", err.msg);
+//! assert_eq!(20, err.pos);
+//! ```
 pub use self::{
     de::from_str,
     error::SerdeError,
