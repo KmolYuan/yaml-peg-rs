@@ -7,5 +7,5 @@ models:
                 - not_null
 ---
  - a1
+ - true of
  - a2
- - a3

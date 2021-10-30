@@ -175,26 +175,28 @@ impl<R: Repr> Parser<'_, R> {
 
     /// Match flow scalar terminal.
     pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<YamlBase<R>, PError> {
-        let yaml = if self.sym(b'~').is_ok() || self.seq(b"null").is_ok() {
-            YamlBase::Null
-        } else if self.seq(b"true").is_ok() {
-            YamlBase::Bool(true)
-        } else if self.seq(b"false").is_ok() {
-            YamlBase::Bool(false)
-        } else if self.nan().is_ok() {
-            YamlBase::Float("NaN".into())
-        } else if let Ok(b) = self.inf() {
-            YamlBase::Float(if b { "inf" } else { "-inf" }.into())
-        } else if let Ok(s) = self.float() {
-            YamlBase::Float(s.trim_end_matches(|c| ".0".contains(c)).into())
+        let yaml = if let Ok(s) = self.float() {
+            YamlBase::Float(s)
         } else if let Ok(s) = self.sci_float() {
             YamlBase::Float(s)
         } else if let Ok(s) = self.int() {
             YamlBase::Int(s)
         } else if let Ok(s) = self.anchor_use() {
             YamlBase::Anchor(s)
-        } else if let Ok(s) = self.string_flow(level, inner) {
+        } else if let Ok(s) = self.string_quoted(b'\'', b"''") {
             YamlBase::Str(s)
+        } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
+            YamlBase::Str(Self::escape(&s))
+        } else if let Ok(s) = self.string_plain(level, inner) {
+            match s.as_str() {
+                "~" | "null" => YamlBase::Null,
+                "true" => YamlBase::Bool(true),
+                "false" => YamlBase::Bool(false),
+                ".nan" | ".NaN" | ".NAN" => YamlBase::Float("NaN".to_string()),
+                ".inf" | ".Inf" | ".INF" => YamlBase::Float("inf".to_string()),
+                "-.inf" | "-.Inf" | "-.INF" => YamlBase::Float("-inf".to_string()),
+                _ => YamlBase::Str(s),
+            }
         } else {
             err!(
                 self.array_flow(level),

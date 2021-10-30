@@ -71,7 +71,7 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// ```
 /// use yaml_peg::{node, YamlBase};
 ///
-/// assert_eq!(node!(YamlBase::Anchor("x".into())), node!(*"x"));
+/// assert_eq!(node!(YamlBase::Anchor("x".to_string())), node!(*"x"));
 /// ```
 ///
 /// This macro is use [`Node`] by default,

@@ -60,12 +60,12 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// ```
 /// use std::collections::HashSet;
-/// use yaml_peg::Node;
+/// use yaml_peg::{Node, Yaml};
 ///
 /// let mut s = HashSet::new();
-/// s.insert(Node::new("a".into(), 0, "", ""));
-/// s.insert(Node::new("a".into(), 1, "my-type", ""));
-/// s.insert(Node::new("a".into(), 2, "", "my-anchor"));
+/// s.insert(Node::new(Yaml::from("a"), 0, "", ""));
+/// s.insert(Node::new(Yaml::from("a"), 1, "my-type", ""));
+/// s.insert(Node::new(Yaml::from("a"), 2, "", "my-anchor"));
 /// assert_eq!(s.len(), 1);
 /// ```
 ///

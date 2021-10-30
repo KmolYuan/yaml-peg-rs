@@ -42,8 +42,8 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// ```
 /// use yaml_peg::Yaml;
 ///
-/// assert_eq!(Yaml::Int("20".into()), 20.into());
-/// assert_eq!(Yaml::Float("0.001".into()), 1e-3.into());
+/// assert_eq!(Yaml::Int("20".to_string()), Yaml::from(20));
+/// assert_eq!(Yaml::Float("0.001".to_string()), 1e-3.into());
 /// ```
 ///
 /// Also, the iterators can turn into arrays and maps.

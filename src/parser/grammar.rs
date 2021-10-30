@@ -39,7 +39,7 @@ impl<R: repr::Repr> Parser<'_, R> {
         self.take_while(u8::is_ascii_digit, TakeOpt::More(0))?;
         let s = self.text();
         self.bound()?;
-        Ok(s)
+        Ok(s.trim_end_matches(|c| ".0".contains(c)).to_string())
     }
 
     /// Match float with scientific notation.
@@ -51,31 +51,6 @@ impl<R: repr::Repr> Parser<'_, R> {
         let s = self.text();
         self.bound()?;
         Ok(s)
-    }
-
-    /// Match NaN.
-    pub fn nan(&mut self) -> Result<(), PError> {
-        self.sym(b'.')?;
-        for s in [b"nan", b"NaN", b"NAN"] {
-            if self.seq(s).is_ok() {
-                self.bound()?;
-                return Ok(());
-            }
-        }
-        Err(PError::Mismatch)
-    }
-
-    /// Match inf, return true if the value is positive.
-    pub fn inf(&mut self) -> Result<bool, PError> {
-        let b = self.sym(b'-').is_err();
-        self.sym(b'.')?;
-        for s in [b"inf", b"Inf", b"INF"] {
-            if self.seq(s).is_ok() {
-                self.bound()?;
-                return Ok(b);
-            }
-        }
-        Err(PError::Mismatch)
     }
 
     /// Match quoted string.
@@ -176,19 +151,6 @@ impl<R: repr::Repr> Parser<'_, R> {
                 Ok(v)
             }
         })
-    }
-
-    /// Match flow string and return the content.
-    pub fn string_flow(&mut self, level: usize, inner: bool) -> Result<String, PError> {
-        if let Ok(s) = self.string_quoted(b'\'', b"''") {
-            Ok(s)
-        } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
-            Ok(Self::escape(&s))
-        } else if let Ok(s) = self.string_plain(level, inner) {
-            Ok(s)
-        } else {
-            Err(PError::Mismatch)
-        }
     }
 
     /// Match literal string.
