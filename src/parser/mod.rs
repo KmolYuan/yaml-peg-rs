@@ -189,9 +189,9 @@ impl<R: Repr> Parser<'_, R> {
             YamlBase::Str(Self::escape(&s))
         } else if let Ok(s) = self.string_plain(level, inner) {
             match s.as_str() {
-                "~" | "null" => YamlBase::Null,
-                "true" => YamlBase::Bool(true),
-                "false" => YamlBase::Bool(false),
+                "~" | "null" | "Null" | "NULL" => YamlBase::Null,
+                "true" | "True" | "TRUE" => YamlBase::Bool(true),
+                "false" | "False" | "FALSE" => YamlBase::Bool(false),
                 ".nan" | ".NaN" | ".NAN" => YamlBase::Float("NaN".to_string()),
                 ".inf" | ".Inf" | ".INF" => YamlBase::Float("inf".to_string()),
                 "-.inf" | "-.Inf" | "-.INF" => YamlBase::Float("-inf".to_string()),
