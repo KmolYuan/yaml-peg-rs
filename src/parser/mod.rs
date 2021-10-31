@@ -4,7 +4,7 @@ pub use self::{
     error::PError,
 };
 use crate::{repr::Repr, *};
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{string::{String, ToString}, vec, vec::Vec};
 use ritelinked::LinkedHashMap;
 
 mod base;

@@ -1,4 +1,5 @@
 use crate::*;
+use alloc::string::ToString;
 
 #[test]
 fn test_json() {
