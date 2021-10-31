@@ -90,7 +90,7 @@ fn test_dump() {
         }),
         node!(["a", "b"]),
     ]);
-    assert_eq!(doc, DOC.replace('\n', NL));
+    assert_eq!(doc.replace("\r\n", NL), DOC.replace("\r\n", NL));
 }
 
 #[test]
