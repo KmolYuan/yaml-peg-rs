@@ -7,6 +7,11 @@ use alloc::{
 };
 
 /// Newline symbol in common platforms.
+///
+/// There is only two symbols in the option,
+/// "\r\n" in Windows platform, otherwise uses "\n".
+///
+/// Please be aware that your storage can be used the symbol of Windows.
 pub const NL: &str = if cfg!(windows) { "\r\n" } else { "\n" };
 
 #[derive(Eq, PartialEq)]

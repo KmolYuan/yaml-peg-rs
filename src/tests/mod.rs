@@ -77,7 +77,6 @@ fn test_yaml() {
 
 #[test]
 fn test_dump() {
-    use crate::dumper::NL;
     const DOC: &str = include_str!("dump_result.yaml");
     let doc = dump(&[
         node!({
@@ -90,7 +89,7 @@ fn test_dump() {
         }),
         node!(["a", "b"]),
     ]);
-    assert_eq!(doc.replace("\r\n", NL), DOC.replace("\r\n", NL));
+    assert_eq!(doc.replace("\r\n", "\n"), DOC.replace("\r\n", "\n"));
 }
 
 #[test]

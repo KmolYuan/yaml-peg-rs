@@ -1,10 +1,56 @@
-//! Parser components.
+//! Parser components, includes parser error.
+//!
+//! This parser is a simple greedy algorithm that returns result when
+//! matched successfully; try next or return error when mismatched.
+//!
+//! Each pattern (the method of [`Parser`] type) is called "sub-parser",
+//! which returns a `Result<T, PError>` type, where `T` is the return type.
+//!
+//! # Errors
+//!
+//! ## Document
+//!
+//! **WRONG**: Invalid tag directive will be ignored.
+//!
+//! + document splitter: Error about the document splitter `---` / `...`.
+//! + checked version: Version directive `%YAML 1.2` is used again.
+//! + version: Version directive is wrong, must be `1.2`.
+//!
+//! ## Structure
+//!
+//! ### Flow Array
+//!
+//! + flow array item: Item in `[]` bracket is invalid.
+//!
+//! ### Flow Map
+//!
+//! + flow map key: Key of map item in `{}` bracket is invalid.
+//! + flow map value: Value of map item in `{}` bracket is invalid.
+//! + flow map splitter: Splitter `:` of map item in `{}` bracket is invalid.
+//!
+//! ### Array
+//!
+//! + array item: Item behind `-` indicator is invalid.
+//! + array terminator: The end of array is invalid, may caused by the last item
+//!   (like wrapped string).
+//!
+//! ### Map
+//!
+//! + map key: Key of map item is invalid.
+//! + map value: Value of map item is invalid.
+//! + map splitter: Splitter `:` of map item is invalid.
+//! + map terminator: The end of map is invalid, may caused by the last value
+//!   (like wrapped string).
 pub use self::{
     base::{TakeOpt, DEFAULT_PREFIX},
     error::PError,
 };
 use crate::{repr::Repr, *};
-use alloc::{string::{String, ToString}, vec, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use ritelinked::LinkedHashMap;
 
 mod base;
@@ -78,8 +124,10 @@ impl<R: Repr> Parser<'_, R> {
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Array<R>, PError> {
         loop {
-            if self.context(Self::directive).is_err() {
-                break;
+            match self.context(Self::directive) {
+                Ok(()) => (),
+                Err(PError::Mismatch) => break,
+                Err(e) => return Err(e),
             }
         }
         self.gap(true).unwrap_or_default();
@@ -93,7 +141,7 @@ impl<R: Repr> Parser<'_, R> {
                 break;
             }
             if self.seq(b"---").is_err() {
-                return self.err("splitter");
+                return self.err("document splitter");
             }
             self.gap(true).unwrap_or_default();
             self.forward();
@@ -254,16 +302,16 @@ impl<R: Repr> Parser<'_, R> {
                 }
                 k
             } else {
-                err!(
-                    self.scalar_flow(level + 1, true),
-                    self.err("flow map value")
-                )?
+                err!(self.scalar_flow(level + 1, true), self.err("flow map key"))?
             };
             if self.sym(b':').is_err() || self.bound().is_err() {
-                return self.err("map");
+                return self.err("flow map splitter");
             }
             self.forward();
-            let v = err!(self.scalar(level + 1, false, true), self.err("map"))?;
+            let v = err!(
+                self.scalar(level + 1, false, true),
+                self.err("flow map value")
+            )?;
             m.push((k, v));
             if self.sym(b',').is_err() {
                 self.inv(TakeOpt::More(0))?;

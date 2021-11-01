@@ -2,15 +2,20 @@ use super::*;
 use alloc::format;
 use core::fmt::{Display, Formatter, Result};
 
-/// The error of parser handling.
+/// The error of parser handling, returned by [`Parser`].
 ///
-/// Not recommended to use it at other times.
+/// Please see [module level document](super) for more error information.
 #[derive(Debug)]
 pub enum PError {
     /// If parser mismatched, just choose another one.
     Mismatch,
     /// The parser is the only one can be matched.
-    Terminate(&'static str, u64),
+    Terminate(
+        /// Name of sub-parser group.
+        &'static str,
+        /// Document position.
+        u64,
+    ),
 }
 
 impl PError {
