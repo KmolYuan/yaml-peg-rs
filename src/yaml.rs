@@ -30,8 +30,8 @@ macro_rules! impl_iter {
 pub type Yaml = YamlBase<RcRepr>;
 /// A YAML data with [`alloc::sync::Arc`] holder.
 pub type ArcYaml = YamlBase<ArcRepr>;
-/// The array data structure of YAML.
-pub type Array<R> = Vec<NodeBase<R>>;
+/// The sequence data structure of YAML.
+pub type Seq<R> = Vec<NodeBase<R>>;
 /// The map data structure of YAML.
 pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 
@@ -46,14 +46,14 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// assert_eq!(Yaml::Float("0.001".to_string()), 1e-3.into());
 /// ```
 ///
-/// Also, the iterators can turn into arrays and maps.
+/// Also, the iterators can turned to sequence and map.
 ///
 /// ```
 /// use yaml_peg::{node, Yaml};
 /// use std::iter::FromIterator;
 ///
 /// let v = vec![node!(1), node!(2), node!(3)];
-/// assert_eq!(Yaml::Array(v.clone()), Yaml::from_iter(v));
+/// assert_eq!(Yaml::Seq(v.clone()), Yaml::from_iter(v));
 /// let m = vec![(node!(1), node!(2)), (node!(3), node!(4))];
 /// assert_eq!(Yaml::Map(m.clone().into_iter().collect()), Yaml::from_iter(m));
 /// ```
@@ -69,8 +69,8 @@ pub enum YamlBase<R: Repr> {
     Float(String),
     /// String
     Str(String),
-    /// Array
-    Array(Array<R>),
+    /// Sequence
+    Seq(Seq<R>),
     /// Map
     Map(Map<R>),
     /// Anchor insertion
@@ -104,9 +104,9 @@ impl_from! {
     impl f32, f64 => Float
 }
 
-impl<R: Repr> From<Array<R>> for YamlBase<R> {
-    fn from(a: Array<R>) -> Self {
-        Self::Array(a)
+impl<R: Repr> From<Seq<R>> for YamlBase<R> {
+    fn from(a: Seq<R>) -> Self {
+        Self::Seq(a)
     }
 }
 
@@ -117,6 +117,6 @@ impl<R: Repr> From<Map<R>> for YamlBase<R> {
 }
 
 impl_iter! {
-    impl NodeBase<R> => Array
+    impl NodeBase<R> => Seq
     impl (NodeBase<R>, NodeBase<R>) => Map
 }

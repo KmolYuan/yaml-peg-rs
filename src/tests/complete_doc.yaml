@@ -21,7 +21,7 @@ a0 bb: !x!foo .val.
 ?a3: !<tag:my.tag.prefix:tt>
   - *x
   - [d1🀄🃏, 中文]
-- ~  # Test downgraded array item.
+- ~  # Test downgraded sequence item.
   -
 ? &y
   a4:

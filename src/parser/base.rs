@@ -112,13 +112,13 @@ impl<R: repr::Repr> Parser<'_, R> {
         self.sym_set(&[s])
     }
 
-    /// Match symbol from a set.
+    /// Match symbol set.
     pub fn sym_set(&mut self, s: &[u8]) -> Result<(), PError> {
         self.take_while(Self::is_in(s), TakeOpt::One)
     }
 
-    /// Match sequence.
-    pub fn seq(&mut self, s: &[u8]) -> Result<(), PError> {
+    /// Match symbol sequence.
+    pub fn sym_seq(&mut self, s: &[u8]) -> Result<(), PError> {
         for s in s {
             self.sym(*s)?;
         }

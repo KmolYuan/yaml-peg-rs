@@ -72,7 +72,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// There is also a convenient macro [`node!`] to create nodes literally.
 /// Please see the macro description for more information.
 ///
-/// Nodes can be indexing by convertable values, or array indicator [`Ind`],
+/// Nodes can be indexing by convertable values, or sequence indicator [`Ind`],
 /// but it will be panic if the index is not contained.
 ///
 /// ```
@@ -157,9 +157,24 @@ impl<R: Repr> NodeBase<R> {
     }
 
     /// Tag.
+    /// If the tag is not specified, returns a default tag from core schema.
+    ///
+    /// Anchor has no tag.
     #[inline(always)]
     pub fn tag(&self) -> &str {
-        &self.0.as_ref().tag
+        match self.0.as_ref().tag.as_str() {
+            "" => match self.yaml() {
+                YamlBase::Null => "tag:yaml.org,2002:null",
+                YamlBase::Bool(_) => "tag:yaml.org,2002:bool",
+                YamlBase::Int(_) => "tag:yaml.org,2002:int",
+                YamlBase::Float(_) => "tag:yaml.org,2002:float",
+                YamlBase::Str(_) => "tag:yaml.org,2002:str",
+                YamlBase::Seq(_) => "tag:yaml.org,2002:seq",
+                YamlBase::Map(_) => "tag:yaml.org,2002:map",
+                YamlBase::Anchor(_) => "",
+            },
+            s => s,
+        }
     }
 
     /// Anchor reference.
@@ -283,18 +298,18 @@ impl<R: Repr> NodeBase<R> {
     }
 
     as_method! {
-        /// Convert to array.
+        /// Convert to sequence.
         ///
         /// ```
         /// use yaml_peg::node;
         ///
         /// let n = node!(["55"]);
-        /// assert_eq!(node!("55"), n.as_array().unwrap()[0]);
-        /// for n in n.as_array().unwrap() {
+        /// assert_eq!(node!("55"), n.as_seq().unwrap()[0]);
+        /// for n in n.as_seq().unwrap() {
         ///     assert_eq!(node!("55"), n);
         /// }
         /// ```
-        fn as_array = Array(clone) -> Array<R>
+        fn as_seq = Seq(clone) -> Seq<R>
     }
 
     as_method! {
@@ -371,7 +386,7 @@ impl<R: Repr> NodeBase<R> {
     /// use yaml_peg::{node, NodeBase};
     ///
     /// let n = node!({node!("a") => node!([node!(1), node!(2), node!(3)])});
-    /// let a = n.get_default("c", vec![], NodeBase::as_array)?;
+    /// let a = n.get_default("c", vec![], NodeBase::as_seq)?;
     /// assert_eq!(a, vec![]);
     /// # Ok::<(), u64>(()) }
     /// ```
@@ -436,7 +451,7 @@ impl<R: Repr> NodeBase<R> {
         }
     }
 
-    /// Get node through index indicator. Only suitable for array.
+    /// Get node through index indicator. Only suitable for sequence.
     ///
     /// ```
     /// # fn main() -> Result<(), u64> {
@@ -447,7 +462,7 @@ impl<R: Repr> NodeBase<R> {
     /// # Ok::<(), u64>(()) }
     /// ```
     pub fn get_ind(&self, ind: Ind) -> Result<&Self, u64> {
-        if let YamlBase::Array(a) = self.yaml() {
+        if let YamlBase::Seq(a) = self.yaml() {
             if let Some(n) = a.get(ind.0) {
                 Ok(n)
             } else {
@@ -474,14 +489,14 @@ impl<R: Repr> Deref for NodeBase<R> {
     }
 }
 
-/// Node index indicator use to indicate array position.
+/// Node index indicator use to indicate sequence position.
 pub struct Ind(pub usize);
 
 impl<R: Repr> Index<Ind> for NodeBase<R> {
     type Output = Self;
 
     fn index(&self, index: Ind) -> &Self::Output {
-        if let YamlBase::Array(a) = self.yaml() {
+        if let YamlBase::Seq(a) = self.yaml() {
             a.index(index.0)
         } else {
             panic!("out of bound!")

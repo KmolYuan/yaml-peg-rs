@@ -29,7 +29,7 @@ fn inner_anchor_visit<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R
         visitor.insert(n.anchor().to_string(), n.clone());
     }
     match n.yaml() {
-        YamlBase::Array(a) => {
+        YamlBase::Seq(a) => {
             for n in a {
                 inner_anchor_visit(n, visitor);
             }

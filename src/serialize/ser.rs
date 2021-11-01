@@ -1,5 +1,5 @@
 use super::SerdeError;
-use crate::{dump, node, repr::Repr, ArcNode, Array, Map, Node, NodeBase, YamlBase};
+use crate::{dump, node, repr::Repr, ArcNode, Map, Node, NodeBase, Seq, YamlBase};
 use alloc::string::{String, ToString};
 use core::marker::PhantomData;
 use serde::{
@@ -254,11 +254,11 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        let array = match len {
-            Some(n) => Array::with_capacity(n),
-            None => Array::new(),
+        let seq = match len {
+            Some(n) => Seq::with_capacity(n),
+            None => Seq::new(),
         };
-        Ok(SeqSerializer(array))
+        Ok(SeqSerializer(seq))
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
@@ -280,7 +280,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Ok(TupleVariant(Array::with_capacity(len), variant))
+        Ok(TupleVariant(Seq::with_capacity(len), variant))
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
@@ -320,8 +320,8 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     }
 }
 
-struct SeqSerializer<R: Repr>(Array<R>);
-struct TupleVariant<R: Repr>(Array<R>, &'static str);
+struct SeqSerializer<R: Repr>(Seq<R>);
+struct TupleVariant<R: Repr>(Seq<R>, &'static str);
 struct MapSerializer<R: Repr>(Map<R>, Option<NodeBase<R>>);
 struct StructSerializer<R: Repr>(Map<R>);
 struct StructVariant<R: Repr>(Map<R>, &'static str);

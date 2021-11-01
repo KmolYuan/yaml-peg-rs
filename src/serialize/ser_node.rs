@@ -12,7 +12,7 @@ impl<R: Repr> Serialize for NodeBase<R> {
             YamlBase::Int(n) => serializer.serialize_i64(n.parse().unwrap()),
             YamlBase::Float(n) => serializer.serialize_f64(n.parse().unwrap()),
             YamlBase::Str(s) => serializer.serialize_str(s),
-            YamlBase::Array(a) => a.serialize(serializer),
+            YamlBase::Seq(a) => a.serialize(serializer),
             YamlBase::Map(m) => {
                 let mut map = serializer.serialize_map(Some(m.len()))?;
                 for (k, v) in m {

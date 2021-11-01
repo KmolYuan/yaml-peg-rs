@@ -29,7 +29,7 @@ impl<R: Repr> NodeBase<R> {
             doc += &format!("&{} ", anchor);
         }
         let tag = self.tag();
-        if !tag.is_empty() {
+        if !tag.is_empty() && !tag.starts_with("tag:yaml.org,2002:") {
             doc += &if tag.starts_with(parser::DEFAULT_PREFIX) {
                 format!("!!{} ", tag)
             } else if parser::Parser::<R>::new(tag.as_bytes())
@@ -64,7 +64,7 @@ impl<R: Repr> NodeBase<R> {
                     s.clone()
                 }
             }
-            YamlBase::Array(a) => {
+            YamlBase::Seq(a) => {
                 let mut doc = NL.to_string();
                 for (i, node) in a.iter().enumerate() {
                     if i != 0 || level != 0 {
@@ -82,7 +82,7 @@ impl<R: Repr> NodeBase<R> {
                         doc += &ind;
                     }
                     let s = k.dump(level + 1, Root::Map);
-                    if let YamlBase::Map(_) | YamlBase::Array(_) = k.yaml() {
+                    if let YamlBase::Map(_) | YamlBase::Seq(_) = k.yaml() {
                         doc += &format!("?{}{}{}{}{}", "  ".repeat(level + 1), NL, s, NL, ind);
                     } else {
                         doc += &s;
@@ -92,10 +92,10 @@ impl<R: Repr> NodeBase<R> {
                         YamlBase::Map(_) => {
                             doc += &v.dump(level + 1, Root::Map);
                         }
-                        YamlBase::Array(_) if root == Root::Array && i == 0 => {
+                        YamlBase::Seq(_) if root == Root::Array && i == 0 => {
                             doc += &v.dump(level, Root::Map);
                         }
-                        YamlBase::Array(_) => {
+                        YamlBase::Seq(_) => {
                             doc += &v.dump(level + 1, Root::Map);
                         }
                         _ => {

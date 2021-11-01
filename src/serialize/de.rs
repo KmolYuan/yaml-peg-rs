@@ -2,7 +2,7 @@ use super::SerdeError;
 use crate::{
     parse,
     repr::{RcRepr, Repr},
-    Array, Map, NodeBase, YamlBase,
+    Map, NodeBase, Seq, YamlBase,
 };
 use alloc::{string::ToString, vec::Vec};
 use core::marker::PhantomData;
@@ -107,7 +107,7 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
     where
         A: SeqAccess<'a>,
     {
-        let mut a = Array::new();
+        let mut a = Seq::new();
         while let Some(e) = seq.next_element()? {
             a.push(e);
         }
@@ -133,7 +133,7 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
     }
 }
 
-struct SeqVisitor<R: Repr>(<Array<R> as IntoIterator>::IntoIter);
+struct SeqVisitor<R: Repr>(<Seq<R> as IntoIterator>::IntoIter);
 
 impl<'a, R: Repr> SeqAccess<'a> for SeqVisitor<R> {
     type Error = SerdeError;
@@ -224,7 +224,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     {
         match self.0 {
             Some(node) => match node.yaml() {
-                YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+                YamlBase::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
                 _ => Err(node.unexpected("tuple variant")),
             },
             None => Err(Error::invalid_type(
@@ -277,7 +277,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
             YamlBase::Int(n) => visitor.visit_i64(n.parse().unwrap()),
             YamlBase::Float(n) => visitor.visit_f64(n.parse().unwrap()),
             YamlBase::Str(s) => visitor.visit_str(s),
-            YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+            YamlBase::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
             YamlBase::Anchor(s) => {
                 let mut m = Map::<R>::new();
@@ -302,7 +302,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         fn deserialize_str(Str) => visit_str(s => s)
         fn deserialize_string(Str) => visit_str(s => s)
         fn deserialize_char(Str) => visit_str(s => s)
-        fn deserialize_seq(Array) => visit_seq(a => SeqVisitor(a.clone().into_iter()))
+        fn deserialize_seq(Seq) => visit_seq(a => SeqVisitor(a.clone().into_iter()))
         fn deserialize_map(Map) => visit_map(m => MapVisitor(m.clone().into_iter(), None))
         fn deserialize_identifier(Str) => visit_str(s => s)
     }
@@ -327,7 +327,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
     {
         match self.yaml() {
             YamlBase::Str(s) => visitor.visit_str(s),
-            YamlBase::Array(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
+            YamlBase::Seq(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
             _ => Err(self.unexpected(visitor)),
         }
     }
@@ -404,7 +404,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         V: Visitor<'a>,
     {
         match self.yaml() {
-            YamlBase::Array(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+            YamlBase::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
             _ => Err(self.unexpected(visitor)),
         }
@@ -453,7 +453,7 @@ impl<R: Repr> NodeBase<R> {
             YamlBase::Int(n) => Unexpected::Signed(n.parse().unwrap()),
             YamlBase::Float(n) => Unexpected::Float(n.parse().unwrap()),
             YamlBase::Str(s) => Unexpected::Str(s),
-            YamlBase::Array(_) => Unexpected::Seq,
+            YamlBase::Seq(_) => Unexpected::Seq,
             YamlBase::Map(_) => Unexpected::Map,
             YamlBase::Anchor(_) => Unexpected::Other("anchor"),
         };

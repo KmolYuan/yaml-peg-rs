@@ -87,12 +87,12 @@ macro_rules! node {
     (@[$v:expr; $n:expr]) => {{
         extern crate alloc;
         let v = alloc::vec![$crate::node!(@$v); $n];
-        $crate::node!(@$crate::YamlBase::Array(v))
+        $crate::node!(@$crate::YamlBase::Seq(v))
     }};
     (@[$($v:expr),* $(,)?]) => {{
         extern crate alloc;
         let v = alloc::vec![$($crate::node!(@$v)),*];
-        $crate::node!(@$crate::YamlBase::Array(v))
+        $crate::node!(@$crate::YamlBase::Seq(v))
     }};
     (@{$($k:expr => $v:expr),* $(,)?}) => {{
         extern crate alloc;

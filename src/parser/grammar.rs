@@ -66,7 +66,7 @@ impl<R: repr::Repr> Parser<'_, R> {
                 p.take_while(Self::not_in(&[b'\n', b'\r', b'\\', sym]), TakeOpt::More(0))?;
                 v.push_str(&p.text());
                 p.forward();
-                if p.seq(ignore).is_ok() {
+                if p.sym_seq(ignore).is_ok() {
                     v.push(char::from(sym));
                 } else if let Ok(mut t) = p.gap(false) {
                     if v.ends_with('\\') {
@@ -112,9 +112,9 @@ impl<R: repr::Repr> Parser<'_, R> {
                 p.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
                 v.push_str(&p.text());
                 p.forward();
-                if p.seq(b": ").is_ok()
+                if p.sym_seq(b": ").is_ok()
                     || (p.sym(b':').is_ok() && p.nl().is_ok())
-                    || p.seq(b" #").is_ok()
+                    || p.sym_seq(b" #").is_ok()
                 {
                     p.backward();
                     break;
@@ -328,8 +328,8 @@ impl<R: repr::Repr> Parser<'_, R> {
     /// Match newline characters.
     pub fn nl(&mut self) -> Result<(), PError> {
         self.context(|p| {
-            (p.seq(b"\r\n").is_ok()
-                || p.seq(b"\n\r").is_ok()
+            (p.sym_seq(b"\r\n").is_ok()
+                || p.sym_seq(b"\n\r").is_ok()
                 || p.sym(b'\n').is_ok()
                 || p.sym(b'\r').is_ok())
             .then(|| ())

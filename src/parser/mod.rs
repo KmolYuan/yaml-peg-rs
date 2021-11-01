@@ -20,7 +20,7 @@
 //!
 //! ### Flow Array
 //!
-//! + flow array item: Item in `[]` bracket is invalid.
+//! + flow sequence item: Item in `[]` bracket is invalid.
 //!
 //! ### Flow Map
 //!
@@ -30,8 +30,8 @@
 //!
 //! ### Array
 //!
-//! + array item: Item behind `-` indicator is invalid.
-//! + array terminator: The end of array is invalid, may caused by the last item
+//! + sequence item: Item behind `-` indicator is invalid.
+//! + sequence terminator: The end of sequence is invalid, may caused by the last item
 //!   (like wrapped string).
 //!
 //! ### Map
@@ -122,7 +122,7 @@ pub struct Parser<'a, R: Repr> {
 /// The `inner` parameter presents that the expression is in a **flow** expression.
 impl<R: Repr> Parser<'_, R> {
     /// YAML entry point, return entire doc if exist.
-    pub fn parse(&mut self) -> Result<Array<R>, PError> {
+    pub fn parse(&mut self) -> Result<Seq<R>, PError> {
         loop {
             match self.context(Self::directive) {
                 Ok(()) => (),
@@ -131,7 +131,7 @@ impl<R: Repr> Parser<'_, R> {
             }
         }
         self.gap(true).unwrap_or_default();
-        self.seq(b"---").unwrap_or_default();
+        self.sym_seq(b"---").unwrap_or_default();
         self.gap(true).unwrap_or_default();
         self.forward();
         let mut v = vec![self.doc()?];
@@ -140,7 +140,7 @@ impl<R: Repr> Parser<'_, R> {
             if self.food().is_empty() {
                 break;
             }
-            if self.seq(b"---").is_err() {
+            if self.sym_seq(b"---").is_err() {
                 return self.err("document splitter");
             }
             self.gap(true).unwrap_or_default();
@@ -156,7 +156,7 @@ impl<R: Repr> Parser<'_, R> {
         self.forward();
         let ret = self.scalar(0, false, false)?;
         self.gap(true).unwrap_or_default();
-        self.seq(b"...").unwrap_or_default();
+        self.sym_seq(b"...").unwrap_or_default();
         self.forward();
         Ok(ret)
     }
@@ -167,7 +167,7 @@ impl<R: Repr> Parser<'_, R> {
             true
         } else {
             self.context(|p| {
-                let b = p.seq(b"---").is_ok() || p.seq(b"...").is_ok();
+                let b = p.sym_seq(b"---").is_ok() || p.sym_seq(b"...").is_ok();
                 if b {
                     p.backward();
                 }
@@ -185,7 +185,7 @@ impl<R: Repr> Parser<'_, R> {
                 Ok(YamlBase::Str(s))
             } else {
                 err!(
-                    p.array(level, nest),
+                    p.seq(level, nest),
                     err!(p.map(level, nest, inner), p.scalar_term(level, inner))
                 )
             }
@@ -247,15 +247,15 @@ impl<R: Repr> Parser<'_, R> {
             }
         } else {
             err!(
-                self.array_flow(level),
+                self.seq_flow(level),
                 err!(self.map_flow(level), Ok(YamlBase::Null))
             )?
         };
         Ok(yaml)
     }
 
-    /// Match flow array.
-    pub fn array_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
+    /// Match flow sequence.
+    pub fn seq_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -267,7 +267,7 @@ impl<R: Repr> Parser<'_, R> {
             self.forward();
             v.push(err!(
                 self.scalar(level + 1, false, true),
-                self.err("flow array item")
+                self.err("flow sequence item")
             )?);
             self.inv(TakeOpt::More(0))?;
             if self.sym(b',').is_err() {
@@ -323,8 +323,8 @@ impl<R: Repr> Parser<'_, R> {
         Ok(m.into_iter().collect())
     }
 
-    /// Match array.
-    pub fn array(&mut self, level: usize, nest: bool) -> Result<YamlBase<R>, PError> {
+    /// Match sequence.
+    pub fn seq(&mut self, level: usize, nest: bool) -> Result<YamlBase<R>, PError> {
         let mut v = vec![];
         loop {
             self.forward();
@@ -342,7 +342,7 @@ impl<R: Repr> Parser<'_, R> {
                 self.bound()?;
             } else {
                 if self.gap(true).is_err() {
-                    return self.err("array terminator");
+                    return self.err("sequence terminator");
                 }
                 if self.doc_end() {
                     break;
@@ -359,7 +359,7 @@ impl<R: Repr> Parser<'_, R> {
             self.forward();
             v.push(err!(
                 self.scalar(if downgrade { level } else { level + 1 }, false, false),
-                self.err("array item")
+                self.err("sequence item")
             )?);
         }
         // Keep last wrapping
@@ -431,7 +431,7 @@ impl<R: Repr> Parser<'_, R> {
 }
 
 /// Parse YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
-/// Return an array of nodes and the anchors.
+/// Return an sequence of nodes and the anchors.
 ///
 /// ```
 /// use yaml_peg::{parse, node};
@@ -459,7 +459,7 @@ impl<R: Repr> Parser<'_, R> {
 ///     "age" => 46,
 /// })]);
 /// ```
-pub fn parse<R: Repr>(doc: &str) -> Result<(Array<R>, AnchorBase<R>), String> {
+pub fn parse<R: Repr>(doc: &str) -> Result<(Seq<R>, AnchorBase<R>), String> {
     let mut p = Parser::new(doc.as_bytes());
     p.parse()
         .map_err(|e| e.into_error(doc))
