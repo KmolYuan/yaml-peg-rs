@@ -1,10 +1,14 @@
 use crate::*;
 use alloc::string::ToString;
 
+fn show_err<E>(e: String) -> E {
+    panic!("{}", e)
+}
+
 #[test]
 fn test_json() {
     const DOC: &str = include_str!("json_compatibility.json");
-    let (ans, anchors) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
+    let (ans, anchors) = parse(DOC).unwrap_or_else(show_err);
     assert_eq!(anchors.len(), 0);
     assert_eq!(anchor_visit(&ans[0]), anchors);
     assert_eq!(
@@ -12,7 +16,8 @@ fn test_json() {
         node!({
             "a" => "b",
             "c" => node!([123, 321, 1234567]),
-            "d" => node!({})
+            "d" => node!({}),
+            "e:f" => "g"
         })
     );
     let n = ans[0].get("a").unwrap();
@@ -22,7 +27,7 @@ fn test_json() {
 #[test]
 fn test_yaml() {
     const DOC: &str = include_str!("complete_doc.yaml");
-    let (ans, anchors) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
+    let (ans, anchors) = parse(DOC).unwrap_or_else(show_err);
     assert_eq!(anchors.len(), 2);
     assert!(anchors.contains_key("x"));
     assert!(anchors.contains_key("y"));
@@ -95,7 +100,7 @@ fn test_dump() {
 #[test]
 fn test_indent() {
     const DOC: &str = include_str!("indent.yaml");
-    let (ans, _) = parse(DOC).unwrap_or_else(|e| panic!("{}", e));
+    let (ans, _) = parse(DOC).unwrap_or_else(show_err);
     assert_eq!(
         ans[0],
         node!({
