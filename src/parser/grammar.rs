@@ -344,7 +344,6 @@ impl<R: repr::Repr> Parser<'_, R> {
 
     /// Match and define new indent size.
     pub fn ind_define(&mut self, level: usize) -> Result<(), PError> {
-        assert!(level <= self.indent.len());
         if level > 0 {
             self.ind(level - 1)?;
         }

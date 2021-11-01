@@ -213,6 +213,9 @@ impl<R: repr::Repr> Parser<'_, R> {
             for _ in 0..level - self.indent.len() + 1 {
                 self.indent.push(2);
             }
+        } else {
+            // Clear the old indent settings
+            self.indent.drain(level + 1..);
         }
         for _ in 0..self.indent[..=level].iter().sum() {
             self.sym(b' ')?;
