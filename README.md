@@ -2,7 +2,7 @@
 
 [![dependency status](https://deps.rs/repo/github/KmolYuan/yaml-peg-rs/status.svg)](https://deps.rs/crate/yaml-peg/)
 
-A YAML 1.2 parser using greedy parsing algorithm with PEG atoms. Support anchor visitor and no-std.
+A [YAML 1.2](https://yaml.org/spec/1.2) parser using greedy parsing algorithm with PEG atoms. Support anchor visitor and no-std.
 
 Inspired from [`yaml-rust`](https://github.com/chyh1990/yaml-rust) and [`serde-yaml`](https://github.com/dtolnay/serde-yaml).
 
