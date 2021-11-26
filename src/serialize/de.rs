@@ -427,7 +427,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
                 if let Some((k, v)) = m.into_iter().next() {
                     (k.clone(), Some(v.clone()))
                 } else {
-                    panic!("never failed")
+                    unreachable!()
                 }
             }
             YamlBase::Str(_) => (self.clone(), None),
