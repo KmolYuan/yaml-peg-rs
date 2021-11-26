@@ -164,13 +164,13 @@ impl<R: Repr> NodeBase<R> {
     pub fn tag(&self) -> &str {
         match self.0.as_ref().tag.as_str() {
             "" => match self.yaml() {
-                YamlBase::Null => "tag:yaml.org,2002:null",
-                YamlBase::Bool(_) => "tag:yaml.org,2002:bool",
-                YamlBase::Int(_) => "tag:yaml.org,2002:int",
-                YamlBase::Float(_) => "tag:yaml.org,2002:float",
-                YamlBase::Str(_) => "tag:yaml.org,2002:str",
-                YamlBase::Seq(_) => "tag:yaml.org,2002:seq",
-                YamlBase::Map(_) => "tag:yaml.org,2002:map",
+                YamlBase::Null => concat!(parser::tag_prefix!(), "null"),
+                YamlBase::Bool(_) => concat!(parser::tag_prefix!(), "bool"),
+                YamlBase::Int(_) => concat!(parser::tag_prefix!(), "int"),
+                YamlBase::Float(_) => concat!(parser::tag_prefix!(), "float"),
+                YamlBase::Str(_) => concat!(parser::tag_prefix!(), "str"),
+                YamlBase::Seq(_) => concat!(parser::tag_prefix!(), "seq"),
+                YamlBase::Map(_) => concat!(parser::tag_prefix!(), "map"),
                 YamlBase::Anchor(_) => "",
             },
             s => s,

@@ -41,10 +41,7 @@
 //! + map splitter: Splitter `:` of map item is invalid.
 //! + map terminator: The end of map is invalid, may caused by the last value
 //!   (like wrapped string).
-pub use self::{
-    base::{TakeOpt, DEFAULT_PREFIX},
-    error::PError,
-};
+pub use self::{base::TakeOpt, error::PError};
 use crate::{repr::Repr, *};
 use alloc::{
     string::{String, ToString},
@@ -58,6 +55,12 @@ mod directive;
 mod error;
 mod grammar;
 
+macro_rules! tag_prefix {
+    () => {
+        "tag:yaml.org,2002:"
+    };
+}
+
 macro_rules! err {
     ($e:expr, $then:expr) => {
         match $e {
@@ -67,6 +70,11 @@ macro_rules! err {
         }
     };
 }
+
+pub(crate) use tag_prefix;
+
+/// The default prefix of the YAML sub tag.
+pub const DEFAULT_PREFIX: &str = tag_prefix!();
 
 /// A PEG parser with YAML grammar, support UTF-8 characters.
 ///

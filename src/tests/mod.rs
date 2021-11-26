@@ -1,5 +1,5 @@
 use crate::*;
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 
 fn show_err<E>(e: String) -> E {
     panic!("{}", e)

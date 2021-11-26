@@ -29,8 +29,8 @@ impl<R: Repr> NodeBase<R> {
             doc += &format!("&{} ", anchor);
         }
         let tag = self.tag();
-        if !tag.is_empty() && !tag.starts_with("tag:yaml.org,2002:") {
-            doc += &if tag.starts_with(parser::DEFAULT_PREFIX) {
+        if !tag.is_empty() && !tag.starts_with(parser::tag_prefix!()) {
+            doc += &if tag.starts_with(parser::tag_prefix!()) {
                 format!("!!{} ", tag)
             } else if parser::Parser::<R>::new(tag.as_bytes())
                 .identifier()

@@ -2,9 +2,6 @@ use super::*;
 use alloc::{string::ToString, vec};
 use ritelinked::LinkedHashMap;
 
-/// The default prefix of the YAML sub tag.
-pub const DEFAULT_PREFIX: &str = "tag:yaml.org,2002:";
-
 /// The option of [`Parser::take_while`].
 pub enum TakeOpt {
     /// Match once.
@@ -21,7 +18,7 @@ impl<R: repr::Repr> Default for Parser<'_, R> {
     fn default() -> Self {
         let mut tag = LinkedHashMap::new();
         tag.insert("!".to_string(), String::new());
-        tag.insert("!!".to_string(), DEFAULT_PREFIX.to_string());
+        tag.insert("!!".to_string(), tag_prefix!().to_string());
         Self {
             doc: b"",
             indent: vec![0],
