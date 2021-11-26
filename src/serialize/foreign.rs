@@ -4,7 +4,7 @@ use alloc::{
     borrow::Cow,
     string::{String, ToString},
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 /// The serializable type provide anchor insertion.
 ///
@@ -76,7 +76,7 @@ impl<D> Foreign<D> {
     }
 }
 
-impl<D: for<'a> Deserialize<'a> + Clone> Foreign<D> {
+impl<D: DeserializeOwned + Clone> Foreign<D> {
     /// Get the deserializable value from exist anchor.
     ///
     /// Where returned type is [`Cow`], a reference container that can also save the actual data.

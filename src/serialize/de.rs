@@ -8,8 +8,8 @@ use alloc::{string::ToString, vec::Vec};
 use core::marker::PhantomData;
 use serde::{
     de::{
-        DeserializeSeed, EnumAccess, Error, Expected, MapAccess, SeqAccess, Unexpected,
-        VariantAccess, Visitor,
+        DeserializeOwned, DeserializeSeed, EnumAccess, Error, Expected, MapAccess, SeqAccess,
+        Unexpected, VariantAccess, Visitor,
     },
     serde_if_integer128, Deserialize, Deserializer,
 };
@@ -71,7 +71,7 @@ macro_rules! impl_deserializer {
 /// ```
 pub fn from_str<D>(doc: &str) -> Result<Vec<D>, SerdeError>
 where
-    D: for<'d> Deserialize<'d>,
+    D: DeserializeOwned,
 {
     let (nodes, _) = parse::<RcRepr>(doc)?;
     nodes.into_iter().map(D::deserialize).collect()
