@@ -4,7 +4,7 @@ use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::Hash,
     iter::FromIterator,
-    ops::{Deref, Index},
+    ops::Index,
     str::FromStr,
 };
 
@@ -150,27 +150,22 @@ impl<R: Repr> NodeBase<R> {
     where
         Y: Into<YamlBase<R>>,
     {
-        Self(R::repr(
-            yaml.into(),
-            pos,
-            tag.to_string(),
-            anchor.to_string(),
-        ))
+        let yaml = yaml.into();
+        Self(R::repr(yaml, pos, tag.to_string(), anchor.to_string()))
     }
 
     /// Document position.
     #[inline(always)]
     pub fn pos(&self) -> u64 {
-        self.0.as_ref().pos
+        self.0.pos
     }
 
-    /// Tag.
-    /// If the tag is not specified, returns a default tag from core schema.
+    /// Tag. If the tag is not specified, returns a default tag from core schema.
     ///
     /// Anchor has no tag.
     #[inline(always)]
     pub fn tag(&self) -> &str {
-        match self.0.as_ref().tag.as_str() {
+        match self.0.tag.as_str() {
             "" => match self.yaml() {
                 YamlBase::Null => concat!(parser::tag_prefix!(), "null"),
                 YamlBase::Bool(_) => concat!(parser::tag_prefix!(), "bool"),
@@ -188,13 +183,13 @@ impl<R: Repr> NodeBase<R> {
     /// Anchor reference.
     #[inline(always)]
     pub fn anchor(&self) -> &str {
-        &self.0.as_ref().anchor
+        &self.0.anchor
     }
 
     /// YAML data.
     #[inline(always)]
     pub fn yaml(&self) -> &YamlBase<R> {
-        &self.0.as_ref().yaml
+        &self.0.yaml
     }
 
     /// Check the value is null.
@@ -485,15 +480,6 @@ impl<R: Repr> NodeBase<R> {
 impl<R: Repr> Debug for NodeBase<R> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_fmt(format_args!("Node{:?}", &self.0))
-    }
-}
-
-impl<R: Repr> Deref for NodeBase<R> {
-    type Target = R::Target;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        self.0.deref()
     }
 }
 
