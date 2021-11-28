@@ -5,7 +5,7 @@ use core::cmp::Ordering;
 /// The low level grammar implementation for YAML.
 ///
 /// These sub-parser returns `Result<R, PError>`, and calling [`Parser::backward`] if mismatched.
-impl<R: repr::Repr> Parser<'_, R> {
+impl Parser<'_> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
     pub fn bound(&mut self) -> Result<(), PError> {
         self.sym_set(b":{}[] ,\n\r")?;

@@ -80,7 +80,7 @@ pub enum YamlBase<R: Repr> {
 impl<R: Repr> YamlBase<R> {
     /// Check the anchor is valid.
     pub fn is_valid_anchor<S: ToString>(s: S) -> bool {
-        parser::Parser::<R>::new(s.to_string().as_bytes())
+        parser::Parser::new(s.to_string().as_bytes())
             .identifier()
             .is_ok()
     }

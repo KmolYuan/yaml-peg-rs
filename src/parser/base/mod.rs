@@ -2,6 +2,9 @@ use super::*;
 use alloc::{string::ToString, vec};
 use ritelinked::LinkedHashMap;
 
+mod directive;
+mod grammar;
+
 /// The option of [`Parser::take_while`].
 pub enum TakeOpt {
     /// Match once.
@@ -14,7 +17,22 @@ pub enum TakeOpt {
     More(usize),
 }
 
-impl<R: repr::Repr> Default for Parser<'_, R> {
+/// Basic greedy parser with YAML syntax.
+///
+/// Its methods are actually the sub-parser of the syntax.
+pub struct Parser<'a> {
+    doc: &'a [u8],
+    indent: Vec<usize>,
+    consumed: u64,
+    pub(crate) version_checked: bool,
+    pub(crate) tag: LinkedHashMap<String, String>,
+    /// Current position.
+    pub pos: usize,
+    /// Read position.
+    pub eaten: usize,
+}
+
+impl Default for Parser<'_> {
     fn default() -> Self {
         let mut tag = LinkedHashMap::new();
         tag.insert("!".to_string(), String::new());
@@ -27,14 +45,13 @@ impl<R: repr::Repr> Default for Parser<'_, R> {
             tag,
             pos: 0,
             eaten: 0,
-            anchors: AnchorBase::new(),
         }
     }
 }
 
 /// The implementation of string pointer.
-impl<'a, R: repr::Repr> Parser<'a, R> {
-    /// Create a PEG parser with the string.
+impl<'a> Parser<'a> {
+    /// Create a parser with the string.
     pub fn new(doc: &'a [u8]) -> Self {
         Self::default().with_doc(doc)
     }
@@ -63,7 +80,7 @@ impl<'a, R: repr::Repr> Parser<'a, R> {
 /// The low level grammar implementation.
 ///
 /// These sub-parser returns `Result<(), PError>`, and calling [`Parser::backward`] if mismatched.
-impl<R: repr::Repr> Parser<'_, R> {
+impl Parser<'_> {
     /// Set the starting point if character boundary is valid.
     pub fn pos(mut self, pos: usize) -> Self {
         self.pos = pos;
@@ -77,7 +94,7 @@ impl<R: repr::Repr> Parser<'_, R> {
     }
 
     /// A short function to raise error.
-    pub fn err<Ret>(&self, msg: &'static str) -> Result<Ret, PError> {
+    pub fn err<R>(&self, msg: &'static str) -> Result<R, PError> {
         Err(PError::Terminate(msg, self.indicator()))
     }
 

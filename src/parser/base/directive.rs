@@ -2,7 +2,7 @@ use super::*;
 use alloc::string::ToString;
 
 /// The implementation of the directives.
-impl<R: repr::Repr> Parser<'_, R> {
+impl Parser<'_> {
     /// Match directives.
     pub fn directive(&mut self) -> Result<(), PError> {
         self.sym(b'%')?;

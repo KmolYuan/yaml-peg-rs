@@ -53,10 +53,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
         if !tag.is_empty() && !tag.starts_with(parser::tag_prefix!()) {
             doc += &if tag.starts_with(parser::tag_prefix!()) {
                 format!("!!{} ", tag)
-            } else if parser::Parser::<R>::new(tag.as_bytes())
-                .identifier()
-                .is_ok()
-            {
+            } else if parser::Parser::new(tag.as_bytes()).identifier().is_ok() {
                 format!("!{} ", tag)
             } else {
                 format!("!<{}> ", tag)
@@ -81,7 +78,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                         .collect::<Vec<_>>()
                         .join(NL);
                     format!("|{}{}{}", NL, ind, s.trim())
-                } else if parser::Parser::<R>::new(s.as_bytes())
+                } else if parser::Parser::new(s.as_bytes())
                     .string_plain(0, false)
                     .is_err()
                 {
