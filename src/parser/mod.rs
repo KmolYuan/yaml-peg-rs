@@ -86,9 +86,9 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 /// A simple example for parsing YAML only:
 ///
 /// ```
-/// use yaml_peg::{node, parser::Parser};
+/// use yaml_peg::{node, parser::Loader};
 ///
-/// let n = Parser::new(b"true").parse().unwrap();
+/// let n = Loader::new(b"true").parse().unwrap();
 /// assert_eq!(n, vec![node!(true)]);
 /// ```
 ///
