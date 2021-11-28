@@ -112,7 +112,8 @@ impl<R: repr::Repr> Parser<'_, R> {
                 p.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
                 v.push_str(&p.text());
                 p.forward();
-                if p.sym_seq(b": ").is_ok()
+                if p.food().is_empty()
+                    || p.sym_seq(b": ").is_ok()
                     || (p.sym(b':').is_ok() && p.nl().is_ok())
                     || p.sym_seq(b" #").is_ok()
                 {
