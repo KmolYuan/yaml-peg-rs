@@ -64,8 +64,8 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// let mut s = HashSet::new();
 /// s.insert(Node::new(Yaml::from("a"), 0, "", ""));
-/// s.insert(Node::new(Yaml::from("a"), 1, "my-type", ""));
-/// s.insert(Node::new(Yaml::from("a"), 2, "", "my-anchor"));
+/// s.insert(Node::new("a", 1, "my-tag", ""));
+/// s.insert(Node::new("a", 2, "", "my-anchor"));
 /// assert_eq!(s.len(), 1);
 /// ```
 ///
@@ -146,8 +146,16 @@ pub struct NodeBase<R: Repr>(pub(crate) R);
 
 impl<R: Repr> NodeBase<R> {
     /// Create node from YAML data.
-    pub fn new(yaml: YamlBase<R>, pos: u64, tag: &str, anchor: &str) -> Self {
-        Self(R::repr(yaml, pos, tag.to_string(), anchor.to_string()))
+    pub fn new<Y>(yaml: Y, pos: u64, tag: &str, anchor: &str) -> Self
+    where
+        Y: Into<YamlBase<R>>,
+    {
+        Self(R::repr(
+            yaml.into(),
+            pos,
+            tag.to_string(),
+            anchor.to_string(),
+        ))
     }
 
     /// Document position.
@@ -527,7 +535,7 @@ where
     Y: Into<YamlBase<R>>,
 {
     fn from(yaml: Y) -> Self {
-        Self::new(yaml.into(), 0, "", "")
+        Self::new(yaml, 0, "", "")
     }
 }
 
