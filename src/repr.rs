@@ -49,7 +49,7 @@ impl<R: Repr> PartialEq for Inner<R> {
 /// The generic representation holder for [`YamlBase`] and [`NodeBase`].
 ///
 /// See the implementor list for the choose.
-pub trait Repr: AsRef<Inner<Self>> + Deref + Hash + Eq + Clone + Debug {
+pub trait Repr: Deref<Target = Inner<Self>> + Hash + Eq + Clone + Debug {
     /// The creation function of this type.
     fn repr(yaml: YamlBase<Self>, pos: u64, tag: String, anchor: String) -> Self;
 }
@@ -67,24 +67,23 @@ macro_rules! impl_repr {
             }
         }
 
+        impl Deref for $ty {
+            type Target = Inner<Self>;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl Deref for NodeBase<$ty> {
+            type Target = $inner<Inner<$ty>>;
+            fn deref(&self) -> &Self::Target {
+                &self.0 .0
+            }
+        }
+
         impl Debug for $ty {
             fn fmt(&self, f: &mut Formatter) -> FmtResult {
                 f.write_fmt(format_args!("{:?}", &self.0.yaml))
-            }
-        }
-
-        impl AsRef<Inner<Self>> for $ty {
-            #[inline(always)]
-            fn as_ref(&self) -> &Inner<Self> {
-                &self.0
-            }
-        }
-
-        impl Deref for $ty {
-            type Target = $inner<Inner<Self>>;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
             }
         }
     };

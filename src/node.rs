@@ -4,7 +4,7 @@ use core::{
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::Hash,
     iter::FromIterator,
-    ops::{Deref, Index},
+    ops::Index,
     str::FromStr,
 };
 
@@ -64,8 +64,8 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// let mut s = HashSet::new();
 /// s.insert(Node::new(Yaml::from("a"), 0, "", ""));
-/// s.insert(Node::new(Yaml::from("a"), 1, "my-type", ""));
-/// s.insert(Node::new(Yaml::from("a"), 2, "", "my-anchor"));
+/// s.insert(Node::new("a", 1, "my-tag", ""));
+/// s.insert(Node::new("a", 2, "", "my-anchor"));
 /// assert_eq!(s.len(), 1);
 /// ```
 ///
@@ -146,23 +146,26 @@ pub struct NodeBase<R: Repr>(pub(crate) R);
 
 impl<R: Repr> NodeBase<R> {
     /// Create node from YAML data.
-    pub fn new(yaml: YamlBase<R>, pos: u64, tag: &str, anchor: &str) -> Self {
+    pub fn new<Y>(yaml: Y, pos: u64, tag: &str, anchor: &str) -> Self
+    where
+        Y: Into<YamlBase<R>>,
+    {
+        let yaml = yaml.into();
         Self(R::repr(yaml, pos, tag.to_string(), anchor.to_string()))
     }
 
     /// Document position.
     #[inline(always)]
     pub fn pos(&self) -> u64 {
-        self.0.as_ref().pos
+        self.0.pos
     }
 
-    /// Tag.
-    /// If the tag is not specified, returns a default tag from core schema.
+    /// Tag. If the tag is not specified, returns a default tag from core schema.
     ///
     /// Anchor has no tag.
     #[inline(always)]
     pub fn tag(&self) -> &str {
-        match self.0.as_ref().tag.as_str() {
+        match self.0.tag.as_str() {
             "" => match self.yaml() {
                 YamlBase::Null => concat!(parser::tag_prefix!(), "null"),
                 YamlBase::Bool(_) => concat!(parser::tag_prefix!(), "bool"),
@@ -180,13 +183,13 @@ impl<R: Repr> NodeBase<R> {
     /// Anchor reference.
     #[inline(always)]
     pub fn anchor(&self) -> &str {
-        &self.0.as_ref().anchor
+        &self.0.anchor
     }
 
     /// YAML data.
     #[inline(always)]
     pub fn yaml(&self) -> &YamlBase<R> {
-        &self.0.as_ref().yaml
+        &self.0.yaml
     }
 
     /// Check the value is null.
@@ -480,14 +483,6 @@ impl<R: Repr> Debug for NodeBase<R> {
     }
 }
 
-impl<R: Repr> Deref for NodeBase<R> {
-    type Target = R::Target;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.deref()
-    }
-}
-
 /// Node index indicator use to indicate sequence position.
 pub struct Ind(pub usize);
 
@@ -526,7 +521,7 @@ where
     Y: Into<YamlBase<R>>,
 {
     fn from(yaml: Y) -> Self {
-        Self::new(yaml.into(), 0, "", "")
+        Self::new(yaml, 0, "", "")
     }
 }
 
