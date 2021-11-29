@@ -4,7 +4,7 @@ use alloc::string::ToString;
 /// The implementation of the directives.
 impl Parser<'_> {
     /// Match directives.
-    pub fn directive(&mut self) -> Result<(), PError> {
+    pub fn directive(&mut self) -> PResult<()> {
         self.sym(b'%')?;
         self.context(|p| {
             if p.sym_seq(b"YAML").is_ok() {
@@ -19,7 +19,7 @@ impl Parser<'_> {
         self.gap(true).map(|_| ())
     }
 
-    fn directive_yaml(&mut self) -> Result<(), PError> {
+    fn directive_yaml(&mut self) -> PResult<()> {
         self.ws(TakeOpt::More(1))?;
         if self.version_checked {
             self.err("checked version")
@@ -31,7 +31,7 @@ impl Parser<'_> {
         }
     }
 
-    fn directive_tag(&mut self) -> Result<(), PError> {
+    fn directive_tag(&mut self) -> PResult<()> {
         self.ws(TakeOpt::More(1))?;
         self.sym(b'!')?;
         self.context(|p| {

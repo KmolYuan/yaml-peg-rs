@@ -94,7 +94,7 @@ impl Parser<'_> {
     }
 
     /// A short function to raise error.
-    pub fn err<R>(&self, msg: &'static str) -> Result<R, PError> {
+    pub fn err<R>(&self, msg: &'static str) -> PResult<R> {
         Err(PError::Terminate(msg, self.indicator()))
     }
 
@@ -122,17 +122,17 @@ impl Parser<'_> {
     }
 
     /// Match symbol.
-    pub fn sym(&mut self, s: u8) -> Result<(), PError> {
+    pub fn sym(&mut self, s: u8) -> PResult<()> {
         self.sym_set(&[s])
     }
 
     /// Match symbol set.
-    pub fn sym_set(&mut self, s: &[u8]) -> Result<(), PError> {
+    pub fn sym_set(&mut self, s: &[u8]) -> PResult<()> {
         self.take_while(Self::is_in(s), TakeOpt::One)
     }
 
     /// Match symbol sequence.
-    pub fn sym_seq(&mut self, s: &[u8]) -> Result<(), PError> {
+    pub fn sym_seq(&mut self, s: &[u8]) -> PResult<()> {
         for s in s {
             self.sym(*s)?;
         }
@@ -142,7 +142,7 @@ impl Parser<'_> {
     /// Match until the condition failed.
     ///
     /// The argument `opt` matches different terminate requirement.
-    pub fn take_while<F>(&mut self, f: F, opt: TakeOpt) -> Result<(), PError>
+    pub fn take_while<F>(&mut self, f: F, opt: TakeOpt) -> PResult<()>
     where
         F: Fn(&u8) -> bool,
     {
@@ -183,9 +183,9 @@ impl Parser<'_> {
     }
 
     /// Count the position that parser goes, expect error.
-    pub fn count<F, Ret>(&mut self, f: F) -> Result<usize, PError>
+    pub fn count<F, R>(&mut self, f: F) -> PResult<usize>
     where
-        F: Fn(&mut Self) -> Result<Ret, PError>,
+        F: Fn(&mut Self) -> PResult<R>,
     {
         let pos = self.pos;
         let _ = f(self)?;
@@ -193,9 +193,9 @@ impl Parser<'_> {
     }
 
     /// A wrapper for saving checkpoint locally.
-    pub fn context<F, Ret>(&mut self, f: F) -> Ret
+    pub fn context<F, R>(&mut self, f: F) -> R
     where
-        F: Fn(&mut Self) -> Ret,
+        F: Fn(&mut Self) -> R,
     {
         let eaten = self.eaten;
         self.forward();
@@ -222,7 +222,7 @@ impl Parser<'_> {
     }
 
     /// Match indent.
-    pub fn ind(&mut self, level: usize) -> Result<(), PError> {
+    pub fn ind(&mut self, level: usize) -> PResult<()> {
         if level >= self.indent.len() {
             for _ in 0..level - self.indent.len() + 1 {
                 self.indent.push(2);

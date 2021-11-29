@@ -45,7 +45,7 @@
 //!   (like wrapped string).
 pub use self::{
     base::{Parser, TakeOpt},
-    error::PError,
+    error::{PError, PResult},
 };
 use crate::{repr::Repr, *};
 use alloc::{
@@ -139,7 +139,7 @@ impl<'a, R: Repr> Loader<'a, R> {
 /// The `inner` parameter presents that the expression is in a **flow** expression.
 impl<R: Repr> Loader<'_, R> {
     /// YAML entry point, return entire doc if exist.
-    pub fn parse(&mut self) -> Result<Seq<R>, PError> {
+    pub fn parse(&mut self) -> PResult<Seq<R>> {
         loop {
             match self.context(Parser::directive) {
                 Ok(()) => (),
@@ -168,7 +168,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match one doc block.
-    pub fn doc(&mut self) -> Result<NodeBase<R>, PError> {
+    pub fn doc(&mut self) -> PResult<NodeBase<R>> {
         self.ind_define(0)?;
         self.forward();
         let ret = self.scalar(0, false, false)?;
@@ -194,7 +194,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> Result<NodeBase<R>, PError> {
+    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> PResult<NodeBase<R>> {
         self.scalar_inner(|p| {
             if let Ok(s) = p.string_literal(level) {
                 Ok(YamlBase::Str(s))
@@ -210,13 +210,13 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow scalar.
-    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> Result<NodeBase<R>, PError> {
+    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> PResult<NodeBase<R>> {
         self.scalar_inner(|p| p.scalar_term(level, inner))
     }
 
-    fn scalar_inner<F>(&mut self, f: F) -> Result<NodeBase<R>, PError>
+    fn scalar_inner<F>(&mut self, f: F) -> PResult<NodeBase<R>>
     where
-        F: Fn(&mut Self) -> Result<YamlBase<R>, PError>,
+        F: Fn(&mut Self) -> PResult<YamlBase<R>>,
     {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
@@ -239,7 +239,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<YamlBase<R>, PError> {
+    pub fn scalar_term(&mut self, level: usize, inner: bool) -> PResult<YamlBase<R>> {
         let yaml = if let Ok(s) = self.float() {
             YamlBase::Float(s)
         } else if let Ok(s) = self.sci_float() {
@@ -272,7 +272,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow sequence.
-    pub fn seq_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
+    pub fn seq_flow(&mut self, level: usize) -> PResult<YamlBase<R>> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -298,7 +298,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow map.
-    pub fn map_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
+    pub fn map_flow(&mut self, level: usize) -> PResult<YamlBase<R>> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
@@ -341,7 +341,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match sequence.
-    pub fn seq(&mut self, level: usize, nest: bool) -> Result<YamlBase<R>, PError> {
+    pub fn seq(&mut self, level: usize, nest: bool) -> PResult<YamlBase<R>> {
         let mut v = vec![];
         loop {
             self.forward();
@@ -385,7 +385,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> Result<YamlBase<R>, PError> {
+    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> PResult<YamlBase<R>> {
         let mut m = vec![];
         loop {
             self.forward();

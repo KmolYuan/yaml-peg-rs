@@ -1,6 +1,8 @@
 use super::*;
 use alloc::format;
-use core::fmt::{Display, Formatter, Result};
+use core::fmt::{Display, Error, Formatter};
+
+pub type PResult<T> = Result<T, PError>;
 
 /// The error of parser handling, returned by [`Parser`].
 ///
@@ -31,7 +33,7 @@ impl PError {
 }
 
 impl Display for PError {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         f.write_fmt(format_args!("{:?}", self))
     }
 }

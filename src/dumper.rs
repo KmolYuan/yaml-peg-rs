@@ -70,7 +70,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                         .split(NL)
                         .map(|s| {
                             if s.is_empty() {
-                                "".to_string()
+                                String::new()
                             } else {
                                 ind.to_string() + s.trim_end()
                             }

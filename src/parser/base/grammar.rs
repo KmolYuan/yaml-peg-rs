@@ -7,25 +7,25 @@ use core::cmp::Ordering;
 /// These sub-parser returns `Result<R, PError>`, and calling [`Parser::backward`] if mismatched.
 impl Parser<'_> {
     /// Match invisible boundaries and keep the gaps. (must matched once)
-    pub fn bound(&mut self) -> Result<(), PError> {
+    pub fn bound(&mut self) -> PResult<()> {
         self.sym_set(b":{}[] ,\n\r")?;
         self.back(1);
         self.ws(TakeOpt::More(0))
     }
 
     /// Match complex mapping indicator (`?`).
-    pub fn complex_mapping(&mut self) -> Result<(), PError> {
+    pub fn complex_mapping(&mut self) -> PResult<()> {
         self.sym(b'?')?;
         self.bound()
     }
 
-    fn num_prefix(&mut self) -> Result<(), PError> {
+    fn num_prefix(&mut self) -> PResult<()> {
         self.sym(b'-').unwrap_or_default();
         self.take_while(u8::is_ascii_digit, TakeOpt::More(1))
     }
 
     /// Match integer.
-    pub fn int(&mut self) -> Result<String, PError> {
+    pub fn int(&mut self) -> PResult<String> {
         self.num_prefix()?;
         let s = self.text();
         self.bound()?;
@@ -33,7 +33,7 @@ impl Parser<'_> {
     }
 
     /// Match float.
-    pub fn float(&mut self) -> Result<String, PError> {
+    pub fn float(&mut self) -> PResult<String> {
         self.num_prefix()?;
         self.sym(b'.')?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(0))?;
@@ -43,7 +43,7 @@ impl Parser<'_> {
     }
 
     /// Match float with scientific notation.
-    pub fn sci_float(&mut self) -> Result<String, PError> {
+    pub fn sci_float(&mut self) -> PResult<String> {
         self.num_prefix()?;
         self.sym_set(b"eE")?;
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
@@ -54,7 +54,7 @@ impl Parser<'_> {
     }
 
     /// Match quoted string.
-    pub fn string_quoted(&mut self, sym: u8, ignore: &[u8]) -> Result<String, PError> {
+    pub fn string_quoted(&mut self, sym: u8, ignore: &[u8]) -> PResult<String> {
         self.context(|p| {
             p.sym(sym)?;
             p.forward();
@@ -100,7 +100,7 @@ impl Parser<'_> {
     }
 
     /// Match plain string.
-    pub fn string_plain(&mut self, level: usize, inner: bool) -> Result<String, PError> {
+    pub fn string_plain(&mut self, level: usize, inner: bool) -> PResult<String> {
         let mut patt = b"[]{}: \n\r".to_vec();
         if inner {
             patt.push(b',');
@@ -155,7 +155,7 @@ impl Parser<'_> {
     }
 
     /// Match literal string.
-    pub fn string_literal(&mut self, level: usize) -> Result<String, PError> {
+    pub fn string_literal(&mut self, level: usize) -> PResult<String> {
         self.sym(b'|')?;
         let chomp = self.chomp();
         self.ws(TakeOpt::More(0))?;
@@ -164,7 +164,7 @@ impl Parser<'_> {
     }
 
     /// Match folded string.
-    pub fn string_folded(&mut self, level: usize) -> Result<String, PError> {
+    pub fn string_folded(&mut self, level: usize) -> PResult<String> {
         self.sym(b'>')?;
         let chomp = self.chomp();
         self.ws(TakeOpt::More(0))?;
@@ -186,12 +186,7 @@ impl Parser<'_> {
     }
 
     /// Match wrapped string.
-    pub fn string_wrapped(
-        &mut self,
-        level: usize,
-        sep: u8,
-        leading: bool,
-    ) -> Result<String, PError> {
+    pub fn string_wrapped(&mut self, level: usize, sep: u8, leading: bool) -> PResult<String> {
         self.context(|p| {
             let mut v = String::new();
             loop {
@@ -255,7 +250,7 @@ impl Parser<'_> {
     }
 
     /// Match valid YAML identifier.
-    pub fn identifier(&mut self) -> Result<(), PError> {
+    pub fn identifier(&mut self) -> PResult<()> {
         self.take_while(u8::is_ascii_alphanumeric, TakeOpt::One)?;
         self.take_while(
             |c| c.is_ascii_alphanumeric() || *c == b'-',
@@ -264,7 +259,7 @@ impl Parser<'_> {
     }
 
     /// Match tags.
-    pub fn tag(&mut self) -> Result<String, PError> {
+    pub fn tag(&mut self) -> PResult<String> {
         self.sym(b'!')?;
         self.context(|p| {
             p.identifier().unwrap_or_default();
@@ -301,7 +296,7 @@ impl Parser<'_> {
     }
 
     /// Match anchor definition.
-    pub fn anchor(&mut self) -> Result<String, PError> {
+    pub fn anchor(&mut self) -> PResult<String> {
         self.sym(b'&')?;
         self.context(|p| {
             p.identifier()?;
@@ -310,7 +305,7 @@ impl Parser<'_> {
     }
 
     /// Match anchor used.
-    pub fn anchor_use(&mut self) -> Result<String, PError> {
+    pub fn anchor_use(&mut self) -> PResult<String> {
         self.sym(b'*')?;
         self.context(|p| {
             p.identifier()?;
@@ -319,7 +314,7 @@ impl Parser<'_> {
     }
 
     /// Match any invisible characters except newline.
-    pub fn ws(&mut self, opt: TakeOpt) -> Result<(), PError> {
+    pub fn ws(&mut self, opt: TakeOpt) -> PResult<()> {
         self.take_while(
             |c| c.is_ascii_whitespace() && *c != b'\n' && *c != b'\r',
             opt,
@@ -327,7 +322,7 @@ impl Parser<'_> {
     }
 
     /// Match newline characters.
-    pub fn nl(&mut self) -> Result<(), PError> {
+    pub fn nl(&mut self) -> PResult<()> {
         self.context(|p| {
             (p.sym_seq(b"\r\n").is_ok()
                 || p.sym_seq(b"\n\r").is_ok()
@@ -339,12 +334,12 @@ impl Parser<'_> {
     }
 
     /// Match any invisible characters.
-    pub fn inv(&mut self, opt: TakeOpt) -> Result<(), PError> {
+    pub fn inv(&mut self, opt: TakeOpt) -> PResult<()> {
         self.take_while(u8::is_ascii_whitespace, opt)
     }
 
     /// Match and define new indent size.
-    pub fn ind_define(&mut self, level: usize) -> Result<(), PError> {
+    pub fn ind_define(&mut self, level: usize) -> PResult<()> {
         if level > 0 {
             self.ind(level - 1)?;
         }
@@ -362,7 +357,7 @@ impl Parser<'_> {
     /// This sub-parser returns `true` if downgrading indent is used.
     ///
     /// The downgrading can only use a level as unit, not a whitespace.
-    pub fn unind(&mut self, level: usize) -> Result<bool, PError> {
+    pub fn unind(&mut self, level: usize) -> PResult<bool> {
         if level > 0 {
             self.ind(level - 1)?;
             self.context(|p| Ok(p.ind(1).is_err()))
@@ -375,7 +370,7 @@ impl Parser<'_> {
     /// Match any optional invisible characters between two lines.
     ///
     /// Set `cmt` to `true` to ignore comments at the line end.
-    pub fn gap(&mut self, cmt: bool) -> Result<usize, PError> {
+    pub fn gap(&mut self, cmt: bool) -> PResult<usize> {
         self.context(|p| {
             if cmt {
                 p.comment().unwrap_or_default();
@@ -399,7 +394,7 @@ impl Parser<'_> {
     }
 
     /// Match comment.
-    pub fn comment(&mut self) -> Result<(), PError> {
+    pub fn comment(&mut self) -> PResult<()> {
         self.ws(TakeOpt::More(0))?;
         self.sym(b'#')?;
         self.take_while(Self::not_in(b"\n\r"), TakeOpt::More(0))
