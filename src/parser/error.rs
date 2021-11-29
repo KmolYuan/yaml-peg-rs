@@ -2,6 +2,7 @@ use super::*;
 use alloc::format;
 use core::fmt::{Display, Error, Formatter};
 
+/// Type of the parser result.
 pub type PResult<T> = Result<T, PError>;
 
 /// The error of parser handling, returned by [`Parser`].
