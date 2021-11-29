@@ -82,7 +82,7 @@ macro_rules! impl_repr {
 
         impl Deref for $ty {
             type Target = $inner<Inner<Self>>;
-            #[inline(always)]
+
             fn deref(&self) -> &Self::Target {
                 &self.0
             }

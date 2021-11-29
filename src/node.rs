@@ -483,7 +483,6 @@ impl<R: Repr> Debug for NodeBase<R> {
 impl<R: Repr> Deref for NodeBase<R> {
     type Target = R::Target;
 
-    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         self.0.deref()
     }

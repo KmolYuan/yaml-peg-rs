@@ -53,6 +53,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use core::ops::{Deref, DerefMut};
 
 mod base;
 mod error;
@@ -140,27 +141,27 @@ impl<R: Repr> Loader<'_, R> {
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> Result<Seq<R>, PError> {
         loop {
-            match self.parser.context(Parser::directive) {
+            match self.context(Parser::directive) {
                 Ok(()) => (),
                 Err(PError::Mismatch) => break,
                 Err(e) => return Err(e),
             }
         }
-        self.parser.gap(true).unwrap_or_default();
-        self.parser.sym_seq(b"---").unwrap_or_default();
-        self.parser.gap(true).unwrap_or_default();
-        self.parser.forward();
+        self.gap(true).unwrap_or_default();
+        self.sym_seq(b"---").unwrap_or_default();
+        self.gap(true).unwrap_or_default();
+        self.forward();
         let mut v = vec![self.doc()?];
         loop {
-            self.parser.gap(true).unwrap_or_default();
-            if self.parser.food().is_empty() {
+            self.gap(true).unwrap_or_default();
+            if self.food().is_empty() {
                 break;
             }
-            if self.parser.sym_seq(b"---").is_err() {
-                return self.parser.err("document splitter");
+            if self.sym_seq(b"---").is_err() {
+                return self.err("document splitter");
             }
-            self.parser.gap(true).unwrap_or_default();
-            self.parser.forward();
+            self.gap(true).unwrap_or_default();
+            self.forward();
             v.push(self.doc()?);
         }
         Ok(v)
@@ -168,21 +169,21 @@ impl<R: Repr> Loader<'_, R> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> Result<NodeBase<R>, PError> {
-        self.parser.ind_define(0)?;
-        self.parser.forward();
+        self.ind_define(0)?;
+        self.forward();
         let ret = self.scalar(0, false, false)?;
-        self.parser.gap(true).unwrap_or_default();
-        self.parser.sym_seq(b"...").unwrap_or_default();
-        self.parser.forward();
+        self.gap(true).unwrap_or_default();
+        self.sym_seq(b"...").unwrap_or_default();
+        self.forward();
         Ok(ret)
     }
 
     /// Match doc end.
     pub fn doc_end(&mut self) -> bool {
-        if self.parser.food().is_empty() {
+        if self.food().is_empty() {
             true
         } else {
-            self.parser.context(|p| {
+            self.context(|p| {
                 let b = p.sym_seq(b"---").is_ok() || p.sym_seq(b"...").is_ok();
                 if b {
                     p.backward();
@@ -195,9 +196,9 @@ impl<R: Repr> Loader<'_, R> {
     /// Match scalar.
     pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> Result<NodeBase<R>, PError> {
         self.scalar_inner(|p| {
-            if let Ok(s) = p.parser.string_literal(level) {
+            if let Ok(s) = p.string_literal(level) {
                 Ok(YamlBase::Str(s))
-            } else if let Ok(s) = p.parser.string_folded(level) {
+            } else if let Ok(s) = p.string_folded(level) {
                 Ok(YamlBase::Str(s))
             } else {
                 err!(
@@ -217,19 +218,19 @@ impl<R: Repr> Loader<'_, R> {
     where
         F: Fn(&mut Self) -> Result<YamlBase<R>, PError>,
     {
-        let anchor = self.parser.anchor().unwrap_or_default();
+        let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
-            self.parser.bound()?;
+            self.bound()?;
         }
-        self.parser.forward();
-        let tag = self.parser.tag().unwrap_or_default();
+        self.forward();
+        let tag = self.tag().unwrap_or_default();
         if !tag.is_empty() {
-            self.parser.bound()?;
+            self.bound()?;
         }
-        self.parser.forward();
-        let pos = self.parser.indicator();
+        self.forward();
+        let pos = self.indicator();
         let yaml = f(self)?;
-        self.parser.forward();
+        self.forward();
         let node = NodeBase::new(yaml, pos, &tag, &anchor);
         if !anchor.is_empty() {
             self.anchors.insert(anchor, node.clone());
@@ -239,19 +240,19 @@ impl<R: Repr> Loader<'_, R> {
 
     /// Match flow scalar terminal.
     pub fn scalar_term(&mut self, level: usize, inner: bool) -> Result<YamlBase<R>, PError> {
-        let yaml = if let Ok(s) = self.parser.float() {
+        let yaml = if let Ok(s) = self.float() {
             YamlBase::Float(s)
-        } else if let Ok(s) = self.parser.sci_float() {
+        } else if let Ok(s) = self.sci_float() {
             YamlBase::Float(s)
-        } else if let Ok(s) = self.parser.int() {
+        } else if let Ok(s) = self.int() {
             YamlBase::Int(s)
-        } else if let Ok(s) = self.parser.anchor_use() {
+        } else if let Ok(s) = self.anchor_use() {
             YamlBase::Anchor(s)
-        } else if let Ok(s) = self.parser.string_quoted(b'\'', b"''") {
+        } else if let Ok(s) = self.string_quoted(b'\'', b"''") {
             YamlBase::Str(s)
-        } else if let Ok(s) = self.parser.string_quoted(b'"', b"\\\"") {
+        } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
             YamlBase::Str(Parser::escape(&s))
-        } else if let Ok(s) = self.parser.string_plain(level, inner) {
+        } else if let Ok(s) = self.string_plain(level, inner) {
             match s.as_str() {
                 "~" | "null" | "Null" | "NULL" => YamlBase::Null,
                 "true" | "True" | "TRUE" => YamlBase::Bool(true),
@@ -272,73 +273,70 @@ impl<R: Repr> Loader<'_, R> {
 
     /// Match flow sequence.
     pub fn seq_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
-        self.parser.sym(b'[')?;
+        self.sym(b'[')?;
         let mut v = vec![];
         loop {
-            self.parser.inv(TakeOpt::More(0))?;
-            self.parser.forward();
-            if self.parser.sym(b']').is_ok() {
+            self.inv(TakeOpt::More(0))?;
+            self.forward();
+            if self.sym(b']').is_ok() {
                 break;
             }
-            self.parser.forward();
+            self.forward();
             v.push(err!(
                 self.scalar(level + 1, false, true),
-                self.parser.err("flow sequence item")
+                self.err("flow sequence item")
             )?);
-            self.parser.inv(TakeOpt::More(0))?;
-            if self.parser.sym(b',').is_err() {
-                self.parser.inv(TakeOpt::More(0))?;
-                self.parser.sym(b']')?;
+            self.inv(TakeOpt::More(0))?;
+            if self.sym(b',').is_err() {
+                self.inv(TakeOpt::More(0))?;
+                self.sym(b']')?;
                 break;
             }
         }
-        self.parser.forward();
+        self.forward();
         Ok(v.into_iter().collect())
     }
 
     /// Match flow map.
     pub fn map_flow(&mut self, level: usize) -> Result<YamlBase<R>, PError> {
-        self.parser.sym(b'{')?;
+        self.sym(b'{')?;
         let mut m = vec![];
         loop {
-            self.parser.inv(TakeOpt::More(0))?;
-            self.parser.forward();
-            if self.parser.sym(b'}').is_ok() {
+            self.inv(TakeOpt::More(0))?;
+            self.forward();
+            if self.sym(b'}').is_ok() {
                 break;
             }
-            self.parser.forward();
-            let k = if self.parser.complex_mapping().is_ok() {
-                self.parser.forward();
+            self.forward();
+            let k = if self.complex_mapping().is_ok() {
+                self.forward();
                 let k = err!(
                     self.scalar(level + 1, false, true),
-                    self.parser.err("flow map key")
+                    self.err("flow map key")
                 )?;
-                if self.parser.gap(true).is_ok() {
-                    self.parser.ind(level)?;
+                if self.gap(true).is_ok() {
+                    self.ind(level)?;
                 }
                 k
             } else {
-                err!(
-                    self.scalar_flow(level + 1, true),
-                    self.parser.err("flow map key")
-                )?
+                err!(self.scalar_flow(level + 1, true), self.err("flow map key"))?
             };
-            if self.parser.sym(b':').is_err() || self.parser.bound().is_err() {
-                return self.parser.err("flow map splitter");
+            if self.sym(b':').is_err() || self.bound().is_err() {
+                return self.err("flow map splitter");
             }
-            self.parser.forward();
+            self.forward();
             let v = err!(
                 self.scalar(level + 1, false, true),
-                self.parser.err("flow map value")
+                self.err("flow map value")
             )?;
             m.push((k, v));
-            if self.parser.sym(b',').is_err() {
-                self.parser.inv(TakeOpt::More(0))?;
-                self.parser.sym(b'}')?;
+            if self.sym(b',').is_err() {
+                self.inv(TakeOpt::More(0))?;
+                self.sym(b'}')?;
                 break;
             }
         }
-        self.parser.forward();
+        self.forward();
         Ok(m.into_iter().collect())
     }
 
@@ -346,43 +344,43 @@ impl<R: Repr> Loader<'_, R> {
     pub fn seq(&mut self, level: usize, nest: bool) -> Result<YamlBase<R>, PError> {
         let mut v = vec![];
         loop {
-            self.parser.forward();
+            self.forward();
             let mut downgrade = false;
             if v.is_empty() {
                 // First item
                 if nest {
-                    self.parser.gap(true)?;
-                    self.parser.ind_define(level)?;
-                } else if self.parser.gap(true).is_ok() {
+                    self.gap(true)?;
+                    self.ind_define(level)?;
+                } else if self.gap(true).is_ok() {
                     // Root
-                    self.parser.unind(level)?;
+                    self.unind(level)?;
                 }
-                self.parser.sym(b'-')?;
-                self.parser.bound()?;
+                self.sym(b'-')?;
+                self.bound()?;
             } else {
-                if self.parser.gap(true).is_err() {
-                    return self.parser.err("sequence terminator");
+                if self.gap(true).is_err() {
+                    return self.err("sequence terminator");
                 }
                 if self.doc_end() {
                     break;
                 }
-                if let Ok(b) = self.parser.unind(level) {
+                if let Ok(b) = self.unind(level) {
                     downgrade = b
                 } else {
                     break;
                 }
-                if self.parser.sym(b'-').is_err() || self.parser.bound().is_err() {
+                if self.sym(b'-').is_err() || self.bound().is_err() {
                     break;
                 }
             }
-            self.parser.forward();
+            self.forward();
             v.push(err!(
                 self.scalar(if downgrade { level } else { level + 1 }, false, false),
-                self.parser.err("sequence item")
+                self.err("sequence item")
             )?);
         }
         // Keep last wrapping
-        self.parser.backward();
+        self.backward();
         Ok(v.into_iter().collect())
     }
 
@@ -390,74 +388,76 @@ impl<R: Repr> Loader<'_, R> {
     pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> Result<YamlBase<R>, PError> {
         let mut m = vec![];
         loop {
-            self.parser.forward();
+            self.forward();
             let k = if m.is_empty() {
                 // First item
                 if nest {
-                    self.parser.gap(true)?;
-                    self.parser.ind_define(level)?;
-                } else if self.parser.gap(true).is_ok() {
+                    self.gap(true)?;
+                    self.ind_define(level)?;
+                } else if self.gap(true).is_ok() {
                     // Root
-                    self.parser.ind(level)?;
+                    self.ind(level)?;
                 }
-                self.parser.forward();
-                let k = if self.parser.complex_mapping().is_ok() {
-                    self.parser.forward();
-                    let k = err!(
-                        self.scalar(level + 1, true, inner),
-                        self.parser.err("map key")
-                    )?;
-                    if self.parser.gap(true).is_ok() {
-                        self.parser.ind(level)?;
+                self.forward();
+                let k = if self.complex_mapping().is_ok() {
+                    self.forward();
+                    let k = err!(self.scalar(level + 1, true, inner), self.err("map key"))?;
+                    if self.gap(true).is_ok() {
+                        self.ind(level)?;
                     }
                     k
                 } else {
                     self.scalar_flow(level + 1, inner)?
                 };
-                if self.parser.sym(b':').is_err() || self.parser.bound().is_err() {
+                if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
                     return Ok(k.yaml().clone());
                 }
                 k
             } else {
-                if self.parser.gap(true).is_err() {
-                    return self.parser.err("map terminator");
+                if self.gap(true).is_err() {
+                    return self.err("map terminator");
                 }
-                if self.doc_end() || self.parser.ind(level).is_err() {
+                if self.doc_end() || self.ind(level).is_err() {
                     break;
                 }
-                self.parser.forward();
-                let k = if self.parser.complex_mapping().is_ok() {
-                    self.parser.forward();
-                    let k = err!(
-                        self.scalar(level + 1, true, inner),
-                        self.parser.err("map key")
-                    )?;
-                    if self.parser.gap(true).is_ok() {
-                        self.parser.ind(level)?;
+                self.forward();
+                let k = if self.complex_mapping().is_ok() {
+                    self.forward();
+                    let k = err!(self.scalar(level + 1, true, inner), self.err("map key"))?;
+                    if self.gap(true).is_ok() {
+                        self.ind(level)?;
                     }
                     k
                 } else {
-                    err!(
-                        self.scalar_flow(level + 1, inner),
-                        self.parser.err("map key")
-                    )?
+                    err!(self.scalar_flow(level + 1, inner), self.err("map key"))?
                 };
-                if self.parser.sym(b':').is_err() || self.parser.bound().is_err() {
-                    return self.parser.err("map splitter");
+                if self.sym(b':').is_err() || self.bound().is_err() {
+                    return self.err("map splitter");
                 }
                 k
             };
-            self.parser.forward();
-            let v = err!(
-                self.scalar(level + 1, true, false),
-                self.parser.err("map value")
-            )?;
+            self.forward();
+            let v = err!(self.scalar(level + 1, true, false), self.err("map value"))?;
             m.push((k, v));
         }
         // Keep last wrapping
-        self.parser.backward();
+        self.backward();
         Ok(m.into_iter().collect())
+    }
+}
+
+impl<'a, R: Repr> Deref for Loader<'a, R> {
+    type Target = Parser<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.parser
+    }
+}
+
+impl<R: Repr> DerefMut for Loader<'_, R> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.parser
     }
 }
 
