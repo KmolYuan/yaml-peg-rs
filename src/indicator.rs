@@ -23,13 +23,13 @@ pub fn indicated_msg(doc: &str, mut pos: u64) -> String {
     for (line, str_line) in doc.split('\n').enumerate() {
         let full_line = str_line.len() as u64 + 1;
         if full_line > pos {
-            let column = pos as usize;
+            let column = pos;
             return format!(
                 "{}:{}\n{}\n{}^",
                 line + 1,
                 column + 1,
                 str_line,
-                " ".repeat(column)
+                " ".repeat(column as usize)
             );
         } else {
             pos -= full_line;
