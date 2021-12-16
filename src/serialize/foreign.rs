@@ -37,11 +37,11 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 /// // Node -> Content (Data)
 /// assert_eq!(doc, Content::deserialize(n_doc.clone()).unwrap());
 /// // Content -> Node (Data)
-/// assert_eq!(n_doc, to_node(doc).unwrap());
+/// assert_eq!(n_doc, to_node(&doc).unwrap());
 /// // Node -> Content (Anchor)
 /// assert_eq!(anchor, Content::deserialize(n_anchor.clone()).unwrap());
 /// // Content -> Node (Anchor)
-/// assert_eq!(n_anchor, to_node(anchor).unwrap());
+/// assert_eq!(n_anchor, to_node(&anchor).unwrap());
 /// ```
 ///
 /// The first-step inference is fine.
