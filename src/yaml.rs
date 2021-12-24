@@ -49,13 +49,16 @@ pub type Map<R> = LinkedHashMap<NodeBase<R>, NodeBase<R>>;
 /// Also, the iterators can turned to sequence and map.
 ///
 /// ```
-/// use yaml_peg::{node, Yaml};
 /// use std::iter::FromIterator;
+/// use yaml_peg::{node, Yaml};
 ///
 /// let v = vec![node!(1), node!(2), node!(3)];
 /// assert_eq!(Yaml::Seq(v.clone()), Yaml::from_iter(v));
 /// let m = vec![(node!(1), node!(2)), (node!(3), node!(4))];
-/// assert_eq!(Yaml::Map(m.clone().into_iter().collect()), Yaml::from_iter(m));
+/// assert_eq!(
+///     Yaml::Map(m.clone().into_iter().collect()),
+///     Yaml::from_iter(m)
+/// );
 /// ```
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub enum YamlBase<R: Repr> {

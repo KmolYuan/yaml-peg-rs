@@ -80,7 +80,7 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// ```
 /// use yaml_peg::{node, ArcNode};
 ///
-/// assert_eq!(node!(arc ()), ArcNode::from(()));
+/// assert_eq!(node!(arc()), ArcNode::from(()));
 /// ```
 #[macro_export]
 macro_rules! node {
