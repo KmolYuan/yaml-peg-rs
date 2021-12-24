@@ -103,11 +103,11 @@ macro_rules! impl_map_serializer {
 ///     "married" => true,
 ///     "age" => 46,
 /// });
-/// assert_eq!(officer_yaml, to_node(officer).unwrap());
+/// assert_eq!(officer_yaml, to_node(&officer).unwrap());
 /// ```
 ///
 /// There is another version for multi-thread reference counter: [`to_arc_node`].
-pub fn to_node(any: impl Serialize) -> Result<Node, SerdeError> {
+pub fn to_node(any: &impl Serialize) -> Result<Node, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
@@ -161,9 +161,9 @@ pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
 /// married: true
 /// age: 46
 /// ";
-/// assert_eq!(officer_doc, to_string(officer).unwrap());
+/// assert_eq!(officer_doc, to_string(&officer).unwrap());
 /// ```
-pub fn to_string(any: impl Serialize) -> Result<String, SerdeError> {
+pub fn to_string(any: &impl Serialize) -> Result<String, SerdeError> {
     Ok(dump(&[to_node(any)?]))
 }
 
