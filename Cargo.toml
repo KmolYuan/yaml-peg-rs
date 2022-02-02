@@ -1,7 +1,7 @@
 [package]
 name = "yaml-peg"
 description = "A YAML 1.2 parser using greedy parsing algorithm with PEG atoms."
-version = "0.23.1"
+version = "0.23.2"
 authors = ["KmolYuan <pyslvs@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -15,10 +15,10 @@ serde-std = ["serde/std"]
 
 [dependencies]
 ritelinked = "0.3"
-serde = { version = "1", default-features = false, optional = true }
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
 
 [dev-dependencies]
-serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde = { version = "1", default-features = false, features = ["alloc"] }
 
 [package.metadata.docs.rs]
 all-features = true
