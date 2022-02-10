@@ -76,7 +76,7 @@ impl<D> Foreign<D> {
     }
 }
 
-impl<D: DeserializeOwned + Clone> Foreign<D> {
+impl<D: DeserializeOwned> Foreign<D> {
     /// Get the deserializable value from exist anchor.
     ///
     /// Where returned type is [`Cow`], a reference container that can also save the actual data.
@@ -104,7 +104,10 @@ impl<D: DeserializeOwned + Clone> Foreign<D> {
     /// assert_eq!("my doc", doc.doc.visit(&visitor).unwrap().into_owned());
     /// assert_eq!("doc in anchor", anchor.doc.visit(&visitor).unwrap().into_owned());
     /// ```
-    pub fn visit<R: Repr>(&self, anchor: &AnchorBase<R>) -> Result<Cow<D>, SerdeError> {
+    pub fn visit<R: Repr>(&self, anchor: &AnchorBase<R>) -> Result<Cow<D>, SerdeError>
+    where
+        D: Clone,
+    {
         match self {
             Self::Data(data) => Ok(Cow::Borrowed(data)),
             Self::Anchor { anchor: tag } => match anchor.get(tag) {
