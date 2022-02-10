@@ -113,4 +113,25 @@ impl<D: DeserializeOwned + Clone> Foreign<D> {
             },
         }
     }
+
+    /// Consume `self` to get the value.
+    ///
+    /// ```
+    /// use yaml_peg::{serialize::Foreign, anchors, Anchors};
+    ///
+    /// let visitor: Anchors = anchors!["my-anchor" => "doc in anchor"];
+    /// let f1 = Foreign::Data(10);
+    /// let f2 = Foreign::<String>::Anchor { anchor: "my-anchor".to_string() };
+    /// assert_eq!(10, f1.unwrap(&visitor).unwrap());
+    /// assert_eq!("doc in anchor", f2.unwrap(&visitor).unwrap());
+    /// ```
+    pub fn unwrap<R: Repr>(self, anchor: &AnchorBase<R>) -> Result<D, SerdeError> {
+        match self {
+            Foreign::Data(d) => Ok(d),
+            Foreign::Anchor { anchor: tag } => match anchor.get(&tag) {
+                Some(n) => Ok(D::deserialize(n.clone())?),
+                None => Err(SerdeError::from("missing anchor".to_string())),
+            },
+        }
+    }
 }

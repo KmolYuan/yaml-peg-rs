@@ -1,4 +1,5 @@
-use alloc::string::{String, ToString};
+use alloc::string::String;
+use core::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 
 /// A type that can deserialize from any data to string type.
@@ -36,14 +37,14 @@ pub enum Stringify {
     Str(String),
 }
 
-impl ToString for Stringify {
-    fn to_string(&self) -> String {
+impl Display for Stringify {
+    fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         match self {
-            Self::Bool(true) => "true".to_string(),
-            Self::Bool(false) => "false".to_string(),
-            Self::Int(n) => n.to_string(),
-            Self::Float(n) => n.to_string(),
-            Self::Str(s) => s.clone(),
+            Self::Bool(true) => write!(f, "true"),
+            Self::Bool(false) => write!(f, "false"),
+            Self::Int(n) => write!(f, "{}", n),
+            Self::Float(n) => write!(f, "{}", n),
+            Self::Str(s) => write!(f, "{}", s),
         }
     }
 }
