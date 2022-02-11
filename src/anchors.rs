@@ -20,26 +20,63 @@ pub type ArcAnchors = AnchorBase<repr::ArcRepr>;
 /// If you have a unparsed data, parser will give you a visitor too.
 pub fn anchor_visit<R: repr::Repr>(n: &NodeBase<R>) -> AnchorBase<R> {
     let mut visitor = AnchorBase::new();
-    inner_anchor_visit(n, &mut visitor);
+    anchor_visit_inner(n, &mut visitor);
     visitor
 }
 
-fn inner_anchor_visit<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R>) {
+fn anchor_visit_inner<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R>) {
     if !n.anchor().is_empty() {
         visitor.insert(n.anchor().to_string(), n.clone());
     }
     match n.yaml() {
-        YamlBase::Seq(a) => {
-            for n in a {
-                inner_anchor_visit(n, visitor);
-            }
-        }
-        YamlBase::Map(m) => {
-            for (k, v) in m {
-                inner_anchor_visit(k, visitor);
-                inner_anchor_visit(v, visitor);
-            }
-        }
-        _ => {}
+        YamlBase::Seq(seq) => seq.iter().for_each(|n| anchor_visit_inner(n, visitor)),
+        YamlBase::Map(map) => map.iter().for_each(|(k, v)| {
+            anchor_visit_inner(k, visitor);
+            anchor_visit_inner(v, visitor);
+        }),
+        _ => (),
     }
+}
+
+/// Self-resolve the insertion of the visitor.
+/// Return `None` if the anchor is not found.
+///
+/// ```
+/// use yaml_peg::{anchor_resolve, node, parse, repr::RcRepr};
+///
+/// let doc = "
+/// - &seq
+///   - a: &sub b
+///   - a: *sub
+/// - *seq
+/// ";
+///
+/// let (mut ans, anchor) = parse::<RcRepr>(doc).unwrap();
+/// let anchor = anchor_resolve(&anchor, 2).unwrap();
+/// let node = ans.remove(0).replace_anchor(&anchor).unwrap();
+/// assert_eq!(
+///     node,
+///     node!([
+///         node!([node!({"a" => "b"}), node!({"a" => "b"})]),
+///         node!([node!({"a" => "b"}), node!({"a" => "b"})]),
+///     ])
+/// );
+/// ```
+pub fn anchor_resolve<R: repr::Repr>(
+    visitor: &AnchorBase<R>,
+    deep: usize,
+) -> Option<AnchorBase<R>> {
+    assert_ne!(deep, 0);
+    let mut tmp = visitor.clone();
+    let mut visitor = visitor.clone();
+    for _ in 0..deep {
+        for node in visitor.values_mut() {
+            *node = match node.replace_anchor(&tmp) {
+                Some(node) => node,
+                None => return None,
+            };
+        }
+        std::mem::swap(&mut visitor, &mut tmp);
+    }
+    Some(visitor)
 }

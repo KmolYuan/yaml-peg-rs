@@ -1,0 +1,9 @@
+- a: &a b
+- a: *a
+- &map
+  a: b
+- *map
+- &seq
+  - a: &sub b
+  - a: *sub
+- *seq

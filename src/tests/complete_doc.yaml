@@ -7,7 +7,7 @@ a0 bb: !x!foo .val.
   b1  : 4.
   b2:
     - 50%
-  - 2e-4
+  - 2e-4 # Test downgraded sequence item.
     - .nan
     - -.inf
     - -.infs
@@ -21,7 +21,7 @@ a0 bb: !x!foo .val.
 ?a3: !<tag:my.tag.prefix:tt>
   - *x
   - [d1🀄🃏, 中文]
-- ~  # Test downgraded sequence item.
+  - ~
   -
 ? &y
   a4:

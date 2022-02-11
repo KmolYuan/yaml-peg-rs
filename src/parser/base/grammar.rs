@@ -358,11 +358,11 @@ impl Parser<'_> {
     ///
     /// The downgrading can only use a level as unit, not a whitespace.
     pub fn unind(&mut self, level: usize) -> PResult<bool> {
-        if level > 0 {
+        if level > 1 {
             self.ind(level - 1)?;
             self.context(|p| Ok(p.ind(1).is_err()))
         } else {
-            self.ind(0)?;
+            self.ind(level)?;
             Ok(false)
         }
     }

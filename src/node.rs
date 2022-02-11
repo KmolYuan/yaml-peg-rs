@@ -475,6 +475,32 @@ impl<R: Repr> NodeBase<R> {
             Err(self.pos())
         }
     }
+
+    /// Replace the anchor insertion recursively.
+    /// Return `None` if the anchor is not found.
+    ///
+    /// If the anchor contains a self-loop, the program will be stack overflow.
+    pub fn replace_anchor(&self, visitor: &AnchorBase<R>) -> Option<Self> {
+        match self.yaml() {
+            YamlBase::Anchor(anchor) => visitor.get(anchor).cloned(),
+            YamlBase::Seq(seq) => seq
+                .iter()
+                .map(|node| node.replace_anchor(visitor))
+                .collect::<Option<Seq<_>>>()
+                .map(|seq| self.new_with_yaml(YamlBase::Seq(seq))),
+            YamlBase::Map(map) => map
+                .iter()
+                .map(|(k, v)| k.replace_anchor(visitor).zip(v.replace_anchor(visitor)))
+                .collect::<Option<Map<_>>>()
+                .map(|map| self.new_with_yaml(YamlBase::Map(map))),
+            _ => Some(self.clone()),
+        }
+    }
+
+    /// Create a node with original information.
+    pub fn new_with_yaml(&self, yaml: YamlBase<R>) -> Self {
+        Self::new(yaml, self.pos(), self.tag(), self.anchor())
+    }
 }
 
 impl<R: Repr> Debug for NodeBase<R> {

@@ -6,6 +6,9 @@
 //!
 //! The buffer reader has also not implemented, but the chunks can be read by sub-parsers.
 //!
+//! WARN: YAML 1.2 is compatible with [JSON (JavaScript Object Notation) format](https://www.json.org/),
+//! but not in strict mode.
+//!
 //! # Parser
 //!
 //! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
