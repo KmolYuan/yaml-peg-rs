@@ -122,7 +122,7 @@ fn test_indent() {
 fn test_anchor() {
     const DOC: &str = include_str!("anchor.yaml");
     let (mut ans, anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
-    let anchor = anchor_resolve(&anchor, 2).unwrap();
+    let anchor = anchor_resolve(&anchor, 1).unwrap();
     let node = ans.remove(0).replace_anchor(&anchor).unwrap();
     assert_eq!(
         node,

@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{repr::*, *};
 use alloc::string::{String, ToString};
 use ritelinked::LinkedHashMap;
 
@@ -10,21 +10,21 @@ use ritelinked::LinkedHashMap;
 /// There is a macro [`anchors!`] can build the index tree literally.
 pub type AnchorBase<R> = LinkedHashMap<String, NodeBase<R>>;
 /// An anchor visitor with [`alloc::rc::Rc`] holder.
-pub type Anchors = AnchorBase<repr::RcRepr>;
+pub type Anchors = AnchorBase<RcRepr>;
 /// An anchor visitor with [`alloc::sync::Arc`] holder.
-pub type ArcAnchors = AnchorBase<repr::ArcRepr>;
+pub type ArcAnchors = AnchorBase<ArcRepr>;
 
 /// Create a visitor by visiting all nodes of the data.
 ///
 /// This method will take a lot of time to read the nodes.
 /// If you have a unparsed data, parser will give you a visitor too.
-pub fn anchor_visit<R: repr::Repr>(n: &NodeBase<R>) -> AnchorBase<R> {
+pub fn anchor_visit<R: Repr>(n: &NodeBase<R>) -> AnchorBase<R> {
     let mut visitor = AnchorBase::new();
     anchor_visit_inner(n, &mut visitor);
     visitor
 }
 
-fn anchor_visit_inner<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R>) {
+fn anchor_visit_inner<R: Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R>) {
     if !n.anchor().is_empty() {
         visitor.insert(n.anchor().to_string(), n.clone());
     }
@@ -52,7 +52,7 @@ fn anchor_visit_inner<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R
 /// ";
 ///
 /// let (mut ans, anchor) = parse::<RcRepr>(doc).unwrap();
-/// let anchor = anchor_resolve(&anchor, 2).unwrap();
+/// let anchor = anchor_resolve(&anchor, 1).unwrap();
 /// let node = ans.remove(0).replace_anchor(&anchor).unwrap();
 /// assert_eq!(
 ///     node,
@@ -62,14 +62,11 @@ fn anchor_visit_inner<R: repr::Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R
 ///     ])
 /// );
 /// ```
-pub fn anchor_resolve<R: repr::Repr>(
-    visitor: &AnchorBase<R>,
-    deep: usize,
-) -> Option<AnchorBase<R>> {
+pub fn anchor_resolve<R: Repr>(visitor: &AnchorBase<R>, deep: usize) -> Option<AnchorBase<R>> {
     assert_ne!(deep, 0);
     let mut tmp = visitor.clone();
     let mut visitor = visitor.clone();
-    for _ in 0..deep {
+    for _ in 0..deep * 2 {
         for node in visitor.values_mut() {
             *node = match node.replace_anchor(&tmp) {
                 Some(node) => node,

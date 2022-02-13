@@ -33,7 +33,7 @@
 //!
 //! # Anchors
 //!
-//! If the data supports anchor insertion, please see [`Foreign`] type.
+//! If the data supports anchor insertion, please see [`anchor_resolve`](crate::anchor_resolve) type.
 //!
 //! # Mixed String Type
 //!
@@ -69,11 +69,10 @@
 //! assert_eq!("invalid type: integer `84`, expected a boolean", err.msg);
 //! assert_eq!(20, err.pos);
 //! ```
-pub use self::{de::*, error::*, foreign::*, inline_list::*, optional::*, ser::*, stringify::*};
+pub use self::{de::*, error::*, inline_list::*, optional::*, ser::*, stringify::*};
 
 mod de;
 mod error;
-mod foreign;
 mod inline_list;
 mod optional;
 mod ser;
