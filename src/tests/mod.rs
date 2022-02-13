@@ -8,9 +8,10 @@ fn show_err<E>(e: String) -> E {
 #[test]
 fn test_json() {
     const DOC: &str = include_str!("json_compatibility.json");
-    let (ans, anchors) = parse(DOC).unwrap_or_else(show_err);
+    let (mut root, anchors) = parse(DOC).unwrap_or_else(show_err);
+    let node = root.remove(0);
     assert_eq!(
-        ans[0],
+        node,
         node!({
             "a" => "b",
             "c" => node!([123, 321, 1234567]),
@@ -19,17 +20,18 @@ fn test_json() {
         })
     );
     assert_eq!(anchors.len(), 0);
-    assert_eq!(Anchor::from(ans[0].clone()), anchors);
-    let n = ans[0].get("a").unwrap();
+    assert_eq!(Anchor::from(node.clone()), anchors);
+    let n = node.get("a").unwrap();
     assert_eq!(n, &node!("b"));
 }
 
 #[test]
 fn test_yaml() {
     const DOC: &str = include_str!("complete_doc.yaml");
-    let (ans, anchors) = parse(DOC).unwrap_or_else(show_err);
+    let (mut root, anchors) = parse(DOC).unwrap_or_else(show_err);
+    let node = root.remove(0);
     assert_eq!(
-        ans[0],
+        node,
         node!({
             "a0 bb" => ".val.",
             "::a1" => node!({
@@ -71,13 +73,13 @@ fn test_yaml() {
     assert_eq!(anchors.len(), 2);
     assert!(anchors.contains_key("x"));
     assert!(anchors.contains_key("y"));
-    assert_eq!(Anchor::from(ans[0].clone()), anchors);
+    assert_eq!(Anchor::from(node.clone()), anchors);
     let k = node!("a0 bb");
-    assert_eq!(ans[0][k].tag(), "tag:test.x.prefix:foo");
+    assert_eq!(node[k].tag(), "tag:test.x.prefix:foo");
     let k = node!("-a2");
-    assert_eq!(ans[0][k].tag(), "tag:test.prefix:t1");
+    assert_eq!(node[k].tag(), "tag:test.prefix:t1");
     let k = node!("?a3");
-    assert_eq!(ans[0][k].tag(), "tag:my.tag.prefix:tt");
+    assert_eq!(node[k].tag(), "tag:my.tag.prefix:tt");
 }
 
 #[test]
@@ -100,9 +102,11 @@ fn test_dump() {
 #[test]
 fn test_indent() {
     const DOC: &str = include_str!("indent.yaml");
-    let (ans, _) = parse(DOC).unwrap_or_else(show_err);
+    let (mut root, _) = parse(DOC).unwrap_or_else(show_err);
+    let node1 = root.remove(0);
+    let node2 = root.remove(0);
     assert_eq!(
-        ans[0],
+        node1,
         node!({
             "version" => 2,
             "models" => node!([node!({
@@ -115,15 +119,15 @@ fn test_indent() {
             "map" => node!(["a", "b", "c"]),
         })
     );
-    assert_eq!(ans[1], node!(["a1", "true of", "a2"]));
+    assert_eq!(node2, node!(["a1", "true of", "a2"]));
 }
 
 #[test]
 fn test_anchor() {
     const DOC: &str = include_str!("anchor.yaml");
-    let (mut ans, mut anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
+    let (mut root, mut anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
     anchor.resolve(1).unwrap();
-    let node = ans.remove(0).replace_anchor(&anchor).unwrap();
+    let node = root.remove(0).replace_anchor(&anchor).unwrap();
     std::mem::drop(anchor);
     assert_eq!(
         node,

@@ -73,8 +73,8 @@ pub fn from_str<D>(doc: &str) -> Result<Vec<D>, SerdeError>
 where
     D: DeserializeOwned,
 {
-    let (nodes, _) = parse::<RcRepr>(doc)?;
-    nodes.into_iter().map(D::deserialize).collect()
+    let (root, _) = parse::<RcRepr>(doc)?;
+    root.into_iter().map(D::deserialize).collect()
 }
 
 struct NodeVisitor<R: Repr>(PhantomData<R>);

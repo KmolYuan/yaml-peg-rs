@@ -475,17 +475,17 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// age: 46
 /// ";
 /// // Node with Rc repr
-/// let (n, anchors) = parse(doc).unwrap();
+/// let (root, anchors) = parse(doc).unwrap();
 /// assert_eq!(anchors.len(), 0);
-/// assert_eq!(n, vec![node!({
+/// assert_eq!(root, vec![node!({
 ///     "name" => "Bob",
 ///     "married" => true,
 ///     "age" => 46,
 /// })]);
 /// // Node with Arc repr
-/// let (n, anchors) = parse(doc).unwrap();
+/// let (root, anchors) = parse(doc).unwrap();
 /// assert_eq!(anchors.len(), 0);
-/// assert_eq!(n, vec![node!(arc{
+/// assert_eq!(root, vec![node!(arc{
 ///     "name" => "Bob",
 ///     "married" => true,
 ///     "age" => 46,

@@ -19,9 +19,8 @@ name: Bob
 married: true
 age: 46
 ";
-let (n, anchors) = parse(doc).unwrap();
-assert_eq!(anchors.len(), 0);
-assert_eq!(n, vec![node!({
+let (root, _) = parse(doc).unwrap();
+assert_eq!(root, vec![node!({
     "name" => "Bob",
     "married" => true,
     "age" => 46,
@@ -34,7 +33,13 @@ See the API doc for more information.
 
 + Support no standard library `#![no_std]`.
 + Different data holder `Rc` / `Arc` provides parallel visiting and less copy cost.
-+ Provide document position, tag and anchor reference on the nodes.
++ Provide document positions and tags on the nodes.
++ Anchors / alias are supported.
+  ```rust
+  let (mut root, mut anchor) = parse(doc).unwrap();
+  anchor.resolve(1).unwrap();
+  let node = root.remove(0).replace_anchor(&anchor).unwrap();
+  ```
 + YAML directives `YAML` and `TAG` are allowed.
   ```yaml
   %YAML 1.2

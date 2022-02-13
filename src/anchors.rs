@@ -54,9 +54,9 @@ impl<R: Repr> Anchor<R> {
     /// - *seq
     /// ";
     ///
-    /// let (mut ans, mut anchor) = parse::<RcRepr>(doc).unwrap();
+    /// let (mut root, mut anchor) = parse::<RcRepr>(doc).unwrap();
     /// anchor.resolve(1).unwrap();
-    /// let node = ans.remove(0).replace_anchor(&anchor).unwrap();
+    /// let node = root.remove(0).replace_anchor(&anchor).unwrap();
     /// std::mem::drop(anchor);
     /// assert_eq!(
     ///     node,
