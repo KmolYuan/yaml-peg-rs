@@ -10,7 +10,10 @@ pub type AnchorArc = Anchor<ArcRepr>;
 
 /// The error of using an invalid anchor.
 #[derive(Debug)]
-pub struct InvalidAnchor(pub String);
+pub struct InvalidAnchor {
+    /// Invalid anchor name.
+    pub anchor: String,
+}
 
 /// Anchor visitor is made by a hash map that you can get the node reference inside.
 ///

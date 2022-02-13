@@ -444,10 +444,9 @@ impl<R: Repr> Node<R> {
     /// See also [`Anchor::resolve`].
     pub fn replace_anchor(&self, visitor: &Anchor<R>) -> Result<Self, InvalidAnchor> {
         match self.yaml() {
-            Yaml::Alias(anchor) => visitor
-                .get(anchor)
-                .cloned()
-                .ok_or_else(|| InvalidAnchor(anchor.clone())),
+            Yaml::Alias(anchor) => visitor.get(anchor).cloned().ok_or_else(|| InvalidAnchor {
+                anchor: anchor.clone(),
+            }),
             Yaml::Seq(seq) => seq
                 .iter()
                 .map(|node| node.replace_anchor(visitor))
