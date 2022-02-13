@@ -88,7 +88,7 @@ macro_rules! impl_map_serializer {
 ///
 /// ```
 /// use serde::Serialize;
-/// use yaml_peg::{serialize::to_node, node};
+/// use yaml_peg::{serde::to_node, node};
 ///
 /// #[derive(Serialize)]
 /// struct Member<'a> {
@@ -115,7 +115,7 @@ pub fn to_node(any: &impl Serialize) -> Result<Node, SerdeError> {
 ///
 /// ```
 /// use serde::Serialize;
-/// use yaml_peg::{serialize::to_arc_node, node};
+/// use yaml_peg::{serde::to_arc_node, node};
 ///
 /// #[derive(Serialize)]
 /// struct Member<'a> {
@@ -142,7 +142,7 @@ pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
 ///
 /// ```
 /// use serde::Serialize;
-/// use yaml_peg::serialize::to_string;
+/// use yaml_peg::serde::to_string;
 ///
 /// #[derive(Serialize)]
 /// struct Member<'a> {

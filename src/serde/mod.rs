@@ -51,7 +51,7 @@
 //!
 //! ```
 //! use serde::Deserialize;
-//! use yaml_peg::serialize::from_str;
+//! use yaml_peg::serde::from_str;
 //!
 //! #[derive(Deserialize)]
 //! struct Member {

@@ -37,7 +37,7 @@
 //! according to `From` and `Into` traits.
 #![cfg_attr(
     feature = "serde",
-    doc = "See [`serialize`] module for more information."
+    doc = "See [`crate::serde`] module for more information."
 )]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![cfg_attr(not(feature = "serde-std"), no_std)]
@@ -149,7 +149,7 @@ pub mod parser;
 pub mod repr;
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-pub mod serialize;
+pub mod serde;
 #[cfg(test)]
 mod tests;
 mod yaml;

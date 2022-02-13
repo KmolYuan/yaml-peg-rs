@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// ```
 /// use serde::Deserialize;
-/// use yaml_peg::{node, serialize::InlineList};
+/// use yaml_peg::{node, serde::InlineList};
 ///
 /// #[derive(Deserialize)]
 /// struct Content {
