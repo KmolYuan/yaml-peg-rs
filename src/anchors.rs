@@ -39,6 +39,9 @@ impl<R: Repr> Anchor<R> {
     /// Self-resolve the insertion of the visitor.
     /// Return the error [`InvalidAnchor`] if the anchor is not found.
     ///
+    /// Although the original YAML specification is not support forward reference,
+    /// but this algorithm achieved this with post-resolution mechanism.
+    ///
     /// Do nothing if `deep` equals to zero.
     ///
     /// ```
