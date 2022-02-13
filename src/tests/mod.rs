@@ -121,9 +121,10 @@ fn test_indent() {
 #[test]
 fn test_anchor() {
     const DOC: &str = include_str!("anchor.yaml");
-    let (mut ans, anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
-    let anchor = anchor_resolve(&anchor, 1).unwrap();
+    let (mut ans, mut anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
+    anchor_resolve(&mut anchor, 1).unwrap();
     let node = ans.remove(0).replace_anchor(&anchor).unwrap();
+    std::mem::drop(anchor);
     assert_eq!(
         node,
         node!([

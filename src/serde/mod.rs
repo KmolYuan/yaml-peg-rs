@@ -35,6 +35,8 @@
 //!
 //! If the data supports anchor insertion, please see [`anchor_resolve`](crate::anchor_resolve).
 //!
+//! The anchor should be resolve before serialization.
+//!
 //! # Mixed String Type
 //!
 //! If the data needs to deserialized from any type into string, please see [`Stringify`] type.

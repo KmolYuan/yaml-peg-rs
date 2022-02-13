@@ -1,6 +1,7 @@
 use crate::{repr::*, *};
 use alloc::string::{String, ToString};
 use ritelinked::LinkedHashMap;
+use std::io::{Error, ErrorKind};
 
 /// Anchor visitor is made by a hash map that you can get the node reference inside.
 ///
@@ -51,9 +52,10 @@ fn anchor_visit_inner<R: Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R>) {
 /// - *seq
 /// ";
 ///
-/// let (mut ans, anchor) = parse::<RcRepr>(doc).unwrap();
-/// let anchor = anchor_resolve(&anchor, 1).unwrap();
+/// let (mut ans, mut anchor) = parse::<RcRepr>(doc).unwrap();
+/// anchor_resolve(&mut anchor, 1).unwrap();
 /// let node = ans.remove(0).replace_anchor(&anchor).unwrap();
+/// std::mem::drop(anchor);
 /// assert_eq!(
 ///     node,
 ///     node!([
@@ -62,18 +64,16 @@ fn anchor_visit_inner<R: Repr>(n: &NodeBase<R>, visitor: &mut AnchorBase<R>) {
 ///     ])
 /// );
 /// ```
-pub fn anchor_resolve<R: Repr>(visitor: &AnchorBase<R>, deep: usize) -> Option<AnchorBase<R>> {
+pub fn anchor_resolve<R: Repr>(visitor: &mut AnchorBase<R>, deep: usize) -> Result<(), Error> {
     assert_ne!(deep, 0);
     let mut tmp = visitor.clone();
-    let mut visitor = visitor.clone();
     for _ in 0..deep * 2 {
         for node in visitor.values_mut() {
-            *node = match node.replace_anchor(&tmp) {
-                Some(node) => node,
-                None => return None,
-            };
+            *node = node
+                .replace_anchor(&tmp)
+                .ok_or_else(|| Error::new(ErrorKind::InvalidData, "invalid anchor"))?;
         }
-        std::mem::swap(&mut visitor, &mut tmp);
+        std::mem::swap(visitor, &mut tmp);
     }
-    Some(visitor)
+    Ok(())
 }
