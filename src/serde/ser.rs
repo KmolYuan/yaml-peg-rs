@@ -1,5 +1,5 @@
 use super::SerdeError;
-use crate::{dump, node, repr::Repr, ArcNode, Map, Node, NodeBase, Seq};
+use crate::{dump, node, repr::Repr, Map, Node, NodeArc, NodeRc, Seq};
 use alloc::string::String;
 use core::marker::PhantomData;
 use serde::{
@@ -32,7 +32,7 @@ macro_rules! impl_end {
 macro_rules! impl_seq_serializer {
     ($(impl $trait:ident for $ty:ident => $method:ident $(($tt:tt))?)+) => {
         $(impl<R: Repr> $trait for $ty<R> {
-            type Ok = NodeBase<R>;
+            type Ok = Node<R>;
             type Error = SerdeError;
 
             fn $method<T>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -53,7 +53,7 @@ macro_rules! impl_seq_serializer {
 macro_rules! impl_map_serializer {
     ($(impl $trait:ident for $ty:ident $(($tt:tt))?)+) => {
         $(impl<R: Repr> $trait for $ty<R> {
-            type Ok = NodeBase<R>;
+            type Ok = Node<R>;
             type Error = SerdeError;
 
             fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
@@ -100,11 +100,11 @@ macro_rules! impl_map_serializer {
 /// ```
 ///
 /// There is another version for multi-thread reference counter: [`to_arc_node`].
-pub fn to_node(any: &impl Serialize) -> Result<Node, SerdeError> {
+pub fn to_node(any: &impl Serialize) -> Result<NodeRc, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
-/// Serialize data into [`ArcNode`].
+/// Serialize data into [`NodeArc`].
 ///
 /// ```
 /// use serde::Serialize;
@@ -127,7 +127,7 @@ pub fn to_node(any: &impl Serialize) -> Result<Node, SerdeError> {
 /// ```
 ///
 /// There is another version for single-thread reference counter: [`to_node`].
-pub fn to_arc_node(any: impl Serialize) -> Result<ArcNode, SerdeError> {
+pub fn to_arc_node(any: impl Serialize) -> Result<NodeArc, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }
 
@@ -163,7 +163,7 @@ pub fn to_string(any: &impl Serialize) -> Result<String, SerdeError> {
 struct NodeSerializer<R: Repr>(PhantomData<R>);
 
 impl<R: Repr> Serializer for NodeSerializer<R> {
-    type Ok = NodeBase<R>;
+    type Ok = Node<R>;
     type Error = SerdeError;
     type SerializeSeq = SeqSerializer<R>;
     type SerializeTuple = SeqSerializer<R>;
@@ -199,7 +199,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Ok(v.iter().map(|b| NodeBase::from(*b)).collect())
+        Ok(v.iter().map(|b| Node::from(*b)).collect())
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
@@ -315,7 +315,7 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
 
 struct SeqSerializer<R: Repr>(Seq<R>);
 struct TupleVariant<R: Repr>(Seq<R>, &'static str);
-struct MapSerializer<R: Repr>(Map<R>, Option<NodeBase<R>>);
+struct MapSerializer<R: Repr>(Map<R>, Option<Node<R>>);
 struct StructSerializer<R: Repr>(Map<R>);
 struct StructVariant<R: Repr>(Map<R>, &'static str);
 
@@ -332,7 +332,7 @@ impl_map_serializer! {
 }
 
 impl<R: Repr> SerializeMap for MapSerializer<R> {
-    type Ok = NodeBase<R>;
+    type Ok = Node<R>;
     type Error = SerdeError;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>

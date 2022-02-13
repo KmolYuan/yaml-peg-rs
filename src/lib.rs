@@ -13,17 +13,17 @@
 //!
 //! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
 //! which has a data holder [`Yaml`].
-//! There also has multiple thread version corresponding to [`ArcNode`] and [`ArcYaml`].
+//! There also has multiple thread version corresponding to [`NodeRc`] / [`NodeArc`] and [`YamlRc`] / [`YamlArc`].
 //! To get back as string, please use [`dump`] function.
 //!
-//! There are also have some macros for building [`NodeBase`] structure from Rust data.
+//! There are also have some macros for building [`Node`] structure from Rust data.
 //! Especially [`node!`] macro, almost data can be built by the macro literally.
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
 //! # Anchors
 //!
-//! The anchor system [`AnchorBase`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
+//! The anchor system [`Anchor`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
 //! Additionally, [`anchors!`] macro can used to create anchor visitor by yourself.
 //!
 //! # Serialization and Deserialization
@@ -51,68 +51,68 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// Literals and expressions will be transformed to [`Yaml`] automatically by calling [`Into::into`].
 ///
 /// ```
-/// use yaml_peg::{node, Node};
+/// use yaml_peg::{node, NodeRc};
 ///
 /// let k = "a";
 /// assert_eq!(node!(k), node!("a"));
-/// assert_eq!(node!(()), Node::from(()));
+/// assert_eq!(node!(()), NodeRc::from(()));
 /// ```
 ///
 /// Arrays and maps can be created from this macro directly through brackets (`[]`, `{}`).
 ///
 /// ```
-/// use yaml_peg::{node, Node};
+/// use yaml_peg::{node, NodeRc};
 ///
-/// let v = vec![Node::from(1), Node::from(2)];
+/// let v = vec![NodeRc::from(1), NodeRc::from(2)];
 /// assert_eq!(node!([1, 2]), v.into_iter().collect());
-/// let m = vec![(Node::from(1), Node::from(2))];
+/// let m = vec![(NodeRc::from(1), NodeRc::from(2))];
 /// assert_eq!(node!({1 => 2}), m.into_iter().collect());
 /// ```
 ///
-/// The [`YamlBase::Anchor`] is also supported by the syntax:
+/// The [`Yaml::Alias`] is also supported by the syntax:
 ///
 /// ```
-/// use yaml_peg::{node, YamlBase};
+/// use yaml_peg::{node, Yaml};
 ///
-/// assert_eq!(node!(YamlBase::Anchor("x".to_string())), node!(*"x"));
+/// assert_eq!(node!(Yaml::Alias("x".to_string())), node!(*"x"));
 /// ```
 ///
 /// This macro is use [`Node`] by default,
 /// to specify them, a "rc" or "arc" prefix token can choose the presentation.
 ///
 /// ```
-/// use yaml_peg::{node, ArcNode};
+/// use yaml_peg::{node, NodeArc};
 ///
-/// assert_eq!(node!(arc()), ArcNode::from(()));
+/// assert_eq!(node!(arc()), NodeArc::from(()));
 /// ```
 #[macro_export]
 macro_rules! node {
     (@[$v:expr; $n:expr]) => {{
         extern crate alloc;
         let v = alloc::vec![$crate::node!(@$v); $n];
-        $crate::node!(@$crate::YamlBase::Seq(v))
+        $crate::node!(@$crate::Yaml::Seq(v))
     }};
     (@[$($v:expr),* $(,)?]) => {{
         extern crate alloc;
         let v = alloc::vec![$($crate::node!(@$v)),*];
-        $crate::node!(@$crate::YamlBase::Seq(v))
+        $crate::node!(@$crate::Yaml::Seq(v))
     }};
     (@{$($k:expr => $v:expr),* $(,)?}) => {{
         extern crate alloc;
         let m = alloc::vec![$(($crate::node!(@$k), $crate::node!(@$v))),*];
-        $crate::node!(@$crate::YamlBase::Map(m.into_iter().collect()))
+        $crate::node!(@$crate::Yaml::Map(m.into_iter().collect()))
     }};
     (@*$anchor:expr) => {
-        $crate::node!(@$crate::YamlBase::Anchor($anchor.into()))
+        $crate::node!(@$crate::Yaml::Alias($anchor.into()))
     };
     (@$yaml:expr) => {
-        $crate::NodeBase::from($yaml)
+        $crate::Node::from($yaml)
     };
     (arc $($tt:tt)+) => {
-        $crate::ArcNode::from($crate::node!(@$($tt)+))
+        $crate::NodeArc::from($crate::node!(@$($tt)+))
     };
     (rc $($tt:tt)+) => {
-        $crate::Node::from($crate::node!(@$($tt)+))
+        $crate::NodeRc::from($crate::node!(@$($tt)+))
     };
     ($($tt:tt)+) => {
         $crate::node!(rc $($tt)+)
@@ -122,7 +122,7 @@ macro_rules! node {
 /// Create a custom anchor visitor.
 ///
 /// The anchor name should implement [`alloc::string::ToString`] trait.
-/// All items will convert to [`NodeBase`] automatically.
+/// All items will convert to [`Node`] automatically.
 ///
 /// ```
 /// use yaml_peg::{node, anchors};
@@ -137,7 +137,7 @@ macro_rules! anchors {
     ($($k:expr => $v:expr),* $(,)?) => {{
         extern crate alloc;
         let v = alloc::vec![$(($k.to_string(), $crate::node!(@$v))),*];
-        v.into_iter().collect::<$crate::AnchorBase<_>>()
+        v.into_iter().collect::<$crate::Anchor<_>>()
     }};
 }
 

@@ -15,8 +15,8 @@ macro_rules! as_method {
         $(#[$meta])*
         pub fn $id(&self) -> Result<$r, u64> {
             match self.yaml() {
-                YamlBase::$ty(v) $(| YamlBase::$ty2(v))* => Ok(v$(.$op())?),
-                $(YamlBase::Null => Ok($default),)?
+                Yaml::$ty(v) $(| Yaml::$ty2(v))* => Ok(v$(.$op())?),
+                $(Yaml::Null => Ok($default),)?
                 _ => Err(self.pos()),
             }
         }
@@ -28,7 +28,7 @@ macro_rules! as_num_method {
         $(#[$meta])*
         pub fn $id<N: FromStr>(&self) -> Result<N, u64> {
             match self.yaml() {
-                YamlBase::$ty1(n) $(| YamlBase::$ty2(n))* => match n.parse() {
+                Yaml::$ty1(n) $(| Yaml::$ty2(n))* => match n.parse() {
                     Ok(v) => Ok(v),
                     Err(_) => Err(self.pos()),
                 },
@@ -40,32 +40,32 @@ macro_rules! as_num_method {
 
 macro_rules! impl_iter {
     ($(impl $item:ty)+) => {
-        $(impl<R: Repr> FromIterator<$item> for NodeBase<R> {
+        $(impl<R: Repr> FromIterator<$item> for Node<R> {
             fn from_iter<T: IntoIterator<Item = $item>>(iter: T) -> Self {
-                Self::from(iter.into_iter().collect::<YamlBase<R>>())
+                Self::from(iter.into_iter().collect::<Yaml<R>>())
             }
         })+
     };
 }
 
 /// A node with [`alloc::rc::Rc`] holder.
-pub type Node = NodeBase<RcRepr>;
+pub type NodeRc = Node<RcRepr>;
 /// A node with [`alloc::sync::Arc`] holder.
-pub type ArcNode = NodeBase<ArcRepr>;
+pub type NodeArc = Node<ArcRepr>;
 
 /// Readonly node, including line number, column number, type assertion and anchor.
-/// You can access [`YamlBase`] type through [`NodeBase::yaml`] method.
+/// You can access [`Yaml`] type through [`Node::yaml`] method.
 ///
 /// This type will ignore additional information when comparison and hashing.
 ///
 /// ```
 /// use std::collections::HashSet;
-/// use yaml_peg::{Node, Yaml};
+/// use yaml_peg::{NodeRc, Yaml};
 ///
 /// let mut s = HashSet::new();
-/// s.insert(Node::new(Yaml::from("a"), 0, "", ""));
-/// s.insert(Node::new("a", 1, "my-tag", ""));
-/// s.insert(Node::new("a", 2, "", "my-anchor"));
+/// s.insert(NodeRc::new(Yaml::from("a"), 0, "", ""));
+/// s.insert(NodeRc::new("a", 1, "my-tag", ""));
+/// s.insert(NodeRc::new("a", 2, "", "my-anchor"));
 /// assert_eq!(s.len(), 1);
 /// ```
 ///
@@ -89,8 +89,8 @@ pub type ArcNode = NodeBase<ArcRepr>;
 /// let n = &n["a"][Ind(0)]["b"];
 /// ```
 ///
-/// Same as containers, to prevent panic, the [`NodeBase::get`] method is the best choice.
-/// The [`NodeBase::get_default`] can provide missing key value when indexing.
+/// Same as containers, to prevent panic, the [`Node::get`] method is the best choice.
+/// The [`Node::get_default`] can provide missing key value when indexing.
 ///
 /// There are `as_*` methods provide `Result<T, u64>` returns with node position,
 /// default options can be created by [`Result::unwrap_or`],
@@ -120,7 +120,7 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// # Anchor
 ///
-/// The anchors can be infer from [`AnchorBase`], and attach with [`NodeBase::as_anchor`] method.
+/// The anchors can be infer from [`Anchor`], and attach with [`Node::as_anchor`] method.
 ///
 /// # Clone
 ///
@@ -142,13 +142,13 @@ pub type ArcNode = NodeBase<ArcRepr>;
 ///
 /// If you want to copy data, please get the data first.
 #[derive(Hash, Eq, PartialEq, Clone)]
-pub struct NodeBase<R: Repr>(pub(crate) R);
+pub struct Node<R: Repr = RcRepr>(pub(crate) R);
 
-impl<R: Repr> NodeBase<R> {
+impl<R: Repr> Node<R> {
     /// Create node from YAML data.
     pub fn new<Y>(yaml: Y, pos: u64, tag: &str, anchor: &str) -> Self
     where
-        Y: Into<YamlBase<R>>,
+        Y: Into<Yaml<R>>,
     {
         let yaml = yaml.into();
         Self(R::repr(yaml, pos, tag.to_string(), anchor.to_string()))
@@ -167,14 +167,14 @@ impl<R: Repr> NodeBase<R> {
     pub fn tag(&self) -> &str {
         match self.0.tag.as_str() {
             "" => match self.yaml() {
-                YamlBase::Null => concat!(parser::tag_prefix!(), "null"),
-                YamlBase::Bool(_) => concat!(parser::tag_prefix!(), "bool"),
-                YamlBase::Int(_) => concat!(parser::tag_prefix!(), "int"),
-                YamlBase::Float(_) => concat!(parser::tag_prefix!(), "float"),
-                YamlBase::Str(_) => concat!(parser::tag_prefix!(), "str"),
-                YamlBase::Seq(_) => concat!(parser::tag_prefix!(), "seq"),
-                YamlBase::Map(_) => concat!(parser::tag_prefix!(), "map"),
-                YamlBase::Anchor(_) => "",
+                Yaml::Null => concat!(parser::tag_prefix!(), "null"),
+                Yaml::Bool(_) => concat!(parser::tag_prefix!(), "bool"),
+                Yaml::Int(_) => concat!(parser::tag_prefix!(), "int"),
+                Yaml::Float(_) => concat!(parser::tag_prefix!(), "float"),
+                Yaml::Str(_) => concat!(parser::tag_prefix!(), "str"),
+                Yaml::Seq(_) => concat!(parser::tag_prefix!(), "seq"),
+                Yaml::Map(_) => concat!(parser::tag_prefix!(), "map"),
+                Yaml::Alias(_) => "",
             },
             s => s,
         }
@@ -188,13 +188,13 @@ impl<R: Repr> NodeBase<R> {
 
     /// YAML data.
     #[inline(always)]
-    pub fn yaml(&self) -> &YamlBase<R> {
+    pub fn yaml(&self) -> &Yaml<R> {
         &self.0.yaml
     }
 
     /// Check the value is null.
     pub fn is_null(&self) -> bool {
-        *self.yaml() == YamlBase::Null
+        *self.yaml() == Yaml::Null
     }
 
     as_method! {
@@ -273,10 +273,10 @@ impl<R: Repr> NodeBase<R> {
     /// ```
     pub fn as_value(&self) -> Result<&str, u64> {
         match self.yaml() {
-            YamlBase::Str(s) | YamlBase::Int(s) | YamlBase::Float(s) => Ok(s),
-            YamlBase::Bool(true) => Ok("true"),
-            YamlBase::Bool(false) => Ok("false"),
-            YamlBase::Null => Ok(""),
+            Yaml::Str(s) | Yaml::Int(s) | Yaml::Float(s) => Ok(s),
+            Yaml::Bool(true) => Ok("true"),
+            Yaml::Bool(false) => Ok("false"),
+            Yaml::Null => Ok(""),
             _ => Err(self.pos()),
         }
     }
@@ -293,9 +293,9 @@ impl<R: Repr> NodeBase<R> {
     /// let v = anchors!["a" => 20.];
     /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
     /// ```
-    pub fn as_anchor<'a, 'b: 'a>(&'a self, v: &'b AnchorBase<R>) -> &'a Self {
+    pub fn as_anchor<'a, 'b: 'a>(&'a self, v: &'b Anchor<R>) -> &'a Self {
         match self.yaml() {
-            YamlBase::Anchor(s) if v.contains_key(s) => v.get(s).unwrap(),
+            Yaml::Alias(s) if v.contains_key(s) => v.get(s).unwrap(),
             _ => self,
         }
     }
@@ -344,7 +344,7 @@ impl<R: Repr> NodeBase<R> {
     /// # Ok::<(), u64>(()) }
     /// ```
     pub fn get<Y: Into<Self>>(&self, key: Y) -> Result<&Self, u64> {
-        if let YamlBase::Map(m) = self.yaml() {
+        if let Yaml::Map(m) = self.yaml() {
             if let Some(n) = m.get(&key.into()) {
                 Ok(n)
             } else {
@@ -355,7 +355,7 @@ impl<R: Repr> NodeBase<R> {
         }
     }
 
-    /// Same as [`NodeBase::get`] but provide default value if the key is missing.
+    /// Same as [`Node::get`] but provide default value if the key is missing.
     /// For this method, a transform method `as_*` is required.
     ///
     /// + If the value exist, return the value.
@@ -364,32 +364,32 @@ impl<R: Repr> NodeBase<R> {
     ///
     /// ```
     /// # fn main() -> Result<(), u64> {
-    /// use yaml_peg::{node, NodeBase};
+    /// use yaml_peg::{node, Node};
     ///
     /// let a = node!({node!("a") => node!({node!("b") => node!("c")})});
     /// assert_eq!(
     ///     "c",
-    ///     a.get("a")?.get_default("b", "d", NodeBase::as_str)?
+    ///     a.get("a")?.get_default("b", "d", Node::as_str)?
     /// );
     /// let b = node!({node!("a") => node!({})});
     /// assert_eq!(
     ///     "d",
-    ///     b.get("a")?.get_default("b", "d", NodeBase::as_str)?
+    ///     b.get("a")?.get_default("b", "d", Node::as_str)?
     /// );
     /// let c = node!({node!("a") => node!({node!("b") => node!(20.)})});
     /// assert_eq!(
     ///     Err(0),
-    ///     c.get("a")?.get_default("b", "d", NodeBase::as_str)
+    ///     c.get("a")?.get_default("b", "d", Node::as_str)
     /// );
     /// # Ok::<(), u64>(()) }
     /// ```
     ///
     /// ```
     /// # fn main() -> Result<(), u64> {
-    /// use yaml_peg::{node, NodeBase};
+    /// use yaml_peg::{node, Node};
     ///
     /// let n = node!({node!("a") => node!([node!(1), node!(2), node!(3)])});
-    /// let a = n.get_default("c", vec![], NodeBase::as_seq)?;
+    /// let a = n.get_default("c", vec![], Node::as_seq)?;
     /// assert_eq!(a, vec![]);
     /// # Ok::<(), u64>(()) }
     /// ```
@@ -403,49 +403,9 @@ impl<R: Repr> NodeBase<R> {
         Y: Into<Self>,
         F: Fn(&'a Self) -> Result<Ret, u64>,
     {
-        if let YamlBase::Map(m) = self.yaml() {
+        if let Yaml::Map(m) = self.yaml() {
             if let Some(n) = m.get(&key.into()) {
                 factory(n)
-            } else {
-                Ok(default)
-            }
-        } else {
-            Err(self.pos())
-        }
-    }
-
-    /// Trait as map then get a key-value with anchor visitor,
-    /// returns default value if key is not found.
-    ///
-    /// If the value type is incorrect, returns [`Err`].
-    /// Same as [`NodeBase::get_default`] but support anchor visitor.
-    ///
-    /// ```
-    /// # fn main() -> Result<(), u64> {
-    /// use yaml_peg::{anchors, node, Node};
-    ///
-    /// let v = anchors!["c" => 10];
-    /// let a = node!({node!("a") => node!({node!("b") => node!(*"c")})});
-    /// let c = a.get("a")?.with(&v, "b", 0, Node::as_int)?;
-    /// assert_eq!(10, c);
-    /// let c = a.get("a")?.with(&v, "b", "default", Node::as_str);
-    /// assert_eq!(Err(0), c);
-    /// # Ok::<(), u64>(()) }
-    /// ```
-    pub fn with<'a, 'b: 'a, Y, Ret, F>(
-        &'a self,
-        v: &'b AnchorBase<R>,
-        key: Y,
-        default: Ret,
-        factory: F,
-    ) -> Result<Ret, u64>
-    where
-        Y: Into<Self>,
-        F: Fn(&'a Self) -> Result<Ret, u64>,
-    {
-        if let YamlBase::Map(m) = self.yaml() {
-            if let Some(n) = m.get(&key.into()) {
-                factory(n.as_anchor(v))
             } else {
                 Ok(default)
             }
@@ -465,7 +425,7 @@ impl<R: Repr> NodeBase<R> {
     /// # Ok::<(), u64>(()) }
     /// ```
     pub fn get_ind(&self, ind: Ind) -> Result<&Self, u64> {
-        if let YamlBase::Seq(a) = self.yaml() {
+        if let Yaml::Seq(a) = self.yaml() {
             if let Some(n) = a.get(ind.0) {
                 Ok(n)
             } else {
@@ -479,44 +439,52 @@ impl<R: Repr> NodeBase<R> {
     /// Replace the anchor insertion recursively.
     /// Return `None` if the anchor is not found.
     ///
-    /// If the anchor contains a self-loop, the program will be stack overflow.
-    pub fn replace_anchor(&self, visitor: &AnchorBase<R>) -> Option<Self> {
+    /// If the anchor contains a self-loop, `Yaml::Anchor` will be left.
+    ///
+    /// See also [`Anchor::resolve`].
+    pub fn replace_anchor(&self, visitor: &Anchor<R>) -> Result<Self, InvalidAnchor> {
         match self.yaml() {
-            YamlBase::Anchor(anchor) => visitor.get(anchor).cloned(),
-            YamlBase::Seq(seq) => seq
+            Yaml::Alias(anchor) => visitor
+                .get(anchor)
+                .cloned()
+                .ok_or_else(|| InvalidAnchor(anchor.clone())),
+            Yaml::Seq(seq) => seq
                 .iter()
                 .map(|node| node.replace_anchor(visitor))
-                .collect::<Option<Seq<_>>>()
-                .map(|seq| self.new_with_yaml(YamlBase::Seq(seq))),
-            YamlBase::Map(map) => map
+                .collect::<Result<Seq<_>, _>>()
+                .map(|seq| self.new_with_yaml(Yaml::Seq(seq))),
+            Yaml::Map(map) => map
                 .iter()
-                .map(|(k, v)| k.replace_anchor(visitor).zip(v.replace_anchor(visitor)))
-                .collect::<Option<Map<_>>>()
-                .map(|map| self.new_with_yaml(YamlBase::Map(map))),
-            _ => Some(self.clone()),
+                .map(|(k, v)| {
+                    k.replace_anchor(visitor)
+                        .and_then(|k| Ok((k, v.replace_anchor(visitor)?)))
+                })
+                .collect::<Result<Map<_>, _>>()
+                .map(|map| self.new_with_yaml(Yaml::Map(map))),
+            _ => Ok(self.clone()),
         }
     }
 
     /// Create a node with original information.
-    pub fn new_with_yaml(&self, yaml: YamlBase<R>) -> Self {
+    pub fn new_with_yaml(&self, yaml: Yaml<R>) -> Self {
         Self::new(yaml, self.pos(), self.tag(), self.anchor())
     }
 }
 
-impl<R: Repr> Debug for NodeBase<R> {
+impl<R: Repr> Debug for Node<R> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_fmt(format_args!("Node{:?}", &self.0))
     }
 }
 
-/// Node index indicator use to indicate sequence position.
+/// Indicator of the node use to index the sequence position.
 pub struct Ind(pub usize);
 
-impl<R: Repr> Index<Ind> for NodeBase<R> {
+impl<R: Repr> Index<Ind> for Node<R> {
     type Output = Self;
 
     fn index(&self, index: Ind) -> &Self::Output {
-        if let YamlBase::Seq(a) = self.yaml() {
+        if let Yaml::Seq(a) = self.yaml() {
             a.index(index.0)
         } else {
             panic!("out of bound!")
@@ -524,7 +492,7 @@ impl<R: Repr> Index<Ind> for NodeBase<R> {
     }
 }
 
-impl<R, I> Index<I> for NodeBase<R>
+impl<R, I> Index<I> for Node<R>
 where
     R: Repr,
     I: Into<Self>,
@@ -532,7 +500,7 @@ where
     type Output = Self;
 
     fn index(&self, index: I) -> &Self::Output {
-        if let YamlBase::Map(m) = self.yaml() {
+        if let Yaml::Map(m) = self.yaml() {
             m.get(&index.into())
                 .unwrap_or_else(|| panic!("out of bound!"))
         } else {
@@ -541,10 +509,10 @@ where
     }
 }
 
-impl<R, Y> From<Y> for NodeBase<R>
+impl<R, Y> From<Y> for Node<R>
 where
     R: Repr,
-    Y: Into<YamlBase<R>>,
+    Y: Into<Yaml<R>>,
 {
     fn from(yaml: Y) -> Self {
         Self::new(yaml, 0, "", "")

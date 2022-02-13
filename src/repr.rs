@@ -19,13 +19,13 @@ pub struct ArcRepr(Arc<Inner<Self>>);
 
 /// Inner data of the nodes.
 ///
-/// Please access the fields by [`NodeBase`].
+/// Please access the fields by [`Node`].
 #[derive(Eq, Clone)]
 pub struct Inner<R: Repr> {
     pub(crate) pos: u64,
     pub(crate) tag: String,
     pub(crate) anchor: String,
-    pub(crate) yaml: YamlBase<R>,
+    pub(crate) yaml: Yaml<R>,
 }
 
 impl<R: Repr> Debug for Inner<R> {
@@ -46,18 +46,18 @@ impl<R: Repr> PartialEq for Inner<R> {
     }
 }
 
-/// The generic representation holder for [`YamlBase`] and [`NodeBase`].
+/// The generic representation holder for [`Yaml`] and [`Node`].
 ///
 /// See the implementor list for the choose.
 pub trait Repr: Deref<Target = Inner<Self>> + Hash + Eq + Clone + Debug {
     /// The creation function of this type.
-    fn repr(yaml: YamlBase<Self>, pos: u64, tag: String, anchor: String) -> Self;
+    fn repr(yaml: Yaml<Self>, pos: u64, tag: String, anchor: String) -> Self;
 }
 
 macro_rules! impl_repr {
     ($ty:ty, $inner:ident) => {
         impl Repr for $ty {
-            fn repr(yaml: YamlBase<Self>, pos: u64, tag: String, anchor: String) -> Self {
+            fn repr(yaml: Yaml<Self>, pos: u64, tag: String, anchor: String) -> Self {
                 Self($inner::new(Inner {
                     pos,
                     tag,
@@ -74,7 +74,7 @@ macro_rules! impl_repr {
             }
         }
 
-        impl Deref for NodeBase<$ty> {
+        impl Deref for Node<$ty> {
             type Target = $inner<Inner<$ty>>;
             fn deref(&self) -> &Self::Target {
                 &self.0 .0

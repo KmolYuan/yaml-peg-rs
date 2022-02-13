@@ -3,7 +3,7 @@
 //! This parser is a simple greedy algorithm that returns result when
 //! matched successfully; try next or return error when mismatched.
 //!
-//! The [`Loader`] type can simply convert string into [`NodeBase`] type.
+//! The [`Loader`] type can simply convert string into [`Node`] type.
 //!
 //! Each pattern (the method of [`Parser`] type) is called "sub-parser",
 //! which returns a `Result<T, PError>` type, where `T` is the return type.
@@ -109,7 +109,7 @@ pub struct Loader<'a, R: Repr> {
     /// Parser base.
     pub parser: Parser<'a>,
     /// A visitor of anchors.
-    pub anchors: AnchorBase<R>,
+    pub anchors: Anchor<R>,
 }
 
 impl<'a, R: Repr> Loader<'a, R> {
@@ -117,7 +117,7 @@ impl<'a, R: Repr> Loader<'a, R> {
     pub fn new(doc: &'a [u8]) -> Self {
         Self {
             parser: Parser::new(doc),
-            anchors: AnchorBase::new(),
+            anchors: Anchor::new(),
         }
     }
 }
@@ -168,7 +168,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match one doc block.
-    pub fn doc(&mut self) -> PResult<NodeBase<R>> {
+    pub fn doc(&mut self) -> PResult<Node<R>> {
         self.ind_define(0)?;
         self.forward();
         let ret = self.scalar(0, false, false)?;
@@ -194,12 +194,12 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> PResult<NodeBase<R>> {
+    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> PResult<Node<R>> {
         self.scalar_inner(|p| {
             if let Ok(s) = p.string_literal(level) {
-                Ok(YamlBase::Str(s))
+                Ok(Yaml::Str(s))
             } else if let Ok(s) = p.string_folded(level) {
-                Ok(YamlBase::Str(s))
+                Ok(Yaml::Str(s))
             } else {
                 match_or!(
                     p.seq(level, nest),
@@ -210,13 +210,13 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow scalar.
-    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> PResult<NodeBase<R>> {
+    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> PResult<Node<R>> {
         self.scalar_inner(|p| p.scalar_term(level, inner))
     }
 
-    fn scalar_inner<F>(&mut self, f: F) -> PResult<NodeBase<R>>
+    fn scalar_inner<F>(&mut self, f: F) -> PResult<Node<R>>
     where
-        F: Fn(&mut Self) -> PResult<YamlBase<R>>,
+        F: Fn(&mut Self) -> PResult<Yaml<R>>,
     {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
@@ -231,7 +231,7 @@ impl<R: Repr> Loader<'_, R> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        let node = NodeBase::new(yaml, pos, &tag, &anchor);
+        let node = Node::new(yaml, pos, &tag, &anchor);
         if !anchor.is_empty() && self.anchors.insert(anchor, node.clone()).is_some() {
             self.err("duplicated anchor definition")
         } else {
@@ -240,40 +240,40 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize, inner: bool) -> PResult<YamlBase<R>> {
+    pub fn scalar_term(&mut self, level: usize, inner: bool) -> PResult<Yaml<R>> {
         let yaml = if let Ok(s) = self.float() {
-            YamlBase::Float(s)
+            Yaml::Float(s)
         } else if let Ok(s) = self.sci_float() {
-            YamlBase::Float(s)
+            Yaml::Float(s)
         } else if let Ok(s) = self.int() {
-            YamlBase::Int(s)
+            Yaml::Int(s)
         } else if let Ok(s) = self.anchor_use() {
-            YamlBase::Anchor(s)
+            Yaml::Alias(s)
         } else if let Ok(s) = self.string_quoted(b'\'', b"''") {
-            YamlBase::Str(s)
+            Yaml::Str(s)
         } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
-            YamlBase::Str(Parser::escape(&s))
+            Yaml::Str(Parser::escape(&s))
         } else if let Ok(s) = self.string_plain(level, inner) {
             match s.as_str() {
-                "~" | "null" | "Null" | "NULL" => YamlBase::Null,
-                "true" | "True" | "TRUE" => YamlBase::Bool(true),
-                "false" | "False" | "FALSE" => YamlBase::Bool(false),
-                ".nan" | ".NaN" | ".NAN" => YamlBase::Float("NaN".to_string()),
-                ".inf" | ".Inf" | ".INF" => YamlBase::Float("inf".to_string()),
-                "-.inf" | "-.Inf" | "-.INF" => YamlBase::Float("-inf".to_string()),
-                _ => YamlBase::Str(s),
+                "~" | "null" | "Null" | "NULL" => Yaml::Null,
+                "true" | "True" | "TRUE" => Yaml::Bool(true),
+                "false" | "False" | "FALSE" => Yaml::Bool(false),
+                ".nan" | ".NaN" | ".NAN" => Yaml::Float("NaN".to_string()),
+                ".inf" | ".Inf" | ".INF" => Yaml::Float("inf".to_string()),
+                "-.inf" | "-.Inf" | "-.INF" => Yaml::Float("-inf".to_string()),
+                _ => Yaml::Str(s),
             }
         } else {
             match_or!(
                 self.seq_flow(level),
-                match_or!(self.map_flow(level), Ok(YamlBase::Null))
+                match_or!(self.map_flow(level), Ok(Yaml::Null))
             )?
         };
         Ok(yaml)
     }
 
     /// Match flow sequence.
-    pub fn seq_flow(&mut self, level: usize) -> PResult<YamlBase<R>> {
+    pub fn seq_flow(&mut self, level: usize) -> PResult<Yaml<R>> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -299,7 +299,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow map.
-    pub fn map_flow(&mut self, level: usize) -> PResult<YamlBase<R>> {
+    pub fn map_flow(&mut self, level: usize) -> PResult<Yaml<R>> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
@@ -342,7 +342,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match sequence.
-    pub fn seq(&mut self, level: usize, nest: bool) -> PResult<YamlBase<R>> {
+    pub fn seq(&mut self, level: usize, nest: bool) -> PResult<Yaml<R>> {
         let mut v = vec![];
         loop {
             self.forward();
@@ -386,7 +386,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> PResult<YamlBase<R>> {
+    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> PResult<Yaml<R>> {
         let mut m = vec![];
         loop {
             self.forward();
@@ -491,7 +491,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 ///     "age" => 46,
 /// })]);
 /// ```
-pub fn parse<R: Repr>(doc: &str) -> Result<(Seq<R>, AnchorBase<R>), String> {
+pub fn parse<R: Repr>(doc: &str) -> Result<(Seq<R>, Anchor<R>), String> {
     let mut p = Loader::new(doc.as_bytes());
     p.parse()
         .map_err(|e| e.into_error(doc))

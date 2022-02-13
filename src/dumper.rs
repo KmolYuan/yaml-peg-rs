@@ -23,14 +23,14 @@ enum Root {
 
 /// Dumper for nodes.
 pub struct Dumper<'a, R: Repr> {
-    node: &'a NodeBase<R>,
+    node: &'a Node<R>,
     root: Root,
     level: usize,
 }
 
 impl<'a, R: Repr> Dumper<'a, R> {
     /// Create the dumper.
-    pub fn new(node: &'a NodeBase<R>) -> Self {
+    pub fn new(node: &'a Node<R>) -> Self {
         Self {
             node,
             root: Root::Scalar,
@@ -38,7 +38,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
         }
     }
 
-    fn part(node: &'a NodeBase<R>, root: Root, level: usize) -> String {
+    fn part(node: &'a Node<R>, root: Root, level: usize) -> String {
         Self { node, root, level }.dump()
     }
 
@@ -61,10 +61,10 @@ impl<'a, R: Repr> Dumper<'a, R> {
         }
         let ind = "  ".repeat(self.level);
         doc += &match self.node.yaml() {
-            YamlBase::Null => "null".to_string(),
-            YamlBase::Bool(b) => b.to_string(),
-            YamlBase::Int(n) | YamlBase::Float(n) => n.clone(),
-            YamlBase::Str(s) => {
+            Yaml::Null => "null".to_string(),
+            Yaml::Bool(b) => b.to_string(),
+            Yaml::Int(n) | Yaml::Float(n) => n.clone(),
+            Yaml::Str(s) => {
                 if s.contains(NL) {
                     let s = s
                         .split(NL)
@@ -87,7 +87,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                     s.clone()
                 }
             }
-            YamlBase::Seq(a) => {
+            Yaml::Seq(a) => {
                 let mut doc = NL.to_string();
                 for (i, node) in a.iter().enumerate() {
                     if i != 0 || self.level != 0 {
@@ -99,7 +99,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                 doc.truncate(doc.len() - NL.len());
                 doc
             }
-            YamlBase::Map(m) => {
+            Yaml::Map(m) => {
                 let mut doc = match self.root {
                     Root::Map => NL.to_string(),
                     _ => String::new(),
@@ -109,7 +109,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                         doc += &ind;
                     }
                     let s = Self::part(k, Root::Map, self.level + 1);
-                    doc += &if let YamlBase::Map(_) | YamlBase::Seq(_) = k.yaml() {
+                    doc += &if let Yaml::Map(_) | Yaml::Seq(_) = k.yaml() {
                         let pre_ind = "  ".repeat(self.level + 1);
                         format!("?{}{}{}{}{}", pre_ind, NL, s, NL, ind)
                     } else {
@@ -117,11 +117,11 @@ impl<'a, R: Repr> Dumper<'a, R> {
                     };
                     doc += ":";
                     doc += &match v.yaml() {
-                        YamlBase::Map(_) => Self::part(v, Root::Map, self.level + 1),
-                        YamlBase::Seq(_) if self.root == Root::Array && i == 0 => {
+                        Yaml::Map(_) => Self::part(v, Root::Map, self.level + 1),
+                        Yaml::Seq(_) if self.root == Root::Array && i == 0 => {
                             Self::part(v, Root::Map, self.level)
                         }
-                        YamlBase::Seq(_) => Self::part(v, Root::Map, self.level + 1),
+                        Yaml::Seq(_) => Self::part(v, Root::Map, self.level + 1),
                         _ => format!(" {}", Self::part(v, Root::Map, self.level + 1)),
                     };
                     doc += NL;
@@ -129,7 +129,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                 doc.truncate(doc.len() - NL.len());
                 doc
             }
-            YamlBase::Anchor(anchor) => format!("*{}", anchor),
+            Yaml::Alias(anchor) => format!("*{}", anchor),
         };
         doc
     }
@@ -157,7 +157,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
-pub fn dump<R: Repr>(nodes: &[NodeBase<R>]) -> String {
+pub fn dump<R: Repr>(nodes: &[Node<R>]) -> String {
     nodes
         .iter()
         .enumerate()

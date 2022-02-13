@@ -2,7 +2,7 @@ use super::SerdeError;
 use crate::{
     parse,
     repr::{RcRepr, Repr},
-    Map, NodeBase, Seq, YamlBase,
+    Map, Node, Seq, Yaml,
 };
 use alloc::{string::ToString, vec::Vec};
 use core::marker::PhantomData;
@@ -34,7 +34,7 @@ macro_rules! impl_deserializer {
             V: Visitor<'a>,
         {
             match self.yaml() {
-                YamlBase::$ty($n) => visitor.$visit($value),
+                Yaml::$ty($n) => visitor.$visit($value),
                 _ => Err(unexpected(&self, visitor)),
             }
         })+
@@ -80,7 +80,7 @@ where
 struct NodeVisitor<R: Repr>(PhantomData<R>);
 
 impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
-    type Value = NodeBase<R>;
+    type Value = Node<R>;
 
     fn expecting(&self, fmt: &mut core::fmt::Formatter) -> core::fmt::Result {
         fmt.write_str("YAML value")
@@ -123,9 +123,9 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
             m.insert(k, v);
         }
         if m.len() == 1 {
-            if let Some(n) = m.get(&NodeBase::from("anchor")) {
+            if let Some(n) = m.get(&Node::from("anchor")) {
                 if let Ok(anchor) = n.as_str() {
-                    return Ok(NodeBase::from(YamlBase::Anchor(anchor.to_string())));
+                    return Ok(Node::from(Yaml::Alias(anchor.to_string())));
                 }
             }
         }
@@ -149,7 +149,7 @@ impl<'a, R: Repr> SeqAccess<'a> for SeqVisitor<R> {
     }
 }
 
-struct MapVisitor<R: Repr>(<Map<R> as IntoIterator>::IntoIter, Option<NodeBase<R>>);
+struct MapVisitor<R: Repr>(<Map<R> as IntoIterator>::IntoIter, Option<Node<R>>);
 
 impl<'a, R: Repr> MapAccess<'a> for MapVisitor<R> {
     type Error = SerdeError;
@@ -178,7 +178,7 @@ impl<'a, R: Repr> MapAccess<'a> for MapVisitor<R> {
     }
 }
 
-struct EnumVisitor<R: Repr>(NodeBase<R>, Option<NodeBase<R>>);
+struct EnumVisitor<R: Repr>(Node<R>, Option<Node<R>>);
 
 impl<'a, R: Repr> EnumAccess<'a> for EnumVisitor<R> {
     type Error = SerdeError;
@@ -193,7 +193,7 @@ impl<'a, R: Repr> EnumAccess<'a> for EnumVisitor<R> {
     }
 }
 
-struct VariantVisitor<R: Repr>(Option<NodeBase<R>>);
+struct VariantVisitor<R: Repr>(Option<Node<R>>);
 
 impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     type Error = SerdeError;
@@ -224,7 +224,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     {
         match self.0 {
             Some(node) => match node.yaml() {
-                YamlBase::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+                Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
                 _ => Err(unexpected(&node, "tuple variant")),
             },
             None => Err(Error::invalid_type(
@@ -244,7 +244,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     {
         match self.0 {
             Some(node) => match node.yaml() {
-                YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+                Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
                 _ => Err(unexpected(&node, "struct variant")),
             },
             None => Err(Error::invalid_type(
@@ -255,7 +255,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     }
 }
 
-impl<'a, R: Repr> Deserialize<'a> for NodeBase<R> {
+impl<'a, R: Repr> Deserialize<'a> for Node<R> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'a>,
@@ -264,7 +264,7 @@ impl<'a, R: Repr> Deserialize<'a> for NodeBase<R> {
     }
 }
 
-impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
+impl<'a, R: Repr> Deserializer<'a> for Node<R> {
     type Error = SerdeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -272,14 +272,14 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         V: Visitor<'a>,
     {
         match self.yaml() {
-            YamlBase::Null => visitor.visit_unit(),
-            YamlBase::Bool(v) => visitor.visit_bool(*v),
-            YamlBase::Int(n) => visitor.visit_i64(n.parse().unwrap()),
-            YamlBase::Float(n) => visitor.visit_f64(n.parse().unwrap()),
-            YamlBase::Str(s) => visitor.visit_str(s),
-            YamlBase::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
-            YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
-            YamlBase::Anchor(_) => Err(unexpected(&self, visitor)),
+            Yaml::Null => visitor.visit_unit(),
+            Yaml::Bool(v) => visitor.visit_bool(*v),
+            Yaml::Int(n) => visitor.visit_i64(n.parse().unwrap()),
+            Yaml::Float(n) => visitor.visit_f64(n.parse().unwrap()),
+            Yaml::Str(s) => visitor.visit_str(s),
+            Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+            Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+            Yaml::Alias(_) => Err(unexpected(&self, visitor)),
         }
     }
 
@@ -322,8 +322,8 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         V: Visitor<'a>,
     {
         match self.yaml() {
-            YamlBase::Str(s) => visitor.visit_str(s),
-            YamlBase::Seq(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
+            Yaml::Str(s) => visitor.visit_str(s),
+            Yaml::Seq(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
             _ => Err(unexpected(&self, visitor)),
         }
     }
@@ -333,7 +333,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         V: Visitor<'a>,
     {
         match self.yaml() {
-            YamlBase::Null => visitor.visit_none(),
+            Yaml::Null => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
     }
@@ -400,8 +400,8 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         V: Visitor<'a>,
     {
         match self.yaml() {
-            YamlBase::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
-            YamlBase::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+            Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+            Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
             _ => Err(unexpected(&self, visitor)),
         }
     }
@@ -416,7 +416,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
         V: Visitor<'a>,
     {
         let (k, v) = match self.yaml() {
-            YamlBase::Map(m) => {
+            Yaml::Map(m) => {
                 if m.len() != 1 {
                     return Err(unexpected(&self, "map with single pair"));
                 }
@@ -426,7 +426,7 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
                     unreachable!()
                 }
             }
-            YamlBase::Str(_) => (self.clone(), None),
+            Yaml::Str(_) => (self.clone(), None),
             _ => return Err(unexpected(&self, visitor)),
         };
         visitor.visit_enum(EnumVisitor(k, v))
@@ -441,16 +441,16 @@ impl<'a, R: Repr> Deserializer<'a> for NodeBase<R> {
 }
 
 #[cold]
-fn unexpected<R: Repr>(node: &NodeBase<R>, exp: impl Expected) -> SerdeError {
+fn unexpected<R: Repr>(node: &Node<R>, exp: impl Expected) -> SerdeError {
     let ty = match node.yaml() {
-        YamlBase::Null => Unexpected::Unit,
-        YamlBase::Bool(b) => Unexpected::Bool(*b),
-        YamlBase::Int(n) => Unexpected::Signed(n.parse().unwrap()),
-        YamlBase::Float(n) => Unexpected::Float(n.parse().unwrap()),
-        YamlBase::Str(s) => Unexpected::Str(s),
-        YamlBase::Seq(_) => Unexpected::Seq,
-        YamlBase::Map(_) => Unexpected::Map,
-        YamlBase::Anchor(_) => Unexpected::Other("anchor"),
+        Yaml::Null => Unexpected::Unit,
+        Yaml::Bool(b) => Unexpected::Bool(*b),
+        Yaml::Int(n) => Unexpected::Signed(n.parse().unwrap()),
+        Yaml::Float(n) => Unexpected::Float(n.parse().unwrap()),
+        Yaml::Str(s) => Unexpected::Str(s),
+        Yaml::Seq(_) => Unexpected::Seq,
+        Yaml::Map(_) => Unexpected::Map,
+        Yaml::Alias(_) => Unexpected::Other("anchor"),
     };
     SerdeError::invalid_type(ty, &exp).pos(node.pos())
 }

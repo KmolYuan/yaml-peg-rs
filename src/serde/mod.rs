@@ -33,9 +33,9 @@
 //!
 //! # Anchors
 //!
-//! If the data supports anchor insertion, please see [`anchor_resolve`](crate::anchor_resolve).
+//! If the data supports anchor insertion, please see [`crate::Anchor::resolve`] and [`crate::Node::replace_anchor`].
 //!
-//! The anchor should be resolve before serialization.
+//! The anchor should be resolve before serialization. [`crate::Yaml::Alias`] is not support serialization.
 //!
 //! # Mixed String Type
 //!

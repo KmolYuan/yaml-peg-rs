@@ -9,8 +9,6 @@ fn show_err<E>(e: String) -> E {
 fn test_json() {
     const DOC: &str = include_str!("json_compatibility.json");
     let (ans, anchors) = parse(DOC).unwrap_or_else(show_err);
-    assert_eq!(anchors.len(), 0);
-    assert_eq!(anchor_visit(&ans[0]), anchors);
     assert_eq!(
         ans[0],
         node!({
@@ -20,6 +18,8 @@ fn test_json() {
             "e:f" => "g"
         })
     );
+    assert_eq!(anchors.len(), 0);
+    assert_eq!(Anchor::from(ans[0].clone()), anchors);
     let n = ans[0].get("a").unwrap();
     assert_eq!(n, &node!("b"));
 }
@@ -28,10 +28,6 @@ fn test_json() {
 fn test_yaml() {
     const DOC: &str = include_str!("complete_doc.yaml");
     let (ans, anchors) = parse(DOC).unwrap_or_else(show_err);
-    assert_eq!(anchors.len(), 2);
-    assert!(anchors.contains_key("x"));
-    assert!(anchors.contains_key("y"));
-    assert_eq!(anchor_visit(&ans[0]), anchors);
     assert_eq!(
         ans[0],
         node!({
@@ -40,9 +36,9 @@ fn test_yaml() {
                 "b1" => 4.,
                 "b2" => node!([
                     "50%",
-                    node!(YamlBase::Float("2e-4".to_string())),
-                    node!(YamlBase::Float("NaN".to_string())),
-                    node!(YamlBase::Float("-inf".to_string())),
+                    node!(Yaml::Float("2e-4".to_string())),
+                    node!(Yaml::Float("NaN".to_string())),
+                    node!(Yaml::Float("-inf".to_string())),
                     "-.infs",
                     "2001-11-23 15:01:42 -5",
                 ]),
@@ -72,6 +68,10 @@ fn test_yaml() {
             ]),
         })
     );
+    assert_eq!(anchors.len(), 2);
+    assert!(anchors.contains_key("x"));
+    assert!(anchors.contains_key("y"));
+    assert_eq!(Anchor::from(ans[0].clone()), anchors);
     let k = node!("a0 bb");
     assert_eq!(ans[0][k].tag(), "tag:test.x.prefix:foo");
     let k = node!("-a2");
@@ -122,7 +122,7 @@ fn test_indent() {
 fn test_anchor() {
     const DOC: &str = include_str!("anchor.yaml");
     let (mut ans, mut anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
-    anchor_resolve(&mut anchor, 1).unwrap();
+    anchor.resolve(1).unwrap();
     let node = ans.remove(0).replace_anchor(&anchor).unwrap();
     std::mem::drop(anchor);
     assert_eq!(
