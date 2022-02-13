@@ -33,7 +33,7 @@
 //!
 //! # Anchors
 //!
-//! If the data supports anchor insertion, please see [`anchor_resolve`](crate::anchor_resolve) type.
+//! If the data supports anchor insertion, please see [`anchor_resolve`](crate::anchor_resolve).
 //!
 //! # Mixed String Type
 //!
