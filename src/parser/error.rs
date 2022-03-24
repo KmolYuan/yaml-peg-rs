@@ -1,9 +1,10 @@
+use alloc::string::String;
 use core::fmt::{Display, Error, Formatter};
 
 /// Type of the parser result.
 pub type PResult<T> = Result<T, PError>;
 
-/// The error of parser handling, returned by [`Parser`].
+/// The error of parser handling, returned by [`Parser`](super::Parser).
 ///
 /// Please see [module level document](super) for more error information.
 #[derive(Debug)]

@@ -23,8 +23,7 @@
 //!
 //! # Anchors
 //!
-//! The anchor system [`Anchor`] is implemented by using [`alloc::rc::Rc`] and [`alloc::sync::Arc`] as inner handler.
-//! Additionally, [`anchors!`] macro can used to create anchor visitor by yourself.
+//! The anchors will be replaced during parsing.
 //!
 //! # Serialization and Deserialization
 //!

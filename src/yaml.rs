@@ -61,7 +61,7 @@ pub type Map<R> = LinkedHashMap<Node<R>, Node<R>>;
 /// );
 /// ```
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
-pub enum Yaml<R: Repr = RcRepr> {
+pub enum Yaml<R: Repr> {
     /// Null
     Null,
     /// Boolean

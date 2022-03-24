@@ -6,10 +6,10 @@ use crate::*;
 use alloc::{rc::Rc, sync::Arc};
 use core::{fmt::Debug, hash::Hash, ops::Deref};
 
-/// The representation holder for [`Rc`].
+/// The representation symbol for [`Rc`].
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct RcRepr;
-/// The representation holder for [`Arc`].
+/// The representation symbol for [`Arc`].
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct ArcRepr;
 

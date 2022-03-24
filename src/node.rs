@@ -1,5 +1,5 @@
 use crate::{repr::*, *};
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use core::{
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -119,10 +119,6 @@ pub type NodeArc = Node<ArcRepr>;
 /// }
 /// ```
 ///
-/// # Anchor
-///
-/// The anchors can be infer from [`Anchor`], and attach with [`Node::as_anchor`] method.
-///
 /// # Clone
 ///
 /// Since the YAML data is wrapped by reference counter [`alloc::rc::Rc`] and [`alloc::sync::Arc`],
@@ -143,7 +139,7 @@ pub type NodeArc = Node<ArcRepr>;
 ///
 /// If you want to copy data, please get the data first.
 #[derive(Eq, Clone, Debug)]
-pub struct Node<R: Repr = RcRepr> {
+pub struct Node<R: Repr> {
     pos: u64,
     tag: String,
     anchor: String,
