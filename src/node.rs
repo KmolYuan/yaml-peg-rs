@@ -174,7 +174,6 @@ impl<R: Repr> Node<R> {
                 Yaml::Str(_) => concat!(parser::tag_prefix!(), "str"),
                 Yaml::Seq(_) => concat!(parser::tag_prefix!(), "seq"),
                 Yaml::Map(_) => concat!(parser::tag_prefix!(), "map"),
-                Yaml::Alias(_) => "",
             },
             s => s,
         }
@@ -278,25 +277,6 @@ impl<R: Repr> Node<R> {
             Yaml::Bool(false) => Ok("false"),
             Yaml::Null => Ok(""),
             _ => Err(self.pos()),
-        }
-    }
-
-    /// Infer an anchor with anchor visitor.
-    ///
-    /// If the node is not a anchor, or the anchor does not exist, the original node is returned.
-    /// Since the anchor type is invalid except for this method, missing anchor will still return an error.
-    ///
-    /// ```
-    /// use yaml_peg::{node, anchors};
-    ///
-    /// let node_a = node!(*"a");
-    /// let v = anchors!["a" => 20.];
-    /// assert_eq!(20., node_a.as_anchor(&v).as_float().unwrap());
-    /// ```
-    pub fn as_anchor<'a, 'b: 'a>(&'a self, v: &'b Anchor<R>) -> &'a Self {
-        match self.yaml() {
-            Yaml::Alias(s) if v.contains_key(s) => v.get(s).unwrap(),
-            _ => self,
         }
     }
 
@@ -433,34 +413,6 @@ impl<R: Repr> Node<R> {
             }
         } else {
             Err(self.pos())
-        }
-    }
-
-    /// Replace the anchor insertion recursively.
-    /// Return `None` if the anchor is not found.
-    ///
-    /// If the anchor contains a self-loop, `Yaml::Anchor` will be left.
-    ///
-    /// See also [`Anchor::resolve`].
-    pub fn replace_anchor(&self, visitor: &Anchor<R>) -> Result<Self, InvalidAnchor> {
-        match self.yaml() {
-            Yaml::Alias(anchor) => visitor.get(anchor).cloned().ok_or_else(|| InvalidAnchor {
-                anchor: anchor.clone(),
-            }),
-            Yaml::Seq(seq) => seq
-                .iter()
-                .map(|node| node.replace_anchor(visitor))
-                .collect::<Result<Seq<_>, _>>()
-                .map(|seq| self.new_with_yaml(Yaml::Seq(seq))),
-            Yaml::Map(map) => map
-                .iter()
-                .map(|(k, v)| {
-                    k.replace_anchor(visitor)
-                        .and_then(|k| Ok((k, v.replace_anchor(visitor)?)))
-                })
-                .collect::<Result<Map<_>, _>>()
-                .map(|map| self.new_with_yaml(Yaml::Map(map))),
-            _ => Ok(self.clone()),
         }
     }
 

@@ -54,6 +54,7 @@ use alloc::{
     vec::Vec,
 };
 use core::ops::{Deref, DerefMut};
+use ritelinked::LinkedHashMap;
 
 mod base;
 mod error;
@@ -108,8 +109,7 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 pub struct Loader<'a, R: Repr> {
     /// Parser base.
     pub parser: Parser<'a>,
-    /// A visitor of anchors.
-    pub anchors: Anchor<R>,
+    anchors: LinkedHashMap<String, Node<R>>,
 }
 
 impl<'a, R: Repr> Loader<'a, R> {
@@ -117,7 +117,7 @@ impl<'a, R: Repr> Loader<'a, R> {
     pub fn new(doc: &'a [u8]) -> Self {
         Self {
             parser: Parser::new(doc),
-            anchors: Anchor::new(),
+            anchors: LinkedHashMap::new(),
         }
     }
 }
@@ -248,7 +248,11 @@ impl<R: Repr> Loader<'_, R> {
         } else if let Ok(s) = self.int() {
             Yaml::Int(s)
         } else if let Ok(s) = self.anchor_use() {
-            Yaml::Alias(s)
+            if let Some(node) = self.anchors.get(&s) {
+                node.yaml().clone()
+            } else {
+                return self.err("anchor referenced before definition");
+            }
         } else if let Ok(s) = self.string_quoted(b'\'', b"''") {
             Yaml::Str(s)
         } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
@@ -475,25 +479,21 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// age: 46
 /// ";
 /// // Node with Rc repr
-/// let (root, anchors) = parse(doc).unwrap();
-/// assert_eq!(anchors.len(), 0);
+/// let root = parse(doc).unwrap();
 /// assert_eq!(root, vec![node!({
 ///     "name" => "Bob",
 ///     "married" => true,
 ///     "age" => 46,
 /// })]);
 /// // Node with Arc repr
-/// let (root, anchors) = parse(doc).unwrap();
-/// assert_eq!(anchors.len(), 0);
+/// let root = parse(doc).unwrap();
 /// assert_eq!(root, vec![node!(arc{
 ///     "name" => "Bob",
 ///     "married" => true,
 ///     "age" => 46,
 /// })]);
 /// ```
-pub fn parse<R: Repr>(doc: &str) -> Result<(Seq<R>, Anchor<R>), String> {
+pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
     let mut p = Loader::new(doc.as_bytes());
     p.parse()
-        .map_err(|e| e.into_error(doc))
-        .map(|a| (a, p.anchors))
 }

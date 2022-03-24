@@ -57,9 +57,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Attach document on the parser.
-    pub fn with_doc(mut self, doc: &'a [u8]) -> Self {
-        self.doc = doc;
-        self
+    pub fn with_doc(self, doc: &'a [u8]) -> Self {
+        Self { doc, ..self }
     }
 
     /// Show the right hand side string after the current cursor.
@@ -70,7 +69,7 @@ impl<'a> Parser<'a> {
     /// Get the text from the eaten cursor to the current position.
     pub fn text(&mut self) -> String {
         if self.eaten < self.pos {
-            String::from(String::from_utf8_lossy(&self.doc[self.eaten..self.pos]))
+            String::from_utf8_lossy(&self.doc[self.eaten..self.pos]).into()
         } else {
             String::new()
         }
@@ -82,10 +81,12 @@ impl<'a> Parser<'a> {
 /// These sub-parser returns `Result<(), PError>`, and calling [`Parser::backward`] if mismatched.
 impl Parser<'_> {
     /// Set the starting point if character boundary is valid.
-    pub fn pos(mut self, pos: usize) -> Self {
-        self.pos = pos;
-        self.eaten = pos;
-        self
+    pub fn pos(self, pos: usize) -> Self {
+        Self {
+            pos,
+            eaten: pos,
+            ..self
+        }
     }
 
     /// Get the indicator.
@@ -94,8 +95,11 @@ impl Parser<'_> {
     }
 
     /// A short function to raise error.
-    pub fn err<R>(&self, msg: &'static str) -> PResult<R> {
-        Err(PError::Terminate(msg, self.indicator()))
+    pub fn err<R>(&self, name: &'static str) -> PResult<R> {
+        Err(PError::Terminate {
+            name,
+            msg: indicated_msg(self.doc, self.indicator()),
+        })
     }
 
     /// Consume and move the pointer.

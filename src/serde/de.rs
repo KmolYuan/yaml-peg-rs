@@ -73,7 +73,7 @@ pub fn from_str<D>(doc: &str) -> Result<Vec<D>, SerdeError>
 where
     D: DeserializeOwned,
 {
-    let (root, _) = parse::<RcRepr>(doc)?;
+    let root = parse::<RcRepr>(doc).map_err(|e| e.to_string())?;
     root.into_iter().map(D::deserialize).collect()
 }
 
@@ -121,13 +121,6 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
         let mut m = Map::<R>::new();
         while let Some((k, v)) = map.next_entry()? {
             m.insert(k, v);
-        }
-        if m.len() == 1 {
-            if let Some(n) = m.get(&Node::from("anchor")) {
-                if let Ok(anchor) = n.as_str() {
-                    return Ok(Node::from(Yaml::Alias(anchor.to_string())));
-                }
-            }
         }
         Ok(m.into_iter().collect())
     }
@@ -279,7 +272,6 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
             Yaml::Str(s) => visitor.visit_str(s),
             Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
-            Yaml::Alias(_) => Err(unexpected(&self, visitor)),
         }
     }
 
@@ -450,7 +442,6 @@ fn unexpected<R: Repr>(node: &Node<R>, exp: impl Expected) -> SerdeError {
         Yaml::Str(s) => Unexpected::Str(s),
         Yaml::Seq(_) => Unexpected::Seq,
         Yaml::Map(_) => Unexpected::Map,
-        Yaml::Alias(_) => Unexpected::Other("anchor"),
     };
     SerdeError::invalid_type(ty, &exp).pos(node.pos())
 }

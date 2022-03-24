@@ -20,11 +20,6 @@ impl<R: Repr> Serialize for Node<R> {
                 }
                 map.end()
             }
-            Yaml::Alias(s) => {
-                let mut map = serializer.serialize_map(Some(1))?;
-                map.serialize_entry("anchor", s)?;
-                map.end()
-            }
         }
     }
 }

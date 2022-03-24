@@ -129,7 +129,6 @@ impl<'a, R: Repr> Dumper<'a, R> {
                 doc.truncate(doc.len() - NL.len());
                 doc
             }
-            Yaml::Alias(anchor) => format!("*{}", anchor),
         };
         doc
     }

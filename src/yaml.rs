@@ -76,8 +76,6 @@ pub enum Yaml<R: Repr = RcRepr> {
     Seq(Seq<R>),
     /// Map
     Map(Map<R>),
-    /// Alias, an anchor insertion
-    Alias(String),
 }
 
 impl<R: Repr> Yaml<R> {

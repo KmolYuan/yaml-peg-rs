@@ -44,7 +44,7 @@
 #![warn(missing_docs)]
 extern crate alloc;
 
-pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, yaml::*};
+pub use crate::{dumper::dump, indicator::*, node::*, parser::parse, yaml::*};
 
 /// Create [`Node`] items literally.
 ///
@@ -67,23 +67,6 @@ pub use crate::{anchors::*, dumper::dump, indicator::*, node::*, parser::parse, 
 /// assert_eq!(node!([1, 2]), v.into_iter().collect());
 /// let m = vec![(NodeRc::from(1), NodeRc::from(2))];
 /// assert_eq!(node!({1 => 2}), m.into_iter().collect());
-/// ```
-///
-/// The [`Yaml::Alias`] is also supported by the syntax:
-///
-/// ```
-/// use yaml_peg::{node, Yaml};
-///
-/// assert_eq!(node!(Yaml::Alias("x".to_string())), node!(*"x"));
-/// ```
-///
-/// This macro is use [`Node`] by default,
-/// to specify them, a "rc" or "arc" prefix token can choose the presentation.
-///
-/// ```
-/// use yaml_peg::{node, NodeArc};
-///
-/// assert_eq!(node!(arc()), NodeArc::from(()));
 /// ```
 #[macro_export]
 macro_rules! node {
@@ -119,29 +102,6 @@ macro_rules! node {
     };
 }
 
-/// Create a custom anchor visitor.
-///
-/// The anchor name should implement [`alloc::string::ToString`] trait.
-/// All items will convert to [`Node`] automatically.
-///
-/// ```
-/// use yaml_peg::{node, anchors};
-///
-/// let v = anchors![
-///     "my-boss" => node!({"name" => "Henry"}),
-/// ];
-/// assert_eq!(v["my-boss"]["name"], node!("Henry"));
-/// ```
-#[macro_export]
-macro_rules! anchors {
-    ($($k:expr => $v:expr),* $(,)?) => {{
-        extern crate alloc;
-        let v = alloc::vec![$(($k.to_string(), $crate::node!(@$v))),*];
-        v.into_iter().collect::<$crate::Anchor<_>>()
-    }};
-}
-
-mod anchors;
 pub mod dumper;
 mod indicator;
 mod node;

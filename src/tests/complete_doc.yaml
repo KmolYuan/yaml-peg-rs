@@ -3,7 +3,7 @@
 %TAG !x! tag:test.x.prefix:
 ---
 a0 bb: !x!foo .val.
-::a1: &x  # Test comment after wrapped! (1)
+::a1:  # Test comment after wrapped! (1)
   b1  : 4.
   b2:
     - 50%
@@ -19,9 +19,9 @@ a0 bb: !x!foo .val.
   - s
 : !!t2 { 1: 2, 3: 4 }  # Test comment after wrapped! (3)
 ?a3: !<tag:my.tag.prefix:tt>
-  - *x
   - [d1🀄🃏, 中文]
-  - ~
+  - &x ~
+  - *x
   -
 ? &y
   a4:

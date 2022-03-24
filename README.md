@@ -36,9 +36,8 @@ See the API doc for more information.
 + Provide document positions and tags on the nodes.
 + Anchors / alias are supported.
   ```rust
-  let (mut root, mut anchor) = parse(doc).unwrap();
-  anchor.resolve(1).unwrap();
-  let node = root.remove(0).replace_anchor(&anchor).unwrap();
+  let mut root = parse::<RcRepr>(doc).unwrap();
+  let node = root.remove(0);
   ```
 + YAML directives `YAML` and `TAG` are allowed.
   ```yaml

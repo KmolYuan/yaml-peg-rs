@@ -1,14 +1,14 @@
-use crate::*;
-use alloc::string::{String, ToString};
+use crate::{parser::PError, *};
+use alloc::string::ToString;
 
-fn show_err<E>(e: String) -> E {
+fn show_err<E>(e: PError) -> E {
     panic!("{}", e)
 }
 
 #[test]
 fn test_json() {
     const DOC: &str = include_str!("json_compatibility.json");
-    let (mut root, anchors) = parse(DOC).unwrap_or_else(show_err);
+    let mut root = parse(DOC).unwrap_or_else(show_err);
     let node = root.remove(0);
     assert_eq!(
         node,
@@ -19,8 +19,6 @@ fn test_json() {
             "e:f" => "g"
         })
     );
-    assert_eq!(anchors.len(), 0);
-    assert_eq!(Anchor::from(node.clone()), anchors);
     let n = node.get("a").unwrap();
     assert_eq!(n, &node!("b"));
 }
@@ -28,7 +26,7 @@ fn test_json() {
 #[test]
 fn test_yaml() {
     const DOC: &str = include_str!("complete_doc.yaml");
-    let (mut root, anchors) = parse(DOC).unwrap_or_else(show_err);
+    let mut root = parse(DOC).unwrap_or_else(show_err);
     let node = root.remove(0);
     assert_eq!(
         node,
@@ -48,13 +46,13 @@ fn test_yaml() {
             "-a2" => 4.03,
             node!(["q", "r", "s"]) => node!({1 => 2, 3 => 4}),
             "?a3" => node!([
-                node!(*"x"),
                 node!(["d1🀄🃏", "中文"]),
+                (),
                 (),
                 (),
             ]),
             node!({"a4" => ()}) => -30,
-            node!(*"y") => "b3, b4",
+            node!({"a4" => ()}) => "b3, b4",
             "test multiline" => node!([
                 node!({
                     "folded" => "aaa{}[] bbb ccc\nddd\n# eee\n",
@@ -70,10 +68,6 @@ fn test_yaml() {
             ]),
         })
     );
-    assert_eq!(anchors.len(), 2);
-    assert!(anchors.contains_key("x"));
-    assert!(anchors.contains_key("y"));
-    assert_eq!(Anchor::from(node.clone()), anchors);
     let k = node!("a0 bb");
     assert_eq!(node[k].tag(), "tag:test.x.prefix:foo");
     let k = node!("-a2");
@@ -102,7 +96,7 @@ fn test_dump() {
 #[test]
 fn test_indent() {
     const DOC: &str = include_str!("indent.yaml");
-    let (mut root, _) = parse(DOC).unwrap_or_else(show_err);
+    let mut root = parse(DOC).unwrap_or_else(show_err);
     let node1 = root.remove(0);
     let node2 = root.remove(0);
     assert_eq!(
@@ -125,10 +119,8 @@ fn test_indent() {
 #[test]
 fn test_anchor() {
     const DOC: &str = include_str!("anchor.yaml");
-    let (mut root, mut anchor) = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
-    anchor.resolve(1).unwrap();
-    let node = root.remove(0).replace_anchor(&anchor).unwrap();
-    std::mem::drop(anchor);
+    let mut root = parse::<repr::RcRepr>(DOC).unwrap_or_else(show_err);
+    let node = root.remove(0);
     assert_eq!(
         node,
         node!([
