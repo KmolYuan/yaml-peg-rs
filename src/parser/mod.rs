@@ -197,9 +197,9 @@ impl<R: Repr> Loader<'_, R> {
     pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> PResult<Node<R>> {
         self.scalar_inner(|p| {
             if let Ok(s) = p.string_literal(level) {
-                Ok(Yaml::Str(s))
+                Ok(R::repr(Yaml::Str(s)))
             } else if let Ok(s) = p.string_folded(level) {
-                Ok(Yaml::Str(s))
+                Ok(R::repr(Yaml::Str(s)))
             } else {
                 match_or!(
                     p.seq(level, nest),
@@ -216,7 +216,7 @@ impl<R: Repr> Loader<'_, R> {
 
     fn scalar_inner<F>(&mut self, f: F) -> PResult<Node<R>>
     where
-        F: Fn(&mut Self) -> PResult<Yaml<R>>,
+        F: Fn(&mut Self) -> PResult<R::Ty>,
     {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
@@ -231,7 +231,7 @@ impl<R: Repr> Loader<'_, R> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        let node = Node::new(yaml, pos, &tag, &anchor);
+        let node = Node::new_repr(yaml, pos, &tag, &anchor);
         if !anchor.is_empty() && self.anchors.insert(anchor, node.clone()).is_some() {
             self.err("duplicated anchor definition")
         } else {
@@ -240,25 +240,25 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize, inner: bool) -> PResult<Yaml<R>> {
+    pub fn scalar_term(&mut self, level: usize, inner: bool) -> PResult<R::Ty> {
         let yaml = if let Ok(s) = self.float() {
-            Yaml::Float(s)
+            R::repr(Yaml::Float(s))
         } else if let Ok(s) = self.sci_float() {
-            Yaml::Float(s)
+            R::repr(Yaml::Float(s))
         } else if let Ok(s) = self.int() {
-            Yaml::Int(s)
+            R::repr(Yaml::Int(s))
         } else if let Ok(s) = self.anchor_use() {
             if let Some(node) = self.anchors.get(&s) {
-                node.yaml().clone()
+                node.clone_yaml()
             } else {
                 return self.err("anchor referenced before definition");
             }
         } else if let Ok(s) = self.string_quoted(b'\'', b"''") {
-            Yaml::Str(s)
+            R::repr(Yaml::Str(s))
         } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
-            Yaml::Str(Parser::escape(&s))
+            R::repr(Yaml::Str(Parser::escape(&s)))
         } else if let Ok(s) = self.string_plain(level, inner) {
-            match s.as_str() {
+            R::repr(match s.as_str() {
                 "~" | "null" | "Null" | "NULL" => Yaml::Null,
                 "true" | "True" | "TRUE" => Yaml::Bool(true),
                 "false" | "False" | "FALSE" => Yaml::Bool(false),
@@ -266,18 +266,18 @@ impl<R: Repr> Loader<'_, R> {
                 ".inf" | ".Inf" | ".INF" => Yaml::Float("inf".to_string()),
                 "-.inf" | "-.Inf" | "-.INF" => Yaml::Float("-inf".to_string()),
                 _ => Yaml::Str(s),
-            }
+            })
         } else {
             match_or!(
                 self.seq_flow(level),
-                match_or!(self.map_flow(level), Ok(Yaml::Null))
+                match_or!(self.map_flow(level), Ok(R::repr(Yaml::Null)))
             )?
         };
         Ok(yaml)
     }
 
     /// Match flow sequence.
-    pub fn seq_flow(&mut self, level: usize) -> PResult<Yaml<R>> {
+    pub fn seq_flow(&mut self, level: usize) -> PResult<R::Ty> {
         self.sym(b'[')?;
         let mut v = vec![];
         loop {
@@ -299,11 +299,11 @@ impl<R: Repr> Loader<'_, R> {
             }
         }
         self.forward();
-        Ok(v.into_iter().collect())
+        Ok(R::repr(v.into_iter().collect()))
     }
 
     /// Match flow map.
-    pub fn map_flow(&mut self, level: usize) -> PResult<Yaml<R>> {
+    pub fn map_flow(&mut self, level: usize) -> PResult<R::Ty> {
         self.sym(b'{')?;
         let mut m = vec![];
         loop {
@@ -342,11 +342,11 @@ impl<R: Repr> Loader<'_, R> {
             }
         }
         self.forward();
-        Ok(m.into_iter().collect())
+        Ok(R::repr(m.into_iter().collect()))
     }
 
     /// Match sequence.
-    pub fn seq(&mut self, level: usize, nest: bool) -> PResult<Yaml<R>> {
+    pub fn seq(&mut self, level: usize, nest: bool) -> PResult<R::Ty> {
         let mut v = vec![];
         loop {
             self.forward();
@@ -386,11 +386,11 @@ impl<R: Repr> Loader<'_, R> {
         }
         // Keep last wrapping
         self.backward();
-        Ok(v.into_iter().collect())
+        Ok(R::repr(v.into_iter().collect()))
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> PResult<Yaml<R>> {
+    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> PResult<R::Ty> {
         let mut m = vec![];
         loop {
             self.forward();
@@ -416,7 +416,7 @@ impl<R: Repr> Loader<'_, R> {
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
-                    return Ok(k.yaml().clone());
+                    return Ok(k.clone_yaml());
                 }
                 k
             } else {
@@ -448,7 +448,7 @@ impl<R: Repr> Loader<'_, R> {
         }
         // Keep last wrapping
         self.backward();
-        Ok(m.into_iter().collect())
+        Ok(R::repr(m.into_iter().collect()))
     }
 }
 

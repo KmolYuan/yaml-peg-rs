@@ -60,7 +60,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
             };
         }
         let ind = "  ".repeat(self.level);
-        doc += &match self.node.yaml() {
+        doc += &match &self.node.yaml() {
             Yaml::Null => "null".to_string(),
             Yaml::Bool(b) => b.to_string(),
             Yaml::Int(n) | Yaml::Float(n) => n.clone(),

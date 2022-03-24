@@ -1,9 +1,10 @@
 use crate::{repr::*, *};
 use alloc::string::ToString;
 use core::{
-    fmt::{Debug, Formatter, Result as FmtResult},
-    hash::Hash,
+    fmt::Debug,
+    hash::{Hash, Hasher},
     iter::FromIterator,
+    marker::PhantomData,
     ops::Index,
     str::FromStr,
 };
@@ -135,37 +136,51 @@ pub type NodeArc = Node<ArcRepr>;
 /// let a = node!("a");
 /// {
 ///     let b = a.clone();
-///     assert_eq!(2, Rc::strong_count(&b));
+///     assert_eq!(2, Rc::strong_count(b.rc_ref()));
 /// }
-/// assert_eq!(1, Rc::strong_count(&a));
+/// assert_eq!(1, Rc::strong_count(a.rc_ref()));
 /// ```
 ///
 /// If you want to copy data, please get the data first.
-#[derive(Hash, Eq, PartialEq, Clone)]
-pub struct Node<R: Repr = RcRepr>(pub(crate) R);
+#[derive(Eq, Clone, Debug)]
+pub struct Node<R: Repr = RcRepr> {
+    pos: u64,
+    tag: String,
+    anchor: String,
+    yaml: R::Ty,
+    _marker: PhantomData<R>,
+}
 
 impl<R: Repr> Node<R> {
     /// Create node from YAML data.
-    pub fn new<Y>(yaml: Y, pos: u64, tag: &str, anchor: &str) -> Self
+    pub fn new<Y>(yaml: Y, pos: u64, tag: impl ToString, anchor: impl ToString) -> Self
     where
         Y: Into<Yaml<R>>,
     {
-        let yaml = yaml.into();
-        Self(R::repr(yaml, pos, tag.to_string(), anchor.to_string()))
+        Self::new_repr(R::repr(yaml.into()), pos, tag, anchor)
+    }
+
+    /// Create from a repr.
+    pub fn new_repr(yaml: R::Ty, pos: u64, tag: impl ToString, anchor: impl ToString) -> Self {
+        Self {
+            yaml,
+            pos,
+            tag: tag.to_string(),
+            anchor: anchor.to_string(),
+            _marker: PhantomData,
+        }
     }
 
     /// Document position.
-    #[inline(always)]
     pub fn pos(&self) -> u64 {
-        self.0.pos
+        self.pos
     }
 
     /// Tag. If the tag is not specified, returns a default tag from core schema.
     ///
     /// Anchor has no tag.
-    #[inline(always)]
     pub fn tag(&self) -> &str {
-        match self.0.tag.as_str() {
+        match self.tag.as_str() {
             "" => match self.yaml() {
                 Yaml::Null => concat!(parser::tag_prefix!(), "null"),
                 Yaml::Bool(_) => concat!(parser::tag_prefix!(), "bool"),
@@ -180,15 +195,23 @@ impl<R: Repr> Node<R> {
     }
 
     /// Anchor reference.
-    #[inline(always)]
     pub fn anchor(&self) -> &str {
-        &self.0.anchor
+        &self.anchor
     }
 
     /// YAML data.
-    #[inline(always)]
     pub fn yaml(&self) -> &Yaml<R> {
-        &self.0.yaml
+        &self.yaml
+    }
+
+    /// Clone YAML repr.
+    pub fn clone_yaml(&self) -> R::Ty {
+        self.yaml.clone()
+    }
+
+    /// As reference for RC repr.
+    pub fn rc_ref(&self) -> &R::Ty {
+        &self.yaml
     }
 
     /// Check the value is null.
@@ -422,9 +445,15 @@ impl<R: Repr> Node<R> {
     }
 }
 
-impl<R: Repr> Debug for Node<R> {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        f.write_fmt(format_args!("Node{:?}", &self.0))
+impl<R: Repr> Hash for Node<R> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.yaml.hash(state)
+    }
+}
+
+impl<R: Repr> PartialEq for Node<R> {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.yaml.eq(&rhs.yaml)
     }
 }
 

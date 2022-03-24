@@ -3,91 +3,38 @@
 //! [`Rc`] is the single thread reference counter,
 //! and [`Arc`] is the multiple thread reference counter.
 use crate::*;
-use alloc::{rc::Rc, string::String, sync::Arc};
-use core::{
-    fmt::{Debug, Formatter, Result as FmtResult},
-    hash::{Hash, Hasher},
-    ops::Deref,
-};
+use alloc::{rc::Rc, sync::Arc};
+use core::{fmt::Debug, hash::Hash, ops::Deref};
 
 /// The representation holder for [`Rc`].
-#[derive(Hash, Eq, PartialEq, Clone)]
-pub struct RcRepr(Rc<Inner<Self>>);
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct RcRepr;
 /// The representation holder for [`Arc`].
-#[derive(Hash, Eq, PartialEq, Clone)]
-pub struct ArcRepr(Arc<Inner<Self>>);
-
-/// Inner data of the nodes.
-///
-/// Please access the fields by [`Node`].
-#[derive(Eq, Clone)]
-pub struct Inner<R: Repr> {
-    pub(crate) pos: u64,
-    pub(crate) tag: String,
-    pub(crate) anchor: String,
-    pub(crate) yaml: Yaml<R>,
-}
-
-impl<R: Repr> Debug for Inner<R> {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        f.write_fmt(format_args!("{:?}", &self.yaml))
-    }
-}
-
-impl<R: Repr> Hash for Inner<R> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.yaml.hash(state);
-    }
-}
-
-impl<R: Repr> PartialEq for Inner<R> {
-    fn eq(&self, rhs: &Self) -> bool {
-        self.yaml.eq(&rhs.yaml)
-    }
-}
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct ArcRepr;
 
 /// The generic representation holder for [`Yaml`] and [`Node`].
 ///
 /// See the implementor list for the choose.
-pub trait Repr: Deref<Target = Inner<Self>> + Hash + Eq + Clone + Debug {
+pub trait Repr: Hash + Eq + Clone + Debug {
+    /// Type of the representation.
+    type Ty: Deref<Target = Yaml<Self>> + Hash + Eq + Clone + Debug;
     /// The creation function of this type.
-    fn repr(yaml: Yaml<Self>, pos: u64, tag: String, anchor: String) -> Self;
+    fn repr(yaml: Yaml<Self>) -> Self::Ty;
 }
 
-macro_rules! impl_repr {
-    ($ty:ty, $inner:ident) => {
-        impl Repr for $ty {
-            fn repr(yaml: Yaml<Self>, pos: u64, tag: String, anchor: String) -> Self {
-                Self($inner::new(Inner {
-                    pos,
-                    tag,
-                    anchor,
-                    yaml,
-                }))
-            }
-        }
+impl Repr for RcRepr {
+    type Ty = Rc<Yaml<Self>>;
 
-        impl Deref for $ty {
-            type Target = Inner<Self>;
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl Deref for Node<$ty> {
-            type Target = $inner<Inner<$ty>>;
-            fn deref(&self) -> &Self::Target {
-                &self.0 .0
-            }
-        }
-
-        impl Debug for $ty {
-            fn fmt(&self, f: &mut Formatter) -> FmtResult {
-                f.write_fmt(format_args!("{:?}", &self.0.yaml))
-            }
-        }
-    };
+    fn repr(yaml: Yaml<Self>) -> Self::Ty {
+        Rc::new(yaml)
+    }
 }
 
-impl_repr! {RcRepr, Rc}
-impl_repr! {ArcRepr, Arc}
+impl Repr for ArcRepr {
+    type Ty = Arc<Yaml<Self>>;
+
+    fn repr(yaml: Yaml<Self>) -> Self::Ty {
+        Arc::new(yaml)
+    }
+}
