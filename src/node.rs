@@ -399,7 +399,7 @@ impl<R: Repr> Node<R> {
     ) -> Result<Ret, u64>
     where
         Y: Into<Self>,
-        F: Fn(&'a Self) -> Result<Ret, u64>,
+        F: FnOnce(&'a Self) -> Result<Ret, u64>,
     {
         if let Yaml::Map(m) = self.yaml() {
             if let Some(n) = m.get(&key.into()) {

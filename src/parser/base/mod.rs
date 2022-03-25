@@ -189,7 +189,7 @@ impl Parser<'_> {
     /// Count the position that parser goes, expect error.
     pub fn count<F, R>(&mut self, f: F) -> PResult<usize>
     where
-        F: Fn(&mut Self) -> PResult<R>,
+        F: FnOnce(&mut Self) -> PResult<R>,
     {
         let pos = self.pos;
         let _ = f(self)?;
@@ -199,7 +199,7 @@ impl Parser<'_> {
     /// A wrapper for saving checkpoint locally.
     pub fn context<F, R>(&mut self, f: F) -> R
     where
-        F: Fn(&mut Self) -> R,
+        F: FnOnce(&mut Self) -> R,
     {
         let eaten = self.eaten;
         self.forward();

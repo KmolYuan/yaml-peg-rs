@@ -195,7 +195,7 @@ impl<R: Repr> Loader<'_, R> {
 
     /// Match scalar.
     pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> PResult<Node<R>> {
-        self.scalar_inner(|p| {
+        self.scalar_node(|p| {
             if let Ok(s) = p.string_literal(level) {
                 Ok(R::repr(Yaml::Str(s)))
             } else if let Ok(s) = p.string_folded(level) {
@@ -211,12 +211,12 @@ impl<R: Repr> Loader<'_, R> {
 
     /// Match flow scalar.
     pub fn scalar_flow(&mut self, level: usize, inner: bool) -> PResult<Node<R>> {
-        self.scalar_inner(|p| p.scalar_term(level, inner))
+        self.scalar_node(|p| p.scalar_term(level, inner))
     }
 
-    fn scalar_inner<F>(&mut self, f: F) -> PResult<Node<R>>
+    fn scalar_node<F>(&mut self, f: F) -> PResult<Node<R>>
     where
-        F: Fn(&mut Self) -> PResult<R::Ty>,
+        F: FnOnce(&mut Self) -> PResult<R::Ty>,
     {
         let anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
