@@ -149,13 +149,13 @@ impl<R: Repr> Node<R> {
         }
     }
 
-    /// Set from a existing YAML data.
-    pub fn with_yaml(&mut self, yaml: impl Into<Yaml<R>>) {
-        self.with_repr(R::repr(yaml.into()));
+    /// Set from existing YAML data.
+    pub fn set_yaml(&mut self, yaml: impl Into<Yaml<R>>) {
+        self.set_repr(R::repr(yaml.into()));
     }
 
-    /// Set from a existing YAML representation.
-    pub fn with_repr(&mut self, yaml: R::Ty) {
+    /// Set from existing YAML representation.
+    pub fn set_repr(&mut self, yaml: R::Ty) {
         self.yaml = yaml;
     }
 
