@@ -139,7 +139,7 @@ impl<'a, R: Repr> Loader<'a, R> {
 /// The `inner` parameter presents that the expression is in a **flow** expression.
 impl<R: Repr> Loader<'_, R> {
     /// YAML entry point, return entire doc if exist.
-    pub fn parse(&mut self) -> PResult<Seq<R>> {
+    pub fn parse(&mut self) -> PResult<Vec<Node<R>>> {
         loop {
             match self.context(Parser::directive) {
                 Ok(()) => (),
