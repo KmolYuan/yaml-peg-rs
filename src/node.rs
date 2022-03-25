@@ -121,23 +121,11 @@ pub type NodeArc = Node<ArcRepr>;
 ///
 /// # Clone
 ///
-/// Since the YAML data is wrapped by reference counter [`alloc::rc::Rc`] and [`alloc::sync::Arc`],
-/// cloning node just increase the reference counter,
-/// the entire data structure are still shared together.
+/// Since the YAML data is wrapped by reference counter [`alloc::rc::Rc`]/[`alloc::sync::Arc`],
+/// cloned nodes are still shared together, just like Python or JavaScript.
+/// Please see the [`Node::rc_ref`]/[`Node::yaml`]/[`Node::clone_yaml`] methods for details.
 ///
-/// ```
-/// use std::rc::Rc;
-/// use yaml_peg::node;
-///
-/// let a = node!("a");
-/// {
-///     let b = a.clone();
-///     assert_eq!(2, Rc::strong_count(b.rc_ref()));
-/// }
-/// assert_eq!(1, Rc::strong_count(a.rc_ref()));
-/// ```
-///
-/// If you want to copy data, please get the data first.
+/// If you still want to copy data, use [`From`]/[`Into`] or serialize them to your custom type.
 pub struct Node<R: Repr> {
     pos: u64,
     tag: String,
@@ -148,14 +136,16 @@ pub struct Node<R: Repr> {
 
 impl<R: Repr> Node<R> {
     /// Create node from YAML data.
-    pub fn new<Y>(yaml: Y, pos: u64, tag: impl ToString, anchor: impl ToString) -> Self
-    where
-        Y: Into<Yaml<R>>,
-    {
+    pub fn new(
+        yaml: impl Into<Yaml<R>>,
+        pos: u64,
+        tag: impl ToString,
+        anchor: impl ToString,
+    ) -> Self {
         Self::new_repr(R::repr(yaml.into()), pos, tag, anchor)
     }
 
-    /// Create from a repr.
+    /// Create from a representation.
     pub fn new_repr(yaml: R::Ty, pos: u64, tag: impl ToString, anchor: impl ToString) -> Self {
         Self {
             yaml,
@@ -164,6 +154,16 @@ impl<R: Repr> Node<R> {
             anchor: anchor.to_string(),
             _marker: PhantomData,
         }
+    }
+
+    /// Set from a existing YAML data.
+    pub fn with_yaml(&mut self, yaml: impl Into<Yaml<R>>) {
+        self.with_repr(R::repr(yaml.into()));
+    }
+
+    /// Set from a existing YAML representation.
+    pub fn with_repr(&mut self, yaml: R::Ty) {
+        self.yaml = yaml;
     }
 
     /// Document position.
@@ -204,7 +204,19 @@ impl<R: Repr> Node<R> {
         self.yaml.clone()
     }
 
-    /// As reference for RC repr.
+    /// As reference for the underlying reference counter.
+    ///
+    /// ```
+    /// use std::rc::Rc;
+    /// use yaml_peg::node;
+    ///
+    /// let a = node!("a");
+    /// {
+    ///     let b = a.clone();
+    ///     assert_eq!(2, Rc::strong_count(b.rc_ref()));
+    /// }
+    /// assert_eq!(1, Rc::strong_count(a.rc_ref()));
+    /// ```
     pub fn rc_ref(&self) -> &R::Ty {
         &self.yaml
     }
@@ -432,11 +444,6 @@ impl<R: Repr> Node<R> {
         } else {
             Err(self.pos())
         }
-    }
-
-    /// Create a node with original information.
-    pub fn new_with_yaml(&self, yaml: Yaml<R>) -> Self {
-        Self::new(yaml, self.pos(), self.tag(), self.anchor())
     }
 }
 

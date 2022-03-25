@@ -2,7 +2,7 @@
 //!
 //! [`Rc`] is the single thread reference counter,
 //! and [`Arc`] is the multiple thread reference counter.
-use crate::*;
+use crate::Yaml;
 use alloc::{rc::Rc, sync::Arc};
 use core::{fmt::Debug, hash::Hash, ops::Deref};
 
@@ -11,7 +11,7 @@ pub struct RcRepr;
 /// The representation symbol for [`Arc`].
 pub struct ArcRepr;
 
-/// The generic representation holder for [`Yaml`] and [`Node`].
+/// The generic representation holder for [`Yaml`].
 ///
 /// See the implementor list for the choose.
 pub trait Repr: Sized {
