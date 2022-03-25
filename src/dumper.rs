@@ -45,10 +45,6 @@ impl<'a, R: Repr> Dumper<'a, R> {
     /// Dump into string.
     pub fn dump(&self) -> String {
         let mut doc = String::new();
-        let anchor = self.node.anchor();
-        if !anchor.is_empty() {
-            doc += &format!("&{} ", anchor);
-        }
         let tag = self.node.tag();
         if !tag.is_empty() && !tag.starts_with(parser::tag_prefix!()) {
             doc += &if tag.starts_with(parser::tag_prefix!()) {

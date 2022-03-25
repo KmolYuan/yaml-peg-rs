@@ -64,9 +64,9 @@ pub type NodeArc = Node<ArcRepr>;
 /// use yaml_peg::{NodeRc, Yaml};
 ///
 /// let mut s = HashSet::new();
-/// s.insert(NodeRc::new(Yaml::from("a"), 0, "", ""));
-/// s.insert(NodeRc::new("a", 1, "my-tag", ""));
-/// s.insert(NodeRc::new("a", 2, "", "my-anchor"));
+/// s.insert(NodeRc::new(Yaml::from("a"), 0, ""));
+/// s.insert(NodeRc::new("a", 1, "my-tag"));
+/// s.insert(NodeRc::new("a", 2, ""));
 /// assert_eq!(s.len(), 1);
 /// ```
 ///
@@ -129,29 +129,22 @@ pub type NodeArc = Node<ArcRepr>;
 pub struct Node<R: Repr> {
     pos: u64,
     tag: String,
-    anchor: String,
     yaml: R::Ty,
     _marker: PhantomData<R>,
 }
 
 impl<R: Repr> Node<R> {
     /// Create node from YAML data.
-    pub fn new(
-        yaml: impl Into<Yaml<R>>,
-        pos: u64,
-        tag: impl ToString,
-        anchor: impl ToString,
-    ) -> Self {
-        Self::new_repr(R::repr(yaml.into()), pos, tag, anchor)
+    pub fn new(yaml: impl Into<Yaml<R>>, pos: u64, tag: impl ToString) -> Self {
+        Self::new_repr(R::repr(yaml.into()), pos, tag)
     }
 
     /// Create from a representation.
-    pub fn new_repr(yaml: R::Ty, pos: u64, tag: impl ToString, anchor: impl ToString) -> Self {
+    pub fn new_repr(yaml: R::Ty, pos: u64, tag: impl ToString) -> Self {
         Self {
             yaml,
             pos,
             tag: tag.to_string(),
-            anchor: anchor.to_string(),
             _marker: PhantomData,
         }
     }
@@ -187,11 +180,6 @@ impl<R: Repr> Node<R> {
             },
             s => s,
         }
-    }
-
-    /// Anchor reference.
-    pub fn anchor(&self) -> &str {
-        &self.anchor
     }
 
     /// YAML data.
@@ -452,7 +440,6 @@ impl<R: Repr> Debug for Node<R> {
         f.debug_struct("Node")
             .field("pos", &self.pos)
             .field("tag", &self.tag)
-            .field("anchor", &self.anchor)
             .field("yaml", &self.yaml)
             .finish()
     }
@@ -463,7 +450,6 @@ impl<R: Repr> Clone for Node<R> {
         Self {
             pos: self.pos,
             tag: self.tag.clone(),
-            anchor: self.anchor.clone(),
             yaml: self.clone_yaml(),
             _marker: PhantomData,
         }
@@ -522,7 +508,7 @@ where
     Y: Into<Yaml<R>>,
 {
     fn from(yaml: Y) -> Self {
-        Self::new(yaml, 0, "", "")
+        Self::new(yaml, 0, "")
     }
 }
 

@@ -231,7 +231,7 @@ impl<R: Repr> Loader<'_, R> {
         let pos = self.indicator();
         let yaml = f(self)?;
         self.forward();
-        let node = Node::new_repr(yaml, pos, &tag, &anchor);
+        let node = Node::new_repr(yaml, pos, &tag);
         if !anchor.is_empty() && self.anchors.insert(anchor, node.clone()).is_some() {
             self.err("duplicated anchor definition")
         } else {
