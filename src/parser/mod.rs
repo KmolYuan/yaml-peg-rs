@@ -65,13 +65,16 @@ macro_rules! tag_prefix {
     };
 }
 
-macro_rules! match_or {
-    ($e:expr, $then:expr) => {
-        match $e {
+macro_rules! or {
+    ($e1:expr; $e2:expr) => {
+        match $e1 {
             Ok(v) => Ok(v),
-            Err(PError::Mismatch) => $then,
+            Err(PError::Mismatch) => $e2,
             Err(e) => Err(e),
         }
+    };
+    ($e1:expr; $($e2:expr);+) => {
+        or!($e1; or!($($e2);+))
     };
 }
 
@@ -201,9 +204,10 @@ impl<R: Repr> Loader<'_, R> {
             } else if let Ok(s) = p.string_folded(level) {
                 Ok(R::repr(Yaml::Str(s)))
             } else {
-                match_or!(
-                    p.seq(level, nest),
-                    match_or!(p.map(level, nest, inner), p.scalar_term(level, inner))
+                or!(
+                    p.seq(level, nest);
+                    p.map(level, nest, inner);
+                    p.scalar_term(level, inner)
                 )
             }
         })
@@ -268,9 +272,10 @@ impl<R: Repr> Loader<'_, R> {
                 _ => Yaml::Str(s),
             })
         } else {
-            match_or!(
-                self.seq_flow(level),
-                match_or!(self.map_flow(level), Ok(R::repr(Yaml::Null)))
+            or!(
+                self.seq_flow(level);
+                self.map_flow(level);
+                Ok(R::repr(Yaml::Null))
             )?
         };
         Ok(yaml)
@@ -287,8 +292,8 @@ impl<R: Repr> Loader<'_, R> {
                 break;
             }
             self.forward();
-            v.push(match_or!(
-                self.scalar(level + 1, false, true),
+            v.push(or!(
+                self.scalar(level + 1, false, true);
                 self.err("flow sequence item")
             )?);
             self.inv(TakeOpt::More(0))?;
@@ -315,8 +320,8 @@ impl<R: Repr> Loader<'_, R> {
             self.forward();
             let k = if self.complex_mapping().is_ok() {
                 self.forward();
-                let k = match_or!(
-                    self.scalar(level + 1, false, true),
+                let k = or!(
+                    self.scalar(level + 1, false, true);
                     self.err("flow map key")
                 )?;
                 if self.gap(true).is_ok() {
@@ -324,14 +329,14 @@ impl<R: Repr> Loader<'_, R> {
                 }
                 k
             } else {
-                match_or!(self.scalar_flow(level + 1, true), self.err("flow map key"))?
+                or!(self.scalar_flow(level + 1, true); self.err("flow map key"))?
             };
             if self.sym(b':').is_err() || self.bound().is_err() {
                 return self.err("flow map splitter");
             }
             self.forward();
-            let v = match_or!(
-                self.scalar(level + 1, false, true),
+            let v = or!(
+                self.scalar(level + 1, false, true);
                 self.err("flow map value")
             )?;
             m.push((k, v));
@@ -379,8 +384,8 @@ impl<R: Repr> Loader<'_, R> {
                 }
             }
             self.forward();
-            v.push(match_or!(
-                self.scalar(if downgrade { level } else { level + 1 }, false, false),
+            v.push(or!(
+                self.scalar(if downgrade { level } else { level + 1 }, false, false);
                 self.err("sequence item")
             )?);
         }
@@ -406,7 +411,7 @@ impl<R: Repr> Loader<'_, R> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = match_or!(self.scalar(level + 1, true, inner), self.err("map key"))?;
+                    let k = or!(self.scalar(level + 1, true, inner); self.err("map key"))?;
                     if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
@@ -429,13 +434,13 @@ impl<R: Repr> Loader<'_, R> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = match_or!(self.scalar(level + 1, true, inner), self.err("map key"))?;
+                    let k = or!(self.scalar(level + 1, true, inner); self.err("map key"))?;
                     if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
                     k
                 } else {
-                    match_or!(self.scalar_flow(level + 1, inner), self.err("map key"))?
+                    or!(self.scalar_flow(level + 1, inner); self.err("map key"))?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     return self.err("map splitter");
@@ -443,7 +448,7 @@ impl<R: Repr> Loader<'_, R> {
                 k
             };
             self.forward();
-            let v = match_or!(self.scalar(level + 1, true, false), self.err("map value"))?;
+            let v = or!(self.scalar(level + 1, true, false); self.err("map value"))?;
             m.push((k, v));
         }
         // Keep last wrapping
