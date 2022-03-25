@@ -3,7 +3,11 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::iter::FromIterator;
+use core::{
+    fmt::{Debug, Formatter},
+    hash::{Hash, Hasher},
+    iter::FromIterator,
+};
 use ritelinked::LinkedHashMap;
 
 macro_rules! impl_from {
@@ -60,7 +64,6 @@ pub type Map<R> = LinkedHashMap<Node<R>, Node<R>>;
 ///     YamlRc::from_iter(m)
 /// );
 /// ```
-#[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub enum Yaml<R: Repr> {
     /// Null
     Null,
@@ -78,14 +81,82 @@ pub enum Yaml<R: Repr> {
     Map(Map<R>),
 }
 
-impl<R: Repr> Yaml<R> {
-    /// Check the anchor is valid.
-    pub fn is_valid_anchor<S: ToString>(s: S) -> bool {
-        parser::Parser::new(s.to_string().as_bytes())
-            .identifier()
-            .is_ok()
+impl<R: Repr> Debug for Yaml<R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Null => f.write_str("Null"),
+            Self::Bool(b) => f.debug_tuple("Bool").field(b).finish(),
+            Self::Int(s) => f.debug_tuple("Int").field(s).finish(),
+            Self::Float(s) => f.debug_tuple("Float").field(s).finish(),
+            Self::Str(s) => f.debug_tuple("Str").field(s).finish(),
+            Self::Seq(s) => f.debug_tuple("Seq").field(s).finish(),
+            Self::Map(m) => f.debug_tuple("Map").field(m).finish(),
+        }
     }
 }
+
+impl<R: Repr> Clone for Yaml<R> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Null => Self::Null,
+            Self::Bool(b) => Self::Bool(*b),
+            Self::Int(s) => Self::Int(s.clone()),
+            Self::Float(s) => Self::Float(s.clone()),
+            Self::Str(s) => Self::Str(s.clone()),
+            Self::Seq(s) => Self::Seq(s.clone()),
+            Self::Map(m) => Self::Map(m.clone()),
+        }
+    }
+}
+
+impl<R: Repr> Hash for Yaml<R> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Null => state.write_u8(1),
+            Self::Bool(b) => {
+                state.write_u8(2);
+                b.hash(state)
+            }
+            Self::Int(s) => {
+                state.write_u8(3);
+                s.hash(state)
+            }
+            Self::Float(s) => {
+                state.write_u8(4);
+                s.hash(state)
+            }
+            Self::Str(s) => {
+                state.write_u8(5);
+                s.hash(state)
+            }
+            Self::Seq(s) => {
+                state.write_u8(6);
+                s.hash(state)
+            }
+            Self::Map(m) => {
+                state.write_u8(7);
+                m.hash(state)
+            }
+        }
+    }
+}
+
+impl<R: Repr> PartialEq for Yaml<R> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Null, Self::Null) => true,
+            (Self::Bool(b1), Self::Bool(b2)) => b1 == b2,
+            (Self::Int(s1), Self::Int(s2)) => s1 == s2,
+            (Self::Float(s1), Self::Float(s2)) => s1 == s2,
+            (Self::Str(s1), Self::Str(s2)) => s1 == s2,
+            (Self::Seq(s1), Self::Seq(s2)) => s1 == s2,
+            (Self::Map(m1), Self::Map(m2)) => m1 == m2,
+            _ => false,
+        }
+    }
+}
+
+impl<R: Repr> Eq for Yaml<R> {}
 
 impl<R: Repr> From<()> for Yaml<R> {
     fn from(_: ()) -> Self {

@@ -1,4 +1,4 @@
-//! This module contains representation holder, the reference counter type.
+//! This module contains the representation holders, the underlayer type of [`Yaml`] type.
 //!
 //! [`Rc`] is the single thread reference counter,
 //! and [`Arc`] is the multiple thread reference counter.
@@ -7,17 +7,15 @@ use alloc::{rc::Rc, sync::Arc};
 use core::{fmt::Debug, hash::Hash, ops::Deref};
 
 /// The representation symbol for [`Rc`].
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct RcRepr;
 /// The representation symbol for [`Arc`].
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct ArcRepr;
 
 /// The generic representation holder for [`Yaml`] and [`Node`].
 ///
 /// See the implementor list for the choose.
-pub trait Repr: Hash + Eq + Clone + Debug {
-    /// Type of the representation.
+pub trait Repr: Sized {
+    /// Type of the representation, e.g., the reference counter type.
     type Ty: Deref<Target = Yaml<Self>> + Hash + Eq + Clone + Debug;
     /// The creation function of this type.
     fn repr(yaml: Yaml<Self>) -> Self::Ty;

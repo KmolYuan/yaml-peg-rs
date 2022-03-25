@@ -1,7 +1,7 @@
 use crate::{repr::*, *};
 use alloc::string::{String, ToString};
 use core::{
-    fmt::Debug,
+    fmt::{Debug, Formatter},
     hash::{Hash, Hasher},
     iter::FromIterator,
     marker::PhantomData,
@@ -138,7 +138,6 @@ pub type NodeArc = Node<ArcRepr>;
 /// ```
 ///
 /// If you want to copy data, please get the data first.
-#[derive(Eq, Clone, Debug)]
 pub struct Node<R: Repr> {
     pos: u64,
     tag: String,
@@ -441,6 +440,29 @@ impl<R: Repr> Node<R> {
     }
 }
 
+impl<R: Repr> Debug for Node<R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Node")
+            .field("pos", &self.pos)
+            .field("tag", &self.tag)
+            .field("anchor", &self.anchor)
+            .field("yaml", &self.yaml)
+            .finish()
+    }
+}
+
+impl<R: Repr> Clone for Node<R> {
+    fn clone(&self) -> Self {
+        Self {
+            pos: self.pos,
+            tag: self.tag.clone(),
+            anchor: self.anchor.clone(),
+            yaml: self.clone_yaml(),
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<R: Repr> Hash for Node<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.yaml.hash(state)
@@ -452,6 +474,8 @@ impl<R: Repr> PartialEq for Node<R> {
         self.yaml.eq(&rhs.yaml)
     }
 }
+
+impl<R: Repr> Eq for Node<R> {}
 
 /// Indicator of the node use to index the sequence position.
 pub struct Ind(pub usize);
