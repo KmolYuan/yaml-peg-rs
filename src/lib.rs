@@ -1,10 +1,10 @@
 //! A YAML 1.2 parser using a greedy parsing algorithm with PEG atoms.
 //!
-//! The major purpose of this crate is to let the user build their own YAML reader / builder / validator.
+//! The major purpose of this crate is to let the user build their own YAML reader/builder/validator.
 //!
-//! This parser is not ensure about YAML spec but almost functions are well-implemented.
+//! This parser is not ensuring about YAML spec but almost functions are well-implemented.
 //!
-//! The buffer reader has also not implemented, but the chunks can be read by sub-parsers.
+//! The buffer reader has also not been implemented, but sub-parsers can read the chunks.
 //!
 //! WARN: YAML 1.2 is compatible with [JSON (JavaScript Object Notation) format](https://www.json.org/),
 //! but not in strict mode.
@@ -13,7 +13,7 @@
 //!
 //! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
 //! which has a data holder [`Yaml`].
-//! There also has multiple thread version corresponding to [`NodeRc`] / [`NodeArc`] and [`YamlRc`] / [`YamlArc`].
+//! There also has a multiple-threaded version corresponding to [`NodeRc`]/[`NodeArc`] and [`YamlRc`]/[`YamlArc`].
 //! To get back as string, please use [`dump`] function.
 //!
 //! There are also have some macros for building [`Node`] structure from Rust data.
@@ -23,21 +23,17 @@
 //!
 //! # Anchors
 //!
-//! The anchors will be replaced during parsing.
+//! The parser will replace the anchors during parsing.
 //!
 //! # Serialization and Deserialization
 //!
-//! Enable `serde` / `serde-std` feature to use `serde` crate.
+//! Enable `serde`/`serde-std` feature to use `serde` crate.
 //! The crate provides a set of protocol traits to convert between custom Rust data.
 //! Please be aware that the additional fields will be discard when convert to a fix-sized structure.
 //! For example, the structure fields can be turned into map keys as well.
 //!
 //! On the other hand, the primitive types still able to transform to YAML data without serialization,
 //! according to `From` and `Into` traits.
-#![cfg_attr(
-    feature = "serde",
-    doc = "See [`crate::serde`] module for more information."
-)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![cfg_attr(not(feature = "serde-std"), no_std)]
 #![warn(missing_docs)]
