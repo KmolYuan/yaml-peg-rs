@@ -1,5 +1,5 @@
 //! Dumper components.
-use crate::{repr::Repr, *};
+use crate::{parser::Anchors, repr::Repr, *};
 use alloc::{
     format,
     string::{String, ToString},
@@ -26,25 +26,40 @@ pub struct Dumper<'a, R: Repr> {
     node: &'a Node<R>,
     root: Root,
     level: usize,
+    anchors: &'a Anchors<R>,
 }
 
 impl<'a, R: Repr> Dumper<'a, R> {
     /// Create the dumper.
-    pub fn new(node: &'a Node<R>) -> Self {
+    pub fn new(node: &'a Node<R>, anchors: &'a Anchors<R>) -> Self {
         Self {
             node,
             root: Root::Scalar,
             level: 0,
+            anchors,
         }
     }
 
-    fn part(node: &'a Node<R>, root: Root, level: usize) -> String {
-        Self { node, root, level }.dump()
+    fn part(&self, node: &'a Node<R>, root: Root, level: usize) -> String {
+        Self {
+            node,
+            root,
+            level,
+            anchors: self.anchors,
+        }
+        .dump()
     }
 
     /// Dump into string.
     pub fn dump(&self) -> String {
         let mut doc = String::new();
+        if let Some(a) = self
+            .anchors
+            .iter()
+            .find_map(|(k, v)| if v == self.node { Some(k) } else { None })
+        {
+            doc += &format!("&{} ", a);
+        }
         let tag = self.node.tag();
         if !tag.is_empty() && !tag.starts_with(parser::tag_prefix!()) {
             doc += &if tag.starts_with(parser::tag_prefix!()) {
@@ -89,7 +104,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                     if i != 0 || self.level != 0 {
                         doc += &ind;
                     }
-                    let s = Self::part(node, Root::Array, self.level + 1);
+                    let s = self.part(node, Root::Array, self.level + 1);
                     doc += &format!("- {}{}", s, NL);
                 }
                 doc.truncate(doc.len() - NL.len());
@@ -104,7 +119,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                     if i != 0 || self.root == Root::Map {
                         doc += &ind;
                     }
-                    let s = Self::part(k, Root::Map, self.level + 1);
+                    let s = self.part(k, Root::Map, self.level + 1);
                     doc += &if let Yaml::Map(_) | Yaml::Seq(_) = k.yaml() {
                         let pre_ind = "  ".repeat(self.level + 1);
                         format!("?{}{}{}{}{}", pre_ind, NL, s, NL, ind)
@@ -113,12 +128,12 @@ impl<'a, R: Repr> Dumper<'a, R> {
                     };
                     doc += ":";
                     doc += &match v.yaml() {
-                        Yaml::Map(_) => Self::part(v, Root::Map, self.level + 1),
+                        Yaml::Map(_) => self.part(v, Root::Map, self.level + 1),
                         Yaml::Seq(_) if self.root == Root::Array && i == 0 => {
-                            Self::part(v, Root::Map, self.level)
+                            self.part(v, Root::Map, self.level)
                         }
-                        Yaml::Seq(_) => Self::part(v, Root::Map, self.level + 1),
-                        _ => format!(" {}", Self::part(v, Root::Map, self.level + 1)),
+                        Yaml::Seq(_) => self.part(v, Root::Map, self.level + 1),
+                        _ => format!(" {}", self.part(v, Root::Map, self.level + 1)),
                     };
                     doc += NL;
                 }
@@ -144,7 +159,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
 ///         "a" => "b",
 ///         "c" => "d",
 ///     }),
-/// ]);
+/// ], &Default::default());
 /// let ans = "\
 /// a: b
 /// c: d
@@ -153,12 +168,14 @@ impl<'a, R: Repr> Dumper<'a, R> {
 /// ```
 ///
 /// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
-pub fn dump<R: Repr>(nodes: &[Node<R>]) -> String {
+///
+/// Anchors can pass with the result of the [`Loader`](crate::parser::Loader).
+pub fn dump<R: Repr>(nodes: &[Node<R>], anchors: &Anchors<R>) -> String {
     nodes
         .iter()
         .enumerate()
         .map(|(i, node)| {
-            let doc = Dumper::new(node).dump() + NL;
+            let doc = Dumper::new(node, anchors).dump() + NL;
             match i {
                 0 => doc,
                 _ => format!("---{}{}", NL, doc.trim_start()),

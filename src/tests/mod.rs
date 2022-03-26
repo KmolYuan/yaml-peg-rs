@@ -79,7 +79,7 @@ fn test_yaml() {
 #[test]
 fn test_dump() {
     const DOC: &str = include_str!("dump_result.yaml");
-    let doc = dump(&[
+    let nodes = [
         node!({
             "a" => "b",
             "c" => node!([
@@ -89,7 +89,8 @@ fn test_dump() {
             ]),
         }),
         node!(["a", "b"]),
-    ]);
+    ];
+    let doc = dump(&nodes, &Default::default());
     assert_eq!(doc.replace("\r\n", "\n"), DOC.replace("\r\n", "\n"));
 }
 
