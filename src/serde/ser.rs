@@ -303,14 +303,6 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         Ok(StructVariant(Map::with_capacity(len), variant))
     }
-
-    #[cfg(not(feature = "serde-std"))]
-    fn collect_str<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: core::fmt::Display + ?Sized,
-    {
-        self.serialize_str(&value.to_string())
-    }
 }
 
 struct SeqSerializer<R: Repr>(Seq<R>);
