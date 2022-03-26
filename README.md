@@ -19,7 +19,7 @@ name: Bob
 married: true
 age: 46
 ";
-let (root, _) = parse(doc).unwrap();
+let root = parse(doc).unwrap();
 assert_eq!(root, vec![node!({
     "name" => "Bob",
     "married" => true,
