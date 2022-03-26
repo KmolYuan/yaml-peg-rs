@@ -80,6 +80,8 @@ macro_rules! or {
 
 pub(crate) use tag_prefix;
 
+/// The type of anchor recorder in the [`Loader`].
+pub type Anchors<R> = LinkedHashMap<String, Node<R>>;
 /// The default prefix of the YAML sub tag.
 pub const DEFAULT_PREFIX: &str = tag_prefix!();
 
@@ -112,7 +114,8 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 pub struct Loader<'a, R: Repr> {
     /// Parser base.
     pub parser: Parser<'a>,
-    anchors: LinkedHashMap<String, Node<R>>,
+    keep_anchors: bool,
+    anchors: Anchors<R>,
 }
 
 impl<'a, R: Repr> Loader<'a, R> {
@@ -120,7 +123,8 @@ impl<'a, R: Repr> Loader<'a, R> {
     pub fn new(doc: &'a [u8]) -> Self {
         Self {
             parser: Parser::new(doc),
-            anchors: LinkedHashMap::new(),
+            keep_anchors: false,
+            anchors: Anchors::new(),
         }
     }
 }
@@ -141,6 +145,22 @@ impl<'a, R: Repr> Loader<'a, R> {
 ///
 /// The `inner` parameter presents that the expression is in a **flow** expression.
 impl<R: Repr> Loader<'_, R> {
+    /// Keep the anchor insertion.
+    ///
+    /// This will make [`Yaml::Alias`] have a placeholder
+    /// and adding anchor information in the [`Node`].
+    pub fn keep_anchors(self, keep_anchors: bool) -> Self {
+        Self {
+            keep_anchors,
+            ..self
+        }
+    }
+
+    /// Consume this loader and return the recorded anchors.
+    pub fn get_anchors(self) -> Anchors<R> {
+        self.anchors
+    }
+
     /// YAML entry point, return entire doc if exist.
     pub fn parse(&mut self) -> PResult<Vec<Node<R>>> {
         loop {
@@ -253,7 +273,11 @@ impl<R: Repr> Loader<'_, R> {
             R::repr(Yaml::Int(s))
         } else if let Ok(s) = self.anchor_use() {
             if let Some(node) = self.anchors.get(&s) {
-                node.clone_yaml()
+                if self.keep_anchors {
+                    R::repr(Yaml::Alias(s))
+                } else {
+                    node.clone_yaml()
+                }
             } else {
                 return self.err("anchor referenced before definition");
             }
@@ -472,7 +496,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 }
 
 /// Parse YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
-/// Return an sequence of nodes and the anchors.
+/// Return an sequence of nodes and insert the anchors automatically.
 ///
 /// ```
 /// use yaml_peg::{parse, node};
@@ -498,7 +522,8 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 ///     "age" => 46,
 /// })]);
 /// ```
+///
+/// Please see [`Loader`] for parser customization.
 pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
-    let mut p = Loader::new(doc.as_bytes());
-    p.parse()
+    Loader::new(doc.as_bytes()).parse()
 }

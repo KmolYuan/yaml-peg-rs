@@ -177,6 +177,7 @@ impl<R: Repr> Node<R> {
                 Yaml::Str(_) => concat!(parser::tag_prefix!(), "str"),
                 Yaml::Seq(_) => concat!(parser::tag_prefix!(), "seq"),
                 Yaml::Map(_) => concat!(parser::tag_prefix!(), "map"),
+                Yaml::Alias(_) => "",
             },
             s => s,
         }

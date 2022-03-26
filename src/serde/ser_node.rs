@@ -1,5 +1,8 @@
 use crate::{repr::Repr, Node, Yaml};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{
+    ser::{Error as _, SerializeMap as _},
+    Serialize, Serializer,
+};
 
 impl<R: Repr> Serialize for Node<R> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -20,6 +23,7 @@ impl<R: Repr> Serialize for Node<R> {
                 }
                 map.end()
             }
+            Yaml::Alias(a) => Err(S::Error::custom(format!("anchor {}", a))),
         }
     }
 }

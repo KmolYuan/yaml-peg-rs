@@ -272,6 +272,7 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
             Yaml::Str(s) => visitor.visit_str(s),
             Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+            Yaml::Alias(a) => Err(SerdeError::from(format!("anchor {}", a)).pos(self.pos())),
         }
     }
 
@@ -442,6 +443,7 @@ fn unexpected<R: Repr>(node: &Node<R>, exp: impl Expected) -> SerdeError {
         Yaml::Str(s) => Unexpected::Str(s),
         Yaml::Seq(_) => Unexpected::Seq,
         Yaml::Map(_) => Unexpected::Map,
+        Yaml::Alias(_) => Unexpected::Other("anchor"),
     };
     SerdeError::invalid_type(ty, &exp).pos(node.pos())
 }

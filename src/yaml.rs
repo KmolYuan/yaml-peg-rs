@@ -79,6 +79,8 @@ pub enum Yaml<R: Repr> {
     Seq(Seq<R>),
     /// Map
     Map(Map<R>),
+    /// Alias (anchor insertion)
+    Alias(String),
 }
 
 impl<R: Repr> Debug for Yaml<R> {
@@ -91,6 +93,7 @@ impl<R: Repr> Debug for Yaml<R> {
             Self::Str(s) => f.debug_tuple("Str").field(s).finish(),
             Self::Seq(s) => f.debug_tuple("Seq").field(s).finish(),
             Self::Map(m) => f.debug_tuple("Map").field(m).finish(),
+            Self::Alias(a) => f.debug_tuple("Alias").field(a).finish(),
         }
     }
 }
@@ -105,6 +108,7 @@ impl<R: Repr> Clone for Yaml<R> {
             Self::Str(s) => Self::Str(s.clone()),
             Self::Seq(s) => Self::Seq(s.clone()),
             Self::Map(m) => Self::Map(m.clone()),
+            Self::Alias(a) => Self::Alias(a.clone()),
         }
     }
 }
@@ -136,6 +140,10 @@ impl<R: Repr> Hash for Yaml<R> {
             Self::Map(m) => {
                 state.write_u8(7);
                 m.hash(state)
+            }
+            Self::Alias(a) => {
+                state.write_u8(8);
+                a.hash(state)
             }
         }
     }
