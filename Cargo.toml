@@ -1,7 +1,7 @@
 [package]
 name = "yaml-peg"
 description = "A YAML 1.2 parser using a greedy parsing algorithm with PEG atoms."
-version = "0.26.2"
+version = "0.26.3"
 authors = ["KmolYuan <pyslvs@gmail.com>"]
 edition = "2021"
 license = "MIT"
