@@ -30,3 +30,6 @@ impl Display for PError {
         }
     }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for PError {}

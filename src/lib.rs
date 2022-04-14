@@ -25,9 +25,13 @@
 //!
 //! The parser will replace the anchors during parsing.
 //!
+//! # No Standard Library
+//!
+//! The `std` feature is a default feature, use `--no-default-features` to build in the no-std mode.
+//!
 //! # Serialization and Deserialization
 //!
-//! Enable `serde`/`serde-std` feature to use `serde` crate,
+//! Enable `serde` feature to use `serde` crate,
 //! which provides a set of protocol traits to convert between custom Rust data.
 //! Please be aware that the additional fields will be discarded when convert to a fix-sized structure.
 //! For example, the structure fields can be turned into map keys as well.
@@ -35,7 +39,7 @@
 //! On the other hand, the primitive types are still able to transform to YAML data without serialization,
 //! according to built-in `From` and `Into` traits.
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
-#![cfg_attr(not(feature = "serde-std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 extern crate alloc;
 

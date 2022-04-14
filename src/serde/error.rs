@@ -45,7 +45,7 @@ impl Display for SerdeError {
     }
 }
 
-#[cfg(feature = "serde-std")]
+#[cfg(feature = "std")]
 impl std::error::Error for SerdeError {}
 
 impl_error!(serde::ser::Error);

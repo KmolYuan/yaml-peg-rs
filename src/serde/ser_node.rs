@@ -1,4 +1,5 @@
 use crate::{repr::Repr, Node, Yaml};
+use alloc::format;
 use serde::{
     ser::{Error as _, SerializeMap as _},
     Serialize, Serializer,

@@ -4,7 +4,7 @@ use crate::{
     repr::{RcRepr, Repr},
     Map, Node, Seq, Yaml,
 };
-use alloc::{string::ToString, vec::Vec};
+use alloc::{format, string::ToString, vec::Vec};
 use core::marker::PhantomData;
 use serde::{
     de::{
