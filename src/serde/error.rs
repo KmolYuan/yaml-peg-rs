@@ -1,17 +1,6 @@
 use alloc::string::{String, ToString};
 use core::fmt::{Debug, Display, Formatter, Result};
 
-macro_rules! impl_error {
-    ($trait:ty) => {
-        impl $trait for SerdeError {
-            fn custom<T: Display>(msg: T) -> Self {
-                let msg = msg.to_string();
-                Self { msg, pos: 0 }
-            }
-        }
-    };
-}
-
 /// The error type for the serialization.
 ///
 /// If the error is used at deserializing to a custom data,
@@ -48,5 +37,14 @@ impl Display for SerdeError {
 #[cfg(feature = "std")]
 impl std::error::Error for SerdeError {}
 
-impl_error!(serde::ser::Error);
-impl_error!(serde::de::Error);
+impl serde::ser::Error for SerdeError {
+    fn custom<T: Display>(msg: T) -> Self {
+        Self::from(msg.to_string())
+    }
+}
+
+impl serde::de::Error for SerdeError {
+    fn custom<T: Display>(msg: T) -> Self {
+        Self::from(msg.to_string())
+    }
+}
