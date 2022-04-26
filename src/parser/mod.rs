@@ -355,9 +355,10 @@ impl<R: Repr> Loader<'_, R> {
             } else {
                 or!(self.scalar_flow(level + 1, true); self.err("flow map key"))?
             };
-            if self.sym(b':').is_err() || self.bound().is_err() {
+            if self.sym(b':').is_err() {
                 return self.err("flow map splitter");
             }
+            self.context(|p| p.bound().unwrap_or_default());
             self.forward();
             let v = or!(
                 self.scalar(level + 1, false, true);
