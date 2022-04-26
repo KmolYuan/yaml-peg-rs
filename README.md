@@ -36,6 +36,9 @@ See the API doc for more information.
 + Provide document positions and tags on the nodes.
 + Anchors / alias are supported.
 + YAML directives `YAML` and `TAG` are allowed.
+
+  **WARNING: `%YAML 1.1` will still be treated as 1.2.**
+
   ```yaml
   %YAML 1.2
   %TAG !x! tag:my.prefix:

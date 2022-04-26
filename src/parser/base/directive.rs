@@ -23,8 +23,8 @@ impl Parser<'_> {
         self.ws(TakeOpt::More(1))?;
         if self.version_checked {
             self.err("checked version")
-        } else if self.sym_seq(b"1.2").is_err() {
-            self.err("version")
+        } else if !self.context(|p| p.sym_seq(b"1.1").is_ok() || p.sym_seq(b"1.2").is_ok()) {
+            self.err("invalid version")
         } else {
             self.version_checked = true;
             Ok(())
