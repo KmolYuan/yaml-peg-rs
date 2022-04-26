@@ -438,11 +438,7 @@ impl<R: Repr> Node<R> {
 
 impl<R: Repr> Debug for Node<R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Node")
-            .field("pos", &self.pos)
-            .field("tag", &self.tag)
-            .field("yaml", &self.yaml)
-            .finish()
+        write!(f, "Node{:?}", &self.yaml)
     }
 }
 
