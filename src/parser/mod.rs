@@ -249,11 +249,13 @@ impl<R: Repr> Loader<'_, R> {
         }
         self.forward();
         let anchor2 = self.anchor().unwrap_or_default();
-        if anchor.is_empty() && !anchor2.is_empty() {
-            self.bound()?;
-            anchor = anchor2;
-        } else if !anchor.is_empty() && !anchor2.is_empty() {
-            return self.err("duplicated anchor definition");
+        if !anchor2.is_empty() {
+            if anchor.is_empty() {
+                self.bound()?;
+                anchor = anchor2;
+            } else {
+                return self.err("duplicated anchor definition");
+            }
         }
         self.forward();
         let pos = self.indicator();
