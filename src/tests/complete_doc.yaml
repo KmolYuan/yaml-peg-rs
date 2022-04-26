@@ -1,7 +1,7 @@
 %YAML 1.2
 %TAG !! tag:test.prefix:
 %TAG !x! tag:test.x.prefix:
----
+--- !x!root
 a0 bb: !x!foo .val.
 ::a1:  # Test comment after wrapped! (1)
   b1  : 4.

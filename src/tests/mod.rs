@@ -68,6 +68,7 @@ fn test_yaml() {
             ]),
         })
     );
+    assert_eq!(node.tag(), "tag:test.x.prefix:root");
     let k = node!("a0 bb");
     assert_eq!(node[k].tag(), "tag:test.x.prefix:foo");
     let k = node!("-a2");
@@ -114,6 +115,7 @@ fn test_indent() {
             "map" => node!(["a", "b", "c"]),
         })
     );
+    assert_eq!(node2.tag(), "normal-sequence");
     assert_eq!(node2, node!(["a1", "true of", "a2"]));
 }
 

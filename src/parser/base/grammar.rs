@@ -269,7 +269,7 @@ impl Parser<'_> {
                     // Tag prefix variable
                     p.tag[&tag].clone()
                 } else {
-                    tag
+                    String::new()
                 }
             } else if p.sym(b'<').is_ok() {
                 // Full tag

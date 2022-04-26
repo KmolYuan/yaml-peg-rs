@@ -172,8 +172,6 @@ impl<R: Repr> Loader<'_, R> {
         }
         self.gap(true).unwrap_or_default();
         self.sym_seq(b"---").unwrap_or_default();
-        self.gap(true).unwrap_or_default();
-        self.forward();
         let mut v = vec![self.doc()?];
         loop {
             self.gap(true).unwrap_or_default();
@@ -183,8 +181,6 @@ impl<R: Repr> Loader<'_, R> {
             if self.sym_seq(b"---").is_err() {
                 return self.err("document splitter");
             }
-            self.gap(true).unwrap_or_default();
-            self.forward();
             v.push(self.doc()?);
         }
         Ok(v)
@@ -192,7 +188,7 @@ impl<R: Repr> Loader<'_, R> {
 
     /// Match one doc block.
     pub fn doc(&mut self) -> PResult<Node<R>> {
-        self.ind_define(0)?;
+        self.context(|p| p.bound().unwrap_or_default());
         self.forward();
         let ret = self.scalar(0, false, false)?;
         self.gap(true).unwrap_or_default();

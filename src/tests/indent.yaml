@@ -9,7 +9,8 @@ map:
 - a
 - b
 - c
----
- - a1
- - true of
- - a2
+--- !normal-sequence
+# Normal sequence
+- a1
+- true of
+- a2
