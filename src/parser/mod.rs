@@ -238,7 +238,7 @@ impl<R: Repr> Loader<'_, R> {
     where
         F: FnOnce(&mut Self) -> PResult<R::Ty>,
     {
-        let anchor = self.anchor().unwrap_or_default();
+        let mut anchor = self.anchor().unwrap_or_default();
         if !anchor.is_empty() {
             self.bound()?;
         }
@@ -246,6 +246,14 @@ impl<R: Repr> Loader<'_, R> {
         let tag = self.tag().unwrap_or_default();
         if !tag.is_empty() {
             self.bound()?;
+        }
+        self.forward();
+        let anchor2 = self.anchor().unwrap_or_default();
+        if anchor.is_empty() && !anchor2.is_empty() {
+            self.bound()?;
+            anchor = anchor2;
+        } else if !anchor.is_empty() && !anchor2.is_empty() {
+            return self.err("duplicated anchor definition");
         }
         self.forward();
         let pos = self.indicator();
