@@ -183,6 +183,7 @@ impl<R: Repr> PartialEq for Yaml<R> {
             (Self::Str(s1), Self::Str(s2)) => s1 == s2,
             (Self::Seq(s1), Self::Seq(s2)) => s1 == s2,
             (Self::Map(m1), Self::Map(m2)) => m1 == m2,
+            (Self::Alias(a1), Self::Alias(a2)) => a1 == a2,
             _ => false,
         }
     }

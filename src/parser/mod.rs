@@ -278,12 +278,10 @@ impl<R: Repr> Loader<'_, R> {
         } else if let Ok(s) = self.int() {
             R::repr(Yaml::Int(s))
         } else if let Ok(s) = self.anchor_use() {
-            if let Some(node) = self.anchors.get(&s) {
-                if self.keep_anchors {
-                    R::repr(Yaml::Alias(s))
-                } else {
-                    node.clone_yaml()
-                }
+            if self.keep_anchors {
+                R::repr(Yaml::Alias(s))
+            } else if let Some(node) = self.anchors.get(&s) {
+                node.clone_yaml()
             } else {
                 return self.err("anchor referenced before definition");
             }
@@ -505,6 +503,10 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// Parse YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
 /// Return an sequence of nodes and insert the anchors automatically.
 ///
+/// # Direct Parsing
+///
+/// The default behavior of this function.
+///
 /// ```
 /// use yaml_peg::{parse, node};
 ///
@@ -530,7 +532,24 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// })]);
 /// ```
 ///
-/// Please see [`Loader`] for parser customization.
+/// # Recursive Parsing
+///
+/// Create a loader with [`Loader::keep_anchors`] option.
+///
+/// ```
+/// use yaml_peg::{parser::{Loader, Anchors}, node};
+///
+/// let doc = "
+/// --- &root
+/// map: *root
+/// ";
+/// let mut loader = Loader::new(doc.as_bytes()).keep_anchors(true);
+/// let root = loader.parse().unwrap().remove(0);
+/// assert_eq!(node!({"map" => node!(*"root")}), root);
+/// let mut expect_anchors = Anchors::new();
+/// expect_anchors.insert("root".to_string(), root);
+/// assert_eq!(expect_anchors, loader.get_anchors());
+/// ```
 pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
     Loader::new(doc.as_bytes()).parse()
 }
