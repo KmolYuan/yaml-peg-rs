@@ -33,9 +33,10 @@
 //!
 //! # Anchors
 //!
-//! If the data supports anchor insertion, please see [`crate::Anchor::resolve`] and [`crate::Node::replace_anchor`].
+//! [`crate::Yaml::Alias`] is not support serialization.
+//! Please using direct parsing function [`crate::parse`] to avoid the alias node.
 //!
-//! The anchor should be resolve before serialization. [`crate::Yaml::Alias`] is not support serialization.
+//! Recursive data should be handled manually.
 //!
 //! # Mixed String Type
 //!
