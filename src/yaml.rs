@@ -64,6 +64,8 @@ pub type Map<R> = LinkedHashMap<Node<R>, Node<R>>;
 ///     YamlRc::from_iter(m)
 /// );
 /// ```
+///
+/// The digit NaN (not-a-number) will be equal in the comparison.
 pub enum Yaml<R: Repr> {
     /// Null
     Null,
@@ -154,8 +156,18 @@ impl<R: Repr> PartialEq for Yaml<R> {
         match (self, other) {
             (Self::Null, Self::Null) => true,
             (Self::Bool(b1), Self::Bool(b2)) => b1 == b2,
-            (Self::Int(s1), Self::Int(s2)) => s1 == s2,
-            (Self::Float(s1), Self::Float(s2)) => s1 == s2,
+            (Self::Int(s1), Self::Int(s2)) => {
+                s1.parse::<u64>().unwrap() == s2.parse::<u64>().unwrap()
+            }
+            (Self::Float(s1), Self::Float(s2)) => {
+                let f1 = s1.parse::<f64>().unwrap();
+                let f2 = s2.parse::<f64>().unwrap();
+                if f1.is_nan() && f2.is_nan() {
+                    true
+                } else {
+                    f1 == f2
+                }
+            }
             (Self::Str(s1), Self::Str(s2)) => s1 == s2,
             (Self::Seq(s1), Self::Seq(s2)) => s1 == s2,
             (Self::Map(m1), Self::Map(m2)) => m1 == m2,

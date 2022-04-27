@@ -27,9 +27,26 @@ impl Parser<'_> {
     /// Match integer.
     pub fn int(&mut self) -> PResult<String> {
         self.num_prefix()?;
-        let s = self.text();
+        let mut s = self.text();
+        if s.as_bytes() == b"0" && self.context(|p| p.octal().is_ok() || p.hexadecimal().is_ok()) {
+            s = self.text();
+        }
         self.bound()?;
         Ok(s)
+    }
+
+    fn octal(&mut self) -> PResult<()> {
+        self.sym(b'o')?;
+        self.take_while(Self::ascii_digit(8), TakeOpt::More(1))
+    }
+
+    fn hexadecimal(&mut self) -> PResult<()> {
+        self.sym(b'x')?;
+        self.take_while(Self::ascii_digit(16), TakeOpt::More(1))
+    }
+
+    fn ascii_digit(i: u8) -> impl Fn(&u8) -> bool + 'static {
+        move |c| c.is_ascii_digit() || (*c > b'a' && *c < b'a' + i) || (*c > b'A' && *c < b'A' + i)
     }
 
     /// Match float.
