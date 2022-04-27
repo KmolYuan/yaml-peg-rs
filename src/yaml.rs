@@ -39,6 +39,20 @@ pub type Seq<R> = Vec<Node<R>>;
 /// The map data structure of YAML.
 pub type Map<R> = LinkedHashMap<Node<R>, Node<R>>;
 
+pub(crate) fn to_i64(s: &str) -> Result<i64, core::num::ParseIntError> {
+    if let Some(s) = s.strip_prefix("0x") {
+        i64::from_str_radix(s, 16)
+    } else if let Some(s) = s.strip_prefix("0o") {
+        i64::from_str_radix(s, 8)
+    } else {
+        s.parse()
+    }
+}
+
+pub(crate) fn to_f64(s: &str) -> Result<f64, core::num::ParseFloatError> {
+    s.parse()
+}
+
 /// YAML data types, but it is recommended to use [`Node`] for shorten code.
 ///
 /// This type can convert from primitive types by `From` and `Into` traits.
@@ -156,12 +170,10 @@ impl<R: Repr> PartialEq for Yaml<R> {
         match (self, other) {
             (Self::Null, Self::Null) => true,
             (Self::Bool(b1), Self::Bool(b2)) => b1 == b2,
-            (Self::Int(s1), Self::Int(s2)) => {
-                s1.parse::<u64>().unwrap() == s2.parse::<u64>().unwrap()
-            }
+            (Self::Int(s1), Self::Int(s2)) => to_i64(s1).unwrap() == to_i64(s2).unwrap(),
             (Self::Float(s1), Self::Float(s2)) => {
-                let f1 = s1.parse::<f64>().unwrap();
-                let f2 = s2.parse::<f64>().unwrap();
+                let f1 = to_f64(s1).unwrap();
+                let f2 = to_f64(s2).unwrap();
                 if f1.is_nan() && f2.is_nan() {
                     true
                 } else {

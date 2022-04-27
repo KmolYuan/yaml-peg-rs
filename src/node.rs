@@ -6,7 +6,6 @@ use core::{
     iter::FromIterator,
     marker::PhantomData,
     ops::Index,
-    str::FromStr,
 };
 
 macro_rules! as_method {
@@ -18,21 +17,6 @@ macro_rules! as_method {
             match self.yaml() {
                 Yaml::$ty(v) $(| Yaml::$ty2(v))* => Ok(v$(.$op())?),
                 $(Yaml::Null => Ok($default),)?
-                _ => Err(self.pos()),
-            }
-        }
-    };
-}
-
-macro_rules! as_num_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty1:ident $(| $ty2:ident)*} => {
-        $(#[$meta])*
-        pub fn $id<N: FromStr>(&self) -> Result<N, u64> {
-            match self.yaml() {
-                Yaml::$ty1(n) $(| Yaml::$ty2(n))* => match n.parse() {
-                    Ok(v) => Ok(v),
-                    Err(_) => Err(self.pos()),
-                },
                 _ => Err(self.pos()),
             }
         }
@@ -226,38 +210,48 @@ impl<R: Repr> Node<R> {
         fn as_bool = Bool(clone) -> bool
     }
 
-    as_num_method! {
-        /// Convert to integer.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        ///
-        /// assert_eq!(60, node!(60).as_int().unwrap());
-        /// ```
-        fn as_int = Int
+    /// Convert to integer.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    ///
+    /// assert_eq!(60, node!(60).as_int().unwrap());
+    /// ```
+    pub fn as_int(&self) -> Result<i64, u64> {
+        match self.yaml() {
+            Yaml::Int(s) => to_i64(s).map_err(|_| self.pos),
+            _ => Err(self.pos),
+        }
     }
 
-    as_num_method! {
-        /// Convert to float.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        ///
-        /// assert_eq!(20.06, node!(20.06).as_float().unwrap());
-        /// ```
-        fn as_float = Float
+    /// Convert to float.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    ///
+    /// assert_eq!(20.06, node!(20.06).as_float().unwrap());
+    /// ```
+    pub fn as_float(&self) -> Result<f64, u64> {
+        match self.yaml() {
+            Yaml::Float(s) => to_f64(s).map_err(|_| self.pos),
+            _ => Err(self.pos),
+        }
     }
 
-    as_num_method! {
-        /// Convert to number.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        ///
-        /// assert_eq!(60, node!(60).as_number().unwrap());
-        /// assert_eq!(20.06, node!(20.06).as_number().unwrap());
-        /// ```
-        fn as_number = Int | Float
+    /// Convert to float for any number.
+    ///
+    /// ```
+    /// use yaml_peg::node;
+    ///
+    /// assert_eq!(60., node!(60).as_number().unwrap());
+    /// assert_eq!(20.06, node!(20.06).as_number().unwrap());
+    /// ```
+    pub fn as_number(&self) -> Result<f64, u64> {
+        match self.yaml() {
+            Yaml::Int(s) => to_i64(s).map(|n| n as f64).map_err(|_| self.pos),
+            Yaml::Float(s) => to_f64(s).map_err(|_| self.pos),
+            _ => Err(self.pos),
+        }
     }
 
     as_method! {

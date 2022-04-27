@@ -1,5 +1,4 @@
 use crate::{parser::PError, *};
-use alloc::string::ToString;
 
 fn show_err<E>(e: PError) -> E {
     panic!("{}", e)
@@ -36,9 +35,11 @@ fn test_yaml() {
                 "b1" => 4.,
                 "b2" => node!([
                     "50%",
-                    node!(Yaml::Float("2e-4".to_string())),
-                    node!(Yaml::Float("NaN".to_string())),
-                    node!(Yaml::Float("-inf".to_string())),
+                    8,
+                    16,
+                    2e-4,
+                    f64::NAN,
+                    -f64::INFINITY,
                     "-.infs",
                     "2001-11-23 15:01:42 -5",
                 ]),
