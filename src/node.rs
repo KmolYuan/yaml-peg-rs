@@ -113,18 +113,18 @@ pub type NodeArc = Node<ArcRepr>;
 pub struct Node<R: Repr> {
     pos: u64,
     tag: String,
-    yaml: R::Ty,
+    yaml: R::Rc,
     _marker: PhantomData<R>,
 }
 
 impl<R: Repr> Node<R> {
     /// Create node from YAML data.
     pub fn new(yaml: impl Into<Yaml<R>>, pos: u64, tag: impl ToString) -> Self {
-        Self::new_repr(R::repr(yaml.into()), pos, tag)
+        Self::new_repr(R::new_rc(yaml.into()), pos, tag)
     }
 
     /// Create from a representation.
-    pub fn new_repr(yaml: R::Ty, pos: u64, tag: impl ToString) -> Self {
+    pub fn new_repr(yaml: R::Rc, pos: u64, tag: impl ToString) -> Self {
         Self {
             yaml,
             pos,
@@ -135,11 +135,11 @@ impl<R: Repr> Node<R> {
 
     /// Set from existing YAML data.
     pub fn set_yaml(&mut self, yaml: impl Into<Yaml<R>>) {
-        self.set_repr(R::repr(yaml.into()));
+        self.set_repr(R::new_rc(yaml.into()));
     }
 
     /// Set from existing YAML representation.
-    pub fn set_repr(&mut self, yaml: R::Ty) {
+    pub fn set_repr(&mut self, yaml: R::Rc) {
         self.yaml = yaml;
     }
 
@@ -173,7 +173,7 @@ impl<R: Repr> Node<R> {
     }
 
     /// Clone YAML repr.
-    pub fn clone_yaml(&self) -> R::Ty {
+    pub fn clone_yaml(&self) -> R::Rc {
         self.yaml.clone()
     }
 
@@ -194,7 +194,7 @@ impl<R: Repr> Node<R> {
     /// assert_eq!(1, Rc::strong_count(a_rc.rc_ref()));
     /// assert_eq!(1, Arc::strong_count(a_arc.rc_ref()));
     /// ```
-    pub fn rc_ref(&self) -> &R::Ty {
+    pub fn rc_ref(&self) -> &R::Rc {
         &self.yaml
     }
 

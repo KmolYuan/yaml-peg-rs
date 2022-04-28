@@ -16,23 +16,24 @@ pub struct ArcRepr;
 /// See the implementor list for the choose.
 pub trait Repr: Sized {
     /// Type of the representation, e.g., the reference counter type.
-    type Ty: Deref<Target = Yaml<Self>> + Hash + Eq + Clone + Debug;
+    type Rc: Deref<Target = Yaml<Self>> + Hash + Eq + Clone + Debug;
+
     /// The creation function of this type.
-    fn repr(yaml: Yaml<Self>) -> Self::Ty;
+    fn new_rc(yaml: Yaml<Self>) -> Self::Rc;
 }
 
 impl Repr for RcRepr {
-    type Ty = Rc<Yaml<Self>>;
+    type Rc = Rc<Yaml<Self>>;
 
-    fn repr(yaml: Yaml<Self>) -> Self::Ty {
+    fn new_rc(yaml: Yaml<Self>) -> Self::Rc {
         Rc::new(yaml)
     }
 }
 
 impl Repr for ArcRepr {
-    type Ty = Arc<Yaml<Self>>;
+    type Rc = Arc<Yaml<Self>>;
 
-    fn repr(yaml: Yaml<Self>) -> Self::Ty {
+    fn new_rc(yaml: Yaml<Self>) -> Self::Rc {
         Arc::new(yaml)
     }
 }
