@@ -36,7 +36,7 @@
 //! [`crate::Yaml::Alias`] is not support serialization.
 //! Please using direct parsing function [`crate::parse`] to avoid the alias node.
 //!
-//! Recursive data should be handled manually.
+//! Cyclic data should be handled manually.
 //!
 //! # Mixed String Type
 //!

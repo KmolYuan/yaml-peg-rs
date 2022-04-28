@@ -36,7 +36,7 @@ See the API doc for more information.
 + Provide document positions and tags on the nodes.
 + Anchors / alias are supported.
   + Direct Parsing: Embed the alias directly.
-  + Recursive Parsing: Keep the alias placeholder.
+  + Cyclic Parsing: Keep the alias placeholder.
 + YAML directives `YAML` and `TAG` are allowed.
 
   **WARNING: `%YAML 1.1` will still be treated as 1.2.**

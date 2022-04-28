@@ -532,7 +532,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// })]);
 /// ```
 ///
-/// # Recursive Parsing
+/// # Cyclic Parsing
 ///
 /// Create a loader with [`Loader::keep_anchors`] option.
 ///
