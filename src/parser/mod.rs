@@ -114,7 +114,7 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 pub struct Loader<'a, R: Repr> {
     /// Parser base.
     pub parser: Parser<'a>,
-    is_cyclic: bool,
+    cyclic_mode: bool,
     anchors: Anchors<R>,
 }
 
@@ -123,7 +123,7 @@ impl<'a, R: Repr> Loader<'a, R> {
     pub fn new(doc: &'a [u8]) -> Self {
         Self {
             parser: Parser::new(doc),
-            is_cyclic: false,
+            cyclic_mode: false,
             anchors: Anchors::new(),
         }
     }
@@ -152,8 +152,11 @@ impl<R: Repr> Loader<'_, R> {
     ///
     /// This will make [`Yaml::Alias`] have a placeholder
     /// and adding anchor information in the [`Node`].
-    pub fn set_cyclic(self, is_cyclic: bool) -> Self {
-        Self { is_cyclic, ..self }
+    pub fn cyclic_mode(self, cyclic_mode: bool) -> Self {
+        Self {
+            cyclic_mode,
+            ..self
+        }
     }
 
     /// Consume this loader and return the recorded anchors.
@@ -278,7 +281,7 @@ impl<R: Repr> Loader<'_, R> {
         } else if let Ok(s) = self.int() {
             R::new_rc(Yaml::Int(s))
         } else if let Ok(s) = self.anchor_use() {
-            if self.is_cyclic {
+            if self.cyclic_mode {
                 R::new_rc(Yaml::Alias(s))
             } else if let Some(node) = self.anchors.get(&s) {
                 node.clone_yaml()
@@ -503,7 +506,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// Parse YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
 /// Return an sequence of nodes and insert the anchors automatically.
 ///
-/// # Direct Parsing
+/// # Direct Mode
 ///
 /// The default behavior of this function.
 ///
@@ -532,9 +535,11 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// })]);
 /// ```
 ///
-/// # Cyclic Parsing
+/// # Cyclic Mode
 ///
-/// Create a loader with [`Loader::set_cyclic`] option.
+/// Create a loader with [`Loader::cyclic_mode`] option.
+///
+/// The anchors can obtained from [`Loader::get_anchors`] method.
 ///
 /// ```
 /// use yaml_peg::{parser::{Loader, Anchors}, node};
@@ -543,7 +548,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// --- &root
 /// map: *root
 /// ";
-/// let mut loader = Loader::new(doc.as_bytes()).set_cyclic(true);
+/// let mut loader = Loader::new(doc.as_bytes()).cyclic_mode(true);
 /// let root = loader.parse().unwrap().remove(0);
 /// assert_eq!(node!({"map" => node!(*"root")}), root);
 /// let mut expect_anchors = Anchors::new();

@@ -35,8 +35,8 @@ See the API doc for more information.
 + Different data holder `Rc` / `Arc` provides parallel visiting and less copy cost.
 + Provide document positions and tags on the nodes.
 + Anchors / alias are supported.
-  + Direct Parsing: Embed the alias directly.
-  + Cyclic Parsing: Keep the alias placeholder.
+  + Direct mode: Embed the alias directly.
+  + Cyclic mode: Keep the alias placeholder, for cyclic data.
 + YAML directives `YAML` and `TAG` are allowed.
 
   **WARNING: `%YAML 1.1` will still be treated as 1.2.**
