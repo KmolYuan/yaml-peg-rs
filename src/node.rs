@@ -1,5 +1,4 @@
-use crate::parser::Anchors;
-use crate::{repr::*, *};
+use crate::{parser::Anchors, repr::*, *};
 use alloc::string::{String, ToString};
 use core::{
     fmt::{Debug, Formatter},
@@ -326,15 +325,18 @@ impl<R: Repr> Node<R> {
     /// Return the reference from `anchors` or self.
     ///
     /// ```
-    /// use yaml_peg::{parser::Anchors, node};
+    /// use yaml_peg::{node, parser::Anchors};
     ///
     /// let mut anchors = Anchors::new();
     /// anchors.insert("a".to_string(), node!(20));
-    /// assert_eq!(20, node!(*"a").as_anchor(&anchors).unwrap().as_int().unwrap());
+    /// assert_eq!(
+    ///     20,
+    ///     node!(*"a").as_anchor(&anchors).unwrap().as_int().unwrap()
+    /// );
     /// ```
     pub fn as_anchor<'a>(&'a self, anchors: &'a Anchors<R>) -> Result<&'a Self, u64> {
         if let Yaml::Alias(a) = self.yaml() {
-            anchors.get(a).ok_or_else(|| self.pos)
+            anchors.get(a).ok_or(self.pos)
         } else {
             Ok(self)
         }
@@ -354,11 +356,7 @@ impl<R: Repr> Node<R> {
     /// ```
     pub fn get<Y: Into<Self>>(&self, key: Y) -> Result<&Self, u64> {
         if let Yaml::Map(m) = self.yaml() {
-            if let Some(n) = m.get(&key.into()) {
-                Ok(n)
-            } else {
-                Err(self.pos)
-            }
+            m.get(&key.into()).ok_or(self.pos)
         } else {
             Err(self.pos)
         }
@@ -435,11 +433,7 @@ impl<R: Repr> Node<R> {
     /// ```
     pub fn get_ind(&self, ind: Ind) -> Result<&Self, u64> {
         if let Yaml::Seq(a) = self.yaml() {
-            if let Some(n) = a.get(ind.0) {
-                Ok(n)
-            } else {
-                Err(self.pos)
-            }
+            a.get(ind.0).ok_or(self.pos)
         } else {
             Err(self.pos)
         }
@@ -455,10 +449,9 @@ impl<R: Repr> Debug for Node<R> {
 impl<R: Repr> Clone for Node<R> {
     fn clone(&self) -> Self {
         Self {
-            pos: self.pos,
             tag: self.tag.clone(),
             yaml: self.clone_yaml(),
-            _marker: PhantomData,
+            ..*self
         }
     }
 }
