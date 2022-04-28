@@ -17,10 +17,7 @@ serde = ["dep:serde"]
 
 [dependencies]
 ritelinked = "0.3"
-serde = { version = "1", default-features = false, features = ["derive"], optional = true }
-
-[dev-dependencies]
-serde = { version = "1", default-features = false, features = ["alloc"] }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

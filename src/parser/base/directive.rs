@@ -1,5 +1,4 @@
 use super::*;
-use alloc::string::ToString;
 
 /// The implementation of the directives.
 impl Parser<'_> {

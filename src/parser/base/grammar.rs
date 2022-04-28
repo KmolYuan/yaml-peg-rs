@@ -1,5 +1,5 @@
 use super::*;
-use alloc::{format, string::ToString};
+use alloc::format;
 use core::cmp::Ordering;
 
 /// The low level grammar implementation for YAML.

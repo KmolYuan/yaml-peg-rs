@@ -1,6 +1,4 @@
 use super::*;
-use alloc::{string::ToString, vec};
-use ritelinked::LinkedHashMap;
 
 mod directive;
 mod grammar;
@@ -25,7 +23,7 @@ pub struct Parser<'a> {
     indent: Vec<usize>,
     consumed: u64,
     pub(crate) version_checked: bool,
-    pub(crate) tag: LinkedHashMap<String, String>,
+    pub(crate) tag: BTreeMap<String, String>,
     /// Current position.
     pub pos: usize,
     /// Read position.
@@ -34,7 +32,7 @@ pub struct Parser<'a> {
 
 impl Default for Parser<'_> {
     fn default() -> Self {
-        let mut tag = LinkedHashMap::new();
+        let mut tag = BTreeMap::new();
         tag.insert("!".to_string(), String::new());
         tag.insert("!!".to_string(), tag_prefix!().to_string());
         Self {
