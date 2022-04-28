@@ -34,10 +34,10 @@ See the API doc for more information.
 + Support no standard library `#![no_std]`.
 + Different data holder `Rc` / `Arc` provides parallel visiting and less copy cost.
 + Provide document positions and tags on the nodes.
-+ Anchors / alias are supported.
++ Support anchors / alias.
   + Direct mode: Embed the alias directly.
   + Cyclic mode: Keep the alias placeholder, for cyclic data.
-+ YAML directives `YAML` and `TAG` are allowed.
++ Support YAML directives `YAML` and `TAG`.
 
   **WARNING: `%YAML 1.1` will still be treated as 1.2.**
 
@@ -49,7 +49,7 @@ See the API doc for more information.
 + Support [`serde`](https://github.com/serde-rs/serde) to help you serialize and deserialize a specific type. (as well as the anchors)
   ```rust
   use serde::Deserialize;
-  use yaml_peg::serialize::from_str;
+  use yaml_peg::serde::from_str;
 
   #[derive(Deserialize)]
   struct Member {
