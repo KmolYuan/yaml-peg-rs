@@ -11,7 +11,7 @@
 //!
 //! # Parser
 //!
-//! Function [`parse`] is used to parse YAML string into [`Node`] data structure,
+//! Function [`parse`]/[`parse_cyclic`] is used to parse YAML string into [`Node`] data structure,
 //! which has a data holder [`Yaml`].
 //! There also has a multiple-threaded version corresponding to [`NodeRc`]/[`NodeArc`] and [`YamlRc`]/[`YamlArc`].
 //! To get back as string, please use [`dump`] function.
@@ -21,10 +21,11 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! ## Anchors
+//! ## Anchor Parsing
 //!
-//! The parser will replace the anchors during parsing.
-//! Please see [`parse`] function for more strategy.
+//! + [`parse`]: The parser will replace the anchors during parsing.
+//! + [`parse_cyclic`]: Cyclic data means that a parent alias is inserted at the child node.
+//!   Keep the alias to avoid having undefined anchors when parsing.
 //!
 //! # No Standard Library
 //!
@@ -45,7 +46,13 @@
 extern crate alloc;
 extern crate core;
 
-pub use crate::{dumper::dump, indicator::*, node::*, parser::parse, yaml::*};
+pub use crate::{
+    dumper::dump,
+    indicator::*,
+    node::*,
+    parser::{parse, parse_cyclic},
+    yaml::*,
+};
 
 /// Create [`Node`] items literally.
 ///

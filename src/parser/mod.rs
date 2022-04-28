@@ -503,12 +503,8 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
     }
 }
 
-/// Parse YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
+/// Parse non-cyclic YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
 /// Return an sequence of nodes and insert the anchors automatically.
-///
-/// # Direct Mode
-///
-/// The default behavior of this function.
 ///
 /// ```
 /// use yaml_peg::{parse, node};
@@ -534,27 +530,25 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 ///     "age" => 46,
 /// })]);
 /// ```
-///
-/// # Cyclic Mode
-///
-/// Create a loader with [`Loader::cyclic_mode`] option.
-///
-/// The anchors can obtained from [`Loader::get_anchors`] method.
+pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
+    Loader::new(doc.as_bytes()).parse()
+}
+
+/// Parse cyclic YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
+/// Return an sequence of nodes and keep the anchors placeholder.
 ///
 /// ```
-/// use yaml_peg::{parser::{Loader, Anchors}, node};
+/// use yaml_peg::{parse_cyclic, node};
 ///
 /// let doc = "
 /// --- &root
 /// map: *root
 /// ";
-/// let mut loader = Loader::new(doc.as_bytes()).cyclic_mode(true);
-/// let root = loader.parse().unwrap().remove(0);
-/// assert_eq!(node!({"map" => node!(*"root")}), root);
-/// let mut expect_anchors = Anchors::new();
-/// expect_anchors.insert("root".to_string(), root);
-/// assert_eq!(expect_anchors, loader.get_anchors());
+/// let (root, anchors) = parse_cyclic(doc).unwrap();
+/// assert_eq!(vec![node!({"map" => node!(*"root")})], root);
+/// assert_eq!(anchors.get("root").unwrap(), &root[0]);
 /// ```
-pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
-    Loader::new(doc.as_bytes()).parse()
+pub fn parse_cyclic<R: Repr>(doc: &str) -> Result<(Seq<R>, Anchors<R>), PError> {
+    let mut loader = Loader::new(doc.as_bytes()).cyclic_mode(true);
+    loader.parse().map(|root| (root, loader.get_anchors()))
 }
