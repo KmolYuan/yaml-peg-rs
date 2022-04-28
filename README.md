@@ -46,7 +46,7 @@ See the API doc for more information.
   %TAG !x! tag:my.prefix:
   ---
   ```
-+ Support [`serde`](https://github.com/serde-rs/serde) to help you serialize and deserialize a specific type. (as well as the anchors)
++ Support [`serde`](https://github.com/serde-rs/serde) to help you serialize and deserialize a specific type. (as well as the non-cyclic anchors)
   ```rust
   use serde::Deserialize;
   use yaml_peg::serde::from_str;
