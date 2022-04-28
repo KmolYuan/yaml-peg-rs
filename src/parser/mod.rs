@@ -114,7 +114,7 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 pub struct Loader<'a, R: Repr> {
     /// Parser base.
     pub parser: Parser<'a>,
-    keep_anchors: bool,
+    is_cyclic: bool,
     anchors: Anchors<R>,
 }
 
@@ -123,7 +123,7 @@ impl<'a, R: Repr> Loader<'a, R> {
     pub fn new(doc: &'a [u8]) -> Self {
         Self {
             parser: Parser::new(doc),
-            keep_anchors: false,
+            is_cyclic: false,
             anchors: Anchors::new(),
         }
     }
@@ -147,13 +147,13 @@ impl<'a, R: Repr> Loader<'a, R> {
 impl<R: Repr> Loader<'_, R> {
     /// Keep the anchor insertion.
     ///
+    /// + Allow alias used before undefined anchor created. E.g., cyclic data.
+    /// + Keep anchors for [`crate::dump`] function.
+    ///
     /// This will make [`Yaml::Alias`] have a placeholder
     /// and adding anchor information in the [`Node`].
-    pub fn keep_anchors(self, keep_anchors: bool) -> Self {
-        Self {
-            keep_anchors,
-            ..self
-        }
+    pub fn set_cyclic(self, is_cyclic: bool) -> Self {
+        Self { is_cyclic, ..self }
     }
 
     /// Consume this loader and return the recorded anchors.
@@ -278,7 +278,7 @@ impl<R: Repr> Loader<'_, R> {
         } else if let Ok(s) = self.int() {
             R::repr(Yaml::Int(s))
         } else if let Ok(s) = self.anchor_use() {
-            if self.keep_anchors {
+            if self.is_cyclic {
                 R::repr(Yaml::Alias(s))
             } else if let Some(node) = self.anchors.get(&s) {
                 node.clone_yaml()
@@ -534,7 +534,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 ///
 /// # Cyclic Parsing
 ///
-/// Create a loader with [`Loader::keep_anchors`] option.
+/// Create a loader with [`Loader::set_cyclic`] option.
 ///
 /// ```
 /// use yaml_peg::{parser::{Loader, Anchors}, node};
@@ -543,7 +543,7 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
 /// --- &root
 /// map: *root
 /// ";
-/// let mut loader = Loader::new(doc.as_bytes()).keep_anchors(true);
+/// let mut loader = Loader::new(doc.as_bytes()).set_cyclic(true);
 /// let root = loader.parse().unwrap().remove(0);
 /// assert_eq!(node!({"map" => node!(*"root")}), root);
 /// let mut expect_anchors = Anchors::new();
