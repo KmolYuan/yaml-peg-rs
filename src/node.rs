@@ -9,9 +9,9 @@ use core::{
 };
 
 macro_rules! as_method {
-    {$(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:ident))?
+    {$($(#[$meta:meta])* fn $id:ident = $ty:ident$(($op:ident))?
         $(| ($default:expr)?)?
-        $(| $ty2:ident)* -> $r:ty} => {
+        $(| $ty2:ident)* -> $r:ty)+} => {$(
         $(#[$meta])*
         pub fn $id(&self) -> Result<$r, u64> {
             match self.yaml() {
@@ -20,7 +20,7 @@ macro_rules! as_method {
                 _ => Err(self.pos()),
             }
         }
-    };
+    )+};
 }
 
 macro_rules! impl_iter {
@@ -180,15 +180,19 @@ impl<R: Repr> Node<R> {
     /// As reference for the underlying reference counter.
     ///
     /// ```
-    /// use std::rc::Rc;
+    /// use std::{rc::Rc, sync::Arc};
     /// use yaml_peg::node;
     ///
-    /// let a = node!("a");
+    /// let a_rc = node!("a");
+    /// let a_arc = node!(arc "a");
     /// {
-    ///     let b = a.clone();
-    ///     assert_eq!(2, Rc::strong_count(b.rc_ref()));
+    ///     let b_rc = a_rc.clone();
+    ///     let b_arc = a_arc.clone();
+    ///     assert_eq!(2, Rc::strong_count(b_rc.rc_ref()));
+    ///     assert_eq!(2, Arc::strong_count(b_arc.rc_ref()));
     /// }
-    /// assert_eq!(1, Rc::strong_count(a.rc_ref()));
+    /// assert_eq!(1, Rc::strong_count(a_rc.rc_ref()));
+    /// assert_eq!(1, Arc::strong_count(a_arc.rc_ref()));
     /// ```
     pub fn rc_ref(&self) -> &R::Ty {
         &self.yaml
@@ -197,17 +201,6 @@ impl<R: Repr> Node<R> {
     /// Check the value is null.
     pub fn is_null(&self) -> bool {
         *self.yaml() == Yaml::Null
-    }
-
-    as_method! {
-        /// Convert to boolean.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        ///
-        /// assert!(node!(true).as_bool().unwrap());
-        /// ```
-        fn as_bool = Bool(clone) -> bool
     }
 
     /// Convert to integer.
@@ -255,6 +248,15 @@ impl<R: Repr> Node<R> {
     }
 
     as_method! {
+        /// Convert to boolean.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        ///
+        /// assert!(node!(true).as_bool().unwrap());
+        /// ```
+        fn as_bool = Bool(clone) -> bool
+
         /// Convert to string pointer.
         ///
         /// This method allows null, it represented as empty string.
@@ -267,6 +269,33 @@ impl<R: Repr> Node<R> {
         /// assert!(node!(()).as_str().unwrap().is_empty());
         /// ```
         fn as_str = Str | ("")? -> &str
+
+        /// Convert to sequence.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        ///
+        /// let n = node!(["55"]);
+        /// assert_eq!(node!("55"), n.as_seq().unwrap()[0]);
+        /// for n in n.as_seq().unwrap() {
+        ///     assert_eq!(node!("55"), n);
+        /// }
+        /// ```
+        fn as_seq = Seq(clone) -> Seq<R>
+
+        /// Convert to map.
+        ///
+        /// ```
+        /// use yaml_peg::node;
+        ///
+        /// let n = node!({1 => 2});
+        /// assert_eq!(node!(2), n.as_map().unwrap()[&node!(1)]);
+        /// for (k, v) in n.as_map().unwrap() {
+        ///     assert_eq!(node!(1), k);
+        ///     assert_eq!(node!(2), v);
+        /// }
+        /// ```
+        fn as_map = Map(clone) -> Map<R>
     }
 
     /// Convert to string pointer for string, null, bool, int, and float type.
@@ -291,37 +320,6 @@ impl<R: Repr> Node<R> {
             Yaml::Null => Ok(""),
             _ => Err(self.pos()),
         }
-    }
-
-    as_method! {
-        /// Convert to sequence.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        ///
-        /// let n = node!(["55"]);
-        /// assert_eq!(node!("55"), n.as_seq().unwrap()[0]);
-        /// for n in n.as_seq().unwrap() {
-        ///     assert_eq!(node!("55"), n);
-        /// }
-        /// ```
-        fn as_seq = Seq(clone) -> Seq<R>
-    }
-
-    as_method! {
-        /// Convert to map.
-        ///
-        /// ```
-        /// use yaml_peg::node;
-        ///
-        /// let n = node!({1 => 2});
-        /// assert_eq!(node!(2), n.as_map().unwrap()[&node!(1)]);
-        /// for (k, v) in n.as_map().unwrap() {
-        ///     assert_eq!(node!(1), k);
-        ///     assert_eq!(node!(2), v);
-        /// }
-        /// ```
-        fn as_map = Map(clone) -> Map<R>
     }
 
     /// Convert to map and try to get the value by key.

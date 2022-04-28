@@ -21,9 +21,10 @@
 //!
 //! If you went to rise your own error message, [`indicated_msg`] might be a good choice.
 //!
-//! # Anchors
+//! ## Anchors
 //!
 //! The parser will replace the anchors during parsing.
+//! Please see [`parse`] function for more strategy.
 //!
 //! # No Standard Library
 //!
