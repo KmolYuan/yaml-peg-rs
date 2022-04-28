@@ -1,3 +1,4 @@
+use crate::parser::Anchors;
 use crate::{repr::*, *};
 use alloc::string::{String, ToString};
 use core::{
@@ -17,7 +18,7 @@ macro_rules! as_method {
             match self.yaml() {
                 Yaml::$ty(v) $(| Yaml::$ty2(v))* => Ok(v$(.$op())?),
                 $(Yaml::Null => Ok($default),)?
-                _ => Err(self.pos()),
+                _ => Err(self.pos),
             }
         }
     )+};
@@ -318,7 +319,24 @@ impl<R: Repr> Node<R> {
             Yaml::Bool(true) => Ok("true"),
             Yaml::Bool(false) => Ok("false"),
             Yaml::Null => Ok(""),
-            _ => Err(self.pos()),
+            _ => Err(self.pos),
+        }
+    }
+
+    /// Return the reference from `anchors` or self.
+    ///
+    /// ```
+    /// use yaml_peg::{parser::Anchors, node};
+    ///
+    /// let mut anchors = Anchors::new();
+    /// anchors.insert("a".to_string(), node!(20));
+    /// assert_eq!(20, node!(*"a").as_anchor(&anchors).unwrap().as_int().unwrap());
+    /// ```
+    pub fn as_anchor<'a>(&'a self, anchors: &'a Anchors<R>) -> Result<&'a Self, u64> {
+        if let Yaml::Alias(a) = self.yaml() {
+            anchors.get(a).ok_or_else(|| self.pos)
+        } else {
+            Ok(self)
         }
     }
 
@@ -339,10 +357,10 @@ impl<R: Repr> Node<R> {
             if let Some(n) = m.get(&key.into()) {
                 Ok(n)
             } else {
-                Err(self.pos())
+                Err(self.pos)
             }
         } else {
-            Err(self.pos())
+            Err(self.pos)
         }
     }
 
@@ -401,7 +419,7 @@ impl<R: Repr> Node<R> {
                 Ok(default)
             }
         } else {
-            Err(self.pos())
+            Err(self.pos)
         }
     }
 
@@ -420,10 +438,10 @@ impl<R: Repr> Node<R> {
             if let Some(n) = a.get(ind.0) {
                 Ok(n)
             } else {
-                Err(self.pos())
+                Err(self.pos)
             }
         } else {
-            Err(self.pos())
+            Err(self.pos)
         }
     }
 }

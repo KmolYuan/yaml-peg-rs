@@ -43,6 +43,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 extern crate alloc;
+extern crate core;
 
 pub use crate::{dumper::dump, indicator::*, node::*, parser::parse, yaml::*};
 
