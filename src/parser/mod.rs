@@ -115,7 +115,8 @@ pub struct Loader<'a, R: Repr> {
     /// Parser base.
     pub parser: Parser<'a>,
     cyclic_mode: bool,
-    anchors: Anchors<R>,
+    anchors: Vec<Anchors<R>>,
+    doc_ind: usize,
 }
 
 impl<'a, R: Repr> Loader<'a, R> {
@@ -124,7 +125,8 @@ impl<'a, R: Repr> Loader<'a, R> {
         Self {
             parser: Parser::new(doc),
             cyclic_mode: false,
-            anchors: Anchors::new(),
+            anchors: Vec::new(),
+            doc_ind: 0,
         }
     }
 }
@@ -160,7 +162,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Consume this loader and return the recorded anchors.
-    pub fn get_anchors(self) -> Anchors<R> {
+    pub fn get_anchors(self) -> Vec<Anchors<R>> {
         self.anchors
     }
 
@@ -193,10 +195,12 @@ impl<R: Repr> Loader<'_, R> {
     pub fn doc(&mut self) -> PResult<Node<R>> {
         self.context(|p| p.bound().unwrap_or_default());
         self.forward();
+        self.anchors.push(Anchors::new());
         let ret = self.scalar(0, false, false)?;
         self.gap(true).unwrap_or_default();
         self.sym_seq(b"...").unwrap_or_default();
         self.forward();
+        self.doc_ind += 1;
         Ok(ret)
     }
 
@@ -265,7 +269,11 @@ impl<R: Repr> Loader<'_, R> {
         let yaml = f(self)?;
         self.forward();
         let node = Node::new_repr(yaml, pos, &tag);
-        if !anchor.is_empty() && self.anchors.insert(anchor, node.clone()).is_some() {
+        if !anchor.is_empty()
+            && self.anchors[self.doc_ind]
+                .insert(anchor, node.clone())
+                .is_some()
+        {
             self.err("duplicated anchor definition")
         } else {
             Ok(node)
@@ -283,7 +291,7 @@ impl<R: Repr> Loader<'_, R> {
         } else if let Ok(s) = self.anchor_use() {
             if self.cyclic_mode {
                 R::new_rc(Yaml::Alias(s))
-            } else if let Some(node) = self.anchors.get(&s) {
+            } else if let Some(node) = self.anchors[self.doc_ind].get(&s) {
                 node.clone_yaml()
             } else {
                 return self.err("anchor referenced before definition");
@@ -546,9 +554,9 @@ pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
 /// ";
 /// let (root, anchors) = parse_cyclic(doc).unwrap();
 /// assert_eq!(vec![node!({"map" => node!(*"root")})], root);
-/// assert_eq!(anchors.get("root").unwrap(), &root[0]);
+/// assert_eq!(anchors[0].get("root").unwrap(), &root[0]);
 /// ```
-pub fn parse_cyclic<R: Repr>(doc: &str) -> Result<(Seq<R>, Anchors<R>), PError> {
+pub fn parse_cyclic<R: Repr>(doc: &str) -> Result<(Seq<R>, Vec<Anchors<R>>), PError> {
     let mut loader = Loader::new(doc.as_bytes()).cyclic_mode(true);
     loader.parse().map(|root| (root, loader.get_anchors()))
 }
