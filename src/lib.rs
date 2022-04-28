@@ -6,8 +6,8 @@
 //!
 //! The buffer reader has also not been implemented, but sub-parsers can read the chunks.
 //!
-//! WARN: YAML 1.2 is compatible with [JSON (JavaScript Object Notation) format](https://www.json.org/),
-//! but not in strict mode.
+//! **WARNING: YAML 1.2 is compatible with [JSON (JavaScript Object Notation) format](https://www.json.org/),
+//! but not in the strict mode.**
 //!
 //! # Parser
 //!
