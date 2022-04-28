@@ -189,7 +189,7 @@ impl Parser<'_> {
         Ok(chomp(s))
     }
 
-    /// Match chomping option.
+    /// Match string chomping option.
     pub fn chomp(&mut self) -> impl Fn(String) -> String {
         self.context(|p| {
             if p.sym(b'-').is_ok() {
