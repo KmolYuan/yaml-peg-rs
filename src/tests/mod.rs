@@ -92,7 +92,7 @@ fn test_dump() {
         }),
         node!(["a", "b"]),
     ];
-    let doc = dump(&nodes, &Default::default());
+    let doc = dump(&nodes, &[]);
     assert_eq!(doc.replace("\r\n", "\n"), DOC.replace("\r\n", "\n"));
 }
 

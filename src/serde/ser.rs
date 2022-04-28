@@ -157,7 +157,7 @@ pub fn to_arc_node(any: impl Serialize) -> Result<NodeArc, SerdeError> {
 /// assert_eq!(officer_doc, to_string(&officer).unwrap());
 /// ```
 pub fn to_string(any: &impl Serialize) -> Result<String, SerdeError> {
-    Ok(dump(&[to_node(any)?], &Default::default()))
+    Ok(dump(&[to_node(any)?], &[]))
 }
 
 struct NodeSerializer<R: Repr>(PhantomData<R>);
