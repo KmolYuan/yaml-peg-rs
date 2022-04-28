@@ -1,4 +1,4 @@
-use crate::{repr::Repr, Node, Yaml};
+use crate::{repr::Repr, to_f64, to_i64, Node, Yaml};
 use alloc::format;
 use serde::{
     ser::{Error as _, SerializeMap as _},
@@ -13,8 +13,8 @@ impl<R: Repr> Serialize for Node<R> {
         match self.yaml() {
             Yaml::Null => serializer.serialize_unit(),
             Yaml::Bool(b) => serializer.serialize_bool(*b),
-            Yaml::Int(n) => serializer.serialize_i64(n.parse().unwrap()),
-            Yaml::Float(n) => serializer.serialize_f64(n.parse().unwrap()),
+            Yaml::Int(n) => serializer.serialize_i64(to_i64(n).unwrap()),
+            Yaml::Float(n) => serializer.serialize_f64(to_f64(n).unwrap()),
             Yaml::Str(s) => serializer.serialize_str(s),
             Yaml::Seq(a) => a.serialize(serializer),
             Yaml::Map(m) => {

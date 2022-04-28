@@ -40,10 +40,10 @@ pub type Seq<R> = Vec<Node<R>>;
 pub type Map<R> = LinkedHashMap<Node<R>, Node<R>>;
 
 pub(crate) fn to_i64(s: &str) -> Result<i64, core::num::ParseIntError> {
-    if let Some(s) = s.strip_prefix("0x") {
-        i64::from_str_radix(s, 16)
-    } else if let Some(s) = s.strip_prefix("0o") {
-        i64::from_str_radix(s, 8)
+    if s.contains("0x") {
+        i64::from_str_radix(&s.replace("0x", ""), 16)
+    } else if s.contains("0o") {
+        i64::from_str_radix(&s.replace("0o", ""), 8)
     } else {
         s.parse()
     }

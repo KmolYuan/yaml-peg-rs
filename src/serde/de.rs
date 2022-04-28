@@ -2,7 +2,7 @@ use super::SerdeError;
 use crate::{
     parse,
     repr::{RcRepr, Repr},
-    Map, Node, Seq, Yaml,
+    to_f64, to_i64, Map, Node, Seq, Yaml,
 };
 use alloc::{format, string::ToString, vec::Vec};
 use core::marker::PhantomData;
@@ -267,8 +267,8 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
         match self.yaml() {
             Yaml::Null => visitor.visit_unit(),
             Yaml::Bool(v) => visitor.visit_bool(*v),
-            Yaml::Int(n) => visitor.visit_i64(n.parse().unwrap()),
-            Yaml::Float(n) => visitor.visit_f64(n.parse().unwrap()),
+            Yaml::Int(n) => visitor.visit_i64(to_i64(n).unwrap()),
+            Yaml::Float(n) => visitor.visit_f64(to_f64(n).unwrap()),
             Yaml::Str(s) => visitor.visit_str(s),
             Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
             Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
@@ -278,16 +278,16 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
 
     impl_deserializer! {
         fn deserialize_bool(Bool) => visit_bool(v => *v)
-        fn deserialize_i8(Int) => visit_i8(n => n.parse().unwrap())
-        fn deserialize_i16(Int) => visit_i16(n => n.parse().unwrap())
-        fn deserialize_i32(Int) => visit_i32(n => n.parse().unwrap())
-        fn deserialize_i64(Int) => visit_i64(n => n.parse().unwrap())
-        fn deserialize_u8(Int) => visit_u8(n => n.parse().unwrap())
-        fn deserialize_u16(Int) => visit_u16(n => n.parse().unwrap())
-        fn deserialize_u32(Int) => visit_u32(n => n.parse().unwrap())
-        fn deserialize_u64(Int) => visit_u64(n => n.parse().unwrap())
-        fn deserialize_f32(Float) => visit_f32(n => n.parse().unwrap())
-        fn deserialize_f64(Float) => visit_f64(n => n.parse().unwrap())
+        fn deserialize_i8(Int) => visit_i8(n => to_i64(n).unwrap() as i8)
+        fn deserialize_i16(Int) => visit_i16(n => to_i64(n).unwrap() as i16)
+        fn deserialize_i32(Int) => visit_i32(n => to_i64(n).unwrap() as i32)
+        fn deserialize_i64(Int) => visit_i64(n => to_i64(n).unwrap())
+        fn deserialize_u8(Int) => visit_u8(n => to_i64(n).unwrap() as u8)
+        fn deserialize_u16(Int) => visit_u16(n => to_i64(n).unwrap() as u16)
+        fn deserialize_u32(Int) => visit_u32(n => to_i64(n).unwrap() as u32)
+        fn deserialize_u64(Int) => visit_u64(n => to_i64(n).unwrap() as u64)
+        fn deserialize_f32(Float) => visit_f32(n => to_f64(n).unwrap() as f32)
+        fn deserialize_f64(Float) => visit_f64(n => to_f64(n).unwrap())
         fn deserialize_str(Str) => visit_str(s => s)
         fn deserialize_string(Str) => visit_str(s => s)
         fn deserialize_char(Str) => visit_str(s => s)
@@ -298,8 +298,8 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
 
     serde_if_integer128! {
         impl_deserializer! {
-            fn deserialize_i128(Int) => visit_i128(n => n.parse().unwrap())
-            fn deserialize_u128(Int) => visit_u128(n => n.parse().unwrap())
+            fn deserialize_i128(Int) => visit_i128(n => to_i64(n).unwrap() as i128)
+            fn deserialize_u128(Int) => visit_u128(n => to_i64(n).unwrap() as u128)
         }
     }
 
@@ -438,8 +438,8 @@ fn unexpected<R: Repr>(node: &Node<R>, exp: impl Expected) -> SerdeError {
     let ty = match node.yaml() {
         Yaml::Null => Unexpected::Unit,
         Yaml::Bool(b) => Unexpected::Bool(*b),
-        Yaml::Int(n) => Unexpected::Signed(n.parse().unwrap()),
-        Yaml::Float(n) => Unexpected::Float(n.parse().unwrap()),
+        Yaml::Int(n) => Unexpected::Signed(to_i64(n).unwrap()),
+        Yaml::Float(n) => Unexpected::Float(to_f64(n).unwrap()),
         Yaml::Str(s) => Unexpected::Str(s),
         Yaml::Seq(_) => Unexpected::Seq,
         Yaml::Map(_) => Unexpected::Map,
