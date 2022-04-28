@@ -49,12 +49,12 @@ pub use self::{
 };
 use crate::{repr::Repr, *};
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
 use core::ops::{Deref, DerefMut};
-use ritelinked::LinkedHashMap;
 
 mod base;
 mod error;
@@ -81,7 +81,7 @@ macro_rules! or {
 pub(crate) use tag_prefix;
 
 /// The type of anchor recorder in the [`Loader`].
-pub type Anchors<R> = LinkedHashMap<String, Node<R>>;
+pub type Anchors<R> = BTreeMap<String, Node<R>>;
 /// The default prefix of the YAML sub tag.
 pub const DEFAULT_PREFIX: &str = tag_prefix!();
 
