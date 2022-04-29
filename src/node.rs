@@ -432,8 +432,8 @@ impl<R: Repr> Node<R> {
     /// # Ok::<(), u64>(()) }
     /// ```
     pub fn get_ind(&self, ind: Ind) -> Result<&Self, u64> {
-        if let Yaml::Seq(a) = self.yaml() {
-            a.get(ind.0).ok_or(self.pos)
+        if let Yaml::Seq(v) = self.yaml() {
+            v.get(ind.0).ok_or(self.pos)
         } else {
             Err(self.pos)
         }
@@ -477,8 +477,8 @@ impl<R: Repr> Index<Ind> for Node<R> {
     type Output = Self;
 
     fn index(&self, index: Ind) -> &Self::Output {
-        if let Yaml::Seq(a) = self.yaml() {
-            a.index(index.0)
+        if let Yaml::Seq(v) = self.yaml() {
+            v.index(index.0)
         } else {
             panic!("out of bound!")
         }

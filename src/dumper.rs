@@ -98,9 +98,9 @@ impl<'a, R: Repr> Dumper<'a, R> {
                     s.clone()
                 }
             }
-            Yaml::Seq(a) => {
+            Yaml::Seq(v) => {
                 let mut doc = NL.to_string();
-                for (i, node) in a.iter().enumerate() {
+                for (i, node) in v.iter().enumerate() {
                     if i != 0 || self.level != 0 {
                         doc += &ind;
                     }

@@ -343,7 +343,7 @@ impl<R: Repr> SerializeMap for MapSerializer<R> {
             Some(k) => self
                 .0
                 .insert(k, value.serialize(NodeSerializer(PhantomData))?),
-            None => panic!("serialize_value called before serialize_key"),
+            None => unreachable!("serialize_value called before serialize_key"),
         };
         Ok(())
     }
@@ -353,10 +353,9 @@ impl<R: Repr> SerializeMap for MapSerializer<R> {
         K: Serialize + ?Sized,
         V: Serialize + ?Sized,
     {
-        self.0.insert(
-            key.serialize(NodeSerializer(PhantomData))?,
-            value.serialize(NodeSerializer(PhantomData))?,
-        );
+        let k = key.serialize(NodeSerializer(PhantomData))?;
+        let v = value.serialize(NodeSerializer(PhantomData))?;
+        self.0.insert(k, v);
         Ok(())
     }
 

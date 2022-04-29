@@ -128,6 +128,12 @@ impl<'a, R: Repr> Visitor<'a> for NodeVisitor<R> {
 
 struct SeqVisitor<R: Repr>(<Seq<R> as IntoIterator>::IntoIter);
 
+impl<R: Repr> From<Seq<R>> for SeqVisitor<R> {
+    fn from(v: Seq<R>) -> Self {
+        Self(v.into_iter())
+    }
+}
+
 impl<'a, R: Repr> SeqAccess<'a> for SeqVisitor<R> {
     type Error = SerdeError;
 
@@ -143,6 +149,12 @@ impl<'a, R: Repr> SeqAccess<'a> for SeqVisitor<R> {
 }
 
 struct MapVisitor<R: Repr>(<Map<R> as IntoIterator>::IntoIter, Option<Node<R>>);
+
+impl<R: Repr> From<Map<R>> for MapVisitor<R> {
+    fn from(m: Map<R>) -> Self {
+        Self(m.into_iter(), None)
+    }
+}
 
 impl<'a, R: Repr> MapAccess<'a> for MapVisitor<R> {
     type Error = SerdeError;
@@ -166,7 +178,7 @@ impl<'a, R: Repr> MapAccess<'a> for MapVisitor<R> {
     {
         match self.1.take() {
             Some(v) => seed.deserialize(v),
-            None => panic!("visit_value called before visit_key"),
+            None => unreachable!("visit_value called before visit_key"),
         }
     }
 }
@@ -217,7 +229,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     {
         match self.0 {
             Some(node) => match node.yaml() {
-                Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
+                Yaml::Seq(v) => visitor.visit_seq(SeqVisitor::from(v.clone())),
                 _ => Err(unexpected(&node, "tuple variant")),
             },
             None => Err(Error::invalid_type(
@@ -237,7 +249,7 @@ impl<'a, R: Repr> VariantAccess<'a> for VariantVisitor<R> {
     {
         match self.0 {
             Some(node) => match node.yaml() {
-                Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+                Yaml::Map(m) => visitor.visit_map(MapVisitor::from(m.clone())),
                 _ => Err(unexpected(&node, "struct variant")),
             },
             None => Err(Error::invalid_type(
@@ -266,12 +278,12 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
     {
         match self.yaml() {
             Yaml::Null => visitor.visit_unit(),
-            Yaml::Bool(v) => visitor.visit_bool(*v),
+            Yaml::Bool(b) => visitor.visit_bool(*b),
             Yaml::Int(n) => visitor.visit_i64(to_i64(n).unwrap()),
             Yaml::Float(n) => visitor.visit_f64(to_f64(n).unwrap()),
             Yaml::Str(s) => visitor.visit_str(s),
-            Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
-            Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+            Yaml::Seq(v) => visitor.visit_seq(SeqVisitor::from(v.clone())),
+            Yaml::Map(m) => visitor.visit_map(MapVisitor::from(m.clone())),
             Yaml::Alias(a) => Err(SerdeError::from(format!("anchor {}", a)).pos(self.pos())),
         }
     }
@@ -291,8 +303,8 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
         fn deserialize_str(Str) => visit_str(s => s)
         fn deserialize_string(Str) => visit_str(s => s)
         fn deserialize_char(Str) => visit_str(s => s)
-        fn deserialize_seq(Seq) => visit_seq(a => SeqVisitor(a.clone().into_iter()))
-        fn deserialize_map(Map) => visit_map(m => MapVisitor(m.clone().into_iter(), None))
+        fn deserialize_seq(Seq) => visit_seq(a => SeqVisitor::from(a.clone()))
+        fn deserialize_map(Map) => visit_map(m => MapVisitor::from(m.clone()))
         fn deserialize_identifier(Str) => visit_str(s => s)
     }
 
@@ -316,7 +328,7 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
     {
         match self.yaml() {
             Yaml::Str(s) => visitor.visit_str(s),
-            Yaml::Seq(a) => visitor.visit_seq(&mut SeqVisitor(a.clone().into_iter())),
+            Yaml::Seq(v) => visitor.visit_seq(&mut SeqVisitor::from(v.clone())),
             _ => Err(unexpected(&self, visitor)),
         }
     }
@@ -393,8 +405,8 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
         V: Visitor<'a>,
     {
         match self.yaml() {
-            Yaml::Seq(a) => visitor.visit_seq(SeqVisitor(a.clone().into_iter())),
-            Yaml::Map(m) => visitor.visit_map(MapVisitor(m.clone().into_iter(), None)),
+            Yaml::Seq(v) => visitor.visit_seq(SeqVisitor::from(v.clone())),
+            Yaml::Map(m) => visitor.visit_map(MapVisitor::from(m.clone())),
             _ => Err(unexpected(&self, visitor)),
         }
     }

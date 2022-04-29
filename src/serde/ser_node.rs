@@ -16,7 +16,7 @@ impl<R: Repr> Serialize for Node<R> {
             Yaml::Int(n) => serializer.serialize_i64(to_i64(n).unwrap()),
             Yaml::Float(n) => serializer.serialize_f64(to_f64(n).unwrap()),
             Yaml::Str(s) => serializer.serialize_str(s),
-            Yaml::Seq(a) => a.serialize(serializer),
+            Yaml::Seq(v) => v.serialize(serializer),
             Yaml::Map(m) => {
                 let mut map = serializer.serialize_map(Some(m.len()))?;
                 for (k, v) in m {
