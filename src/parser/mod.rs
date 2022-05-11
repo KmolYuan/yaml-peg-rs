@@ -395,7 +395,6 @@ impl<R: Repr> Loader<'_, R> {
         let mut v = vec![];
         loop {
             self.forward();
-            let mut downgrade = false;
             if v.is_empty() {
                 // First item
                 if nest {
@@ -403,7 +402,7 @@ impl<R: Repr> Loader<'_, R> {
                     self.ind_define(level)?;
                 } else if self.gap(true).is_ok() {
                     // Root
-                    self.unind(level)?;
+                    self.ind(level)?;
                 }
                 self.sym(b'-')?;
                 self.bound()?;
@@ -411,21 +410,17 @@ impl<R: Repr> Loader<'_, R> {
                 if self.gap(true).is_err() {
                     return self.err("sequence terminator");
                 }
-                if self.doc_end() {
+                if self.doc_end() || self.ind(level).is_err() {
                     break;
                 }
-                if let Ok(b) = self.unind(level) {
-                    downgrade = b;
-                } else {
-                    break;
-                }
+                self.forward();
                 if self.sym(b'-').is_err() || self.bound().is_err() {
                     break;
                 }
             }
             self.forward();
             v.push(or!(
-                self.scalar(if downgrade { level } else { level + 1 }, false, false);
+                self.scalar(level + 1, false, false);
                 self.err("sequence item")
             )?);
         }

@@ -26,9 +26,10 @@ fn test_json() {
 fn test_yaml() {
     const DOC: &str = include_str!("complete_doc.yaml");
     let mut root = parse(DOC).unwrap_or_else(show_err);
-    let node = root.remove(0);
+    let node1 = root.remove(0);
+    let node2 = root.remove(0);
     assert_eq!(
-        node,
+        node1,
         node!({
             "a0 bb" => ".val.",
             "::a1" => node!({
@@ -42,6 +43,7 @@ fn test_yaml() {
                     -f64::INFINITY,
                     "-.infs",
                     "2001-11-23 15:01:42 -5",
+                    "https://www.google.com/",
                 ]),
             }),
             "-a2" => 4.03,
@@ -69,13 +71,32 @@ fn test_yaml() {
             ]),
         })
     );
-    assert_eq!(node.tag(), "tag:test.x.prefix:root");
+    assert_eq!(node1.tag(), "tag:test.x.prefix:root");
     let k = node!("a0 bb");
-    assert_eq!(node[k].tag(), "tag:test.x.prefix:foo");
+    assert_eq!(node1[k].tag(), "tag:test.x.prefix:foo");
     let k = node!("-a2");
-    assert_eq!(node[k].tag(), "tag:test.prefix:t1");
+    assert_eq!(node1[k].tag(), "tag:test.prefix:t1");
     let k = node!("?a3");
-    assert_eq!(node[k].tag(), "tag:my.tag.prefix:tt");
+    assert_eq!(node1[k].tag(), "tag:my.tag.prefix:tt");
+    assert_eq!(
+        node2,
+        node!({
+            "title" => "Images",
+            "sub" => node!([node!({
+                "title" => "Lay with Images",
+                "lay-img" => node!([
+                    node!({
+                        "src" => "https://placekitten.com/450/450",
+                        "frag" => "fade-right"
+                    }),
+                    node!({
+                        "src" => "https://placekitten.com/600/300",
+                        "frag" => "fade-left"
+                    }),
+                ])
+            })])
+        })
+    );
 }
 
 #[test]

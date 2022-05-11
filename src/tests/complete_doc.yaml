@@ -9,11 +9,12 @@ a0 bb: !x!foo .val.
     - 50%
     - 0o10
     - 0x10
-  - 2e-4 # Test downgraded sequence item.
+    - 2e-4
     - .nan
     - -.inf
     - -.infs
     - 2001-11-23 15:01:42 -5
+    - https://www.google.com/
 -a2: !!t1 4.03  # Test comment after normal scalars.
 ?  # Test comment after wrapped! (2)
   - q
@@ -75,4 +76,14 @@ a0 bb: !x!foo .val.
   - >-
     literal
 
+---
+# Reveal.yaml test
+title: Images
+sub:
+- title: Lay with Images
+  lay-img:
+  - src: https://placekitten.com/450/450
+    frag: fade-right
+  - src: https://placekitten.com/600/300
+    frag: fade-left
 ...
