@@ -20,7 +20,7 @@ use alloc::{format, string::String};
 ///
 /// This may be what you need if you went to indicate an error on the invalid data.
 pub fn indicated_msg(doc: &[u8], mut pos: u64) -> String {
-    for (line, str_line) in String::from_utf8_lossy(doc).lines().enumerate() {
+    for (line, str_line) in doc.split(|c| *c == b'\n').enumerate() {
         let full_line = str_line.len() as u64 + 1;
         if full_line > pos {
             let column = pos;
@@ -28,7 +28,7 @@ pub fn indicated_msg(doc: &[u8], mut pos: u64) -> String {
                 "{}:{}\n{}\n{}^",
                 line + 1,
                 column + 1,
-                str_line,
+                String::from_utf8_lossy(str_line),
                 " ".repeat(column as usize)
             );
         } else {
