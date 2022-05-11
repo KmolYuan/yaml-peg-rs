@@ -82,6 +82,7 @@ fn test_yaml() {
         node2,
         node!({
             "title" => "Images",
+            "fit" => node!(["a", "b"]),
             "sub" => node!([node!({
                 "title" => "Lay with Images",
                 "lay-img" => node!([

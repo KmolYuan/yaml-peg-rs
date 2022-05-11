@@ -413,10 +413,10 @@ impl<R: Repr> Loader<'_, R> {
                 if self.doc_end() || self.ind(level).is_err() {
                     break;
                 }
-                self.forward();
                 if self.sym(b'-').is_err() || self.bound().is_err() {
                     break;
                 }
+                self.forward();
             }
             self.forward();
             v.push(or!(

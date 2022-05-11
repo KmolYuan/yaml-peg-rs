@@ -77,8 +77,11 @@ a0 bb: !x!foo .val.
     literal
 
 ---
-# Reveal.yaml test
+# Reveal.yaml test (compact mode)
 title: Images
+fit:
+- a
+- b
 sub:
 - title: Lay with Images
   lay-img:
