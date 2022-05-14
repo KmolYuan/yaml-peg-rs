@@ -1,6 +1,7 @@
 # yaml-peg
 
 [![dependency status](https://deps.rs/repo/github/KmolYuan/yaml-peg-rs/status.svg)](https://deps.rs/crate/yaml-peg/)
+[![documentation](https://docs.rs/yaml-peg/badge.svg)](https://docs.rs/yaml-peg)
 
 A [YAML 1.2](https://yaml.org/spec/1.2) parser using a greedy parsing algorithm with PEG atoms. Support anchors, directives, positions, tags, serde, and no-std.
 
