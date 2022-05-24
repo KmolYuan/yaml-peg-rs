@@ -31,6 +31,7 @@ impl Parser<'_> {
         if s.as_bytes() == b"0" && self.context(|p| p.octal().is_ok() || p.hexadecimal().is_ok()) {
             s = self.text();
         }
+        self.ws(TakeOpt::More(0))?;
         self.bound()?;
         Ok(s)
     }
@@ -55,6 +56,9 @@ impl Parser<'_> {
         self.sym(b'.')?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(0))?;
         let s = self.text();
+        if self.count(|p| p.ws(TakeOpt::More(0)))? > 0 {
+            self.back(1);
+        }
         self.bound()?;
         Ok(s.trim_end_matches(|c| ".0".contains(c)).to_string())
     }
@@ -66,6 +70,9 @@ impl Parser<'_> {
         self.take_while(Self::is_in(b"+-"), TakeOpt::Range(0, 1))?;
         self.take_while(u8::is_ascii_digit, TakeOpt::More(1))?;
         let s = self.text();
+        if self.count(|p| p.ws(TakeOpt::More(0)))? > 0 {
+            self.back(1);
+        }
         self.bound()?;
         Ok(s)
     }
@@ -124,6 +131,7 @@ impl Parser<'_> {
         }
         self.context(|p| {
             let mut v = String::new();
+            let mut is_leading = false;
             loop {
                 p.forward();
                 p.take_while(Self::not_in(&patt), TakeOpt::More(0))?;
@@ -140,12 +148,13 @@ impl Parser<'_> {
                 p.forward();
                 if p.sym_set(b": ").is_ok() {
                     // Remove leading space
-                    if p.text() == " " {
+                    if is_leading && p.text() == " " {
                         v.truncate(v.trim_end().len());
                     }
                     v.push_str(&p.text());
                 } else if !inner && !v.is_empty() && p.sym_set(b"{}[]").is_ok() {
                     v.push_str(&p.text());
+                    is_leading = false;
                 } else if p.ind(level).is_err() {
                     if let Ok(t) = p.gap(true) {
                         if t == 1 {
@@ -160,6 +169,7 @@ impl Parser<'_> {
                     } else {
                         break;
                     }
+                    is_leading = true;
                 }
             }
             v.truncate(v.trim_end().len());

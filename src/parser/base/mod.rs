@@ -1,4 +1,5 @@
 use super::*;
+use alloc::borrow::Cow;
 
 mod directive;
 mod grammar;
@@ -62,6 +63,11 @@ impl<'a> Parser<'a> {
     /// Show the right hand side string after the current cursor.
     pub fn food(&self) -> &'a [u8] {
         &self.doc[self.pos..]
+    }
+
+    /// Encoded version of the left characters.
+    pub fn food_str(&self) -> Cow<str> {
+        String::from_utf8_lossy(&self.doc[self.pos..])
     }
 
     /// Get the text from the eaten cursor to the current position.
