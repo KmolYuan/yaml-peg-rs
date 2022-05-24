@@ -135,7 +135,7 @@ pub fn to_arc_node(any: impl Serialize) -> Result<NodeArc, SerdeError> {
 ///
 /// ```
 /// use serde::Serialize;
-/// use yaml_peg::serde::to_string;
+/// use yaml_peg::{dumper::NL, serde::to_string};
 ///
 /// #[derive(Serialize)]
 /// struct Member<'a> {
@@ -154,7 +154,7 @@ pub fn to_arc_node(any: impl Serialize) -> Result<NodeArc, SerdeError> {
 /// married: true
 /// age: 46
 /// ";
-/// assert_eq!(officer_doc, to_string(&officer).unwrap());
+/// assert_eq!(officer_doc.replace('\n', NL), to_string(&officer).unwrap());
 /// ```
 pub fn to_string(any: &impl Serialize) -> Result<String, SerdeError> {
     Ok(dump(&[to_node(any)?], &[]))

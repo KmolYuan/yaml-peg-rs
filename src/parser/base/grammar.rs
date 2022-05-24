@@ -370,28 +370,13 @@ impl Parser<'_> {
         if level > 0 {
             self.ind(level - 1)?;
         }
-        let ind = self.count(|p| p.take_while(Self::is_in(b" "), TakeOpt::More(0)))?;
+        let ind = self.count(|p| p.take_while(|c| c.is_ascii_whitespace(), TakeOpt::More(0)))?;
         if level == self.indent.len() {
             self.indent.push(ind);
         } else {
             self.indent[level] = ind;
         }
         Ok(())
-    }
-
-    /// Match indent with previous level.
-    ///
-    /// This sub-parser returns `true` if downgrading indent is used.
-    ///
-    /// The downgrading can only use a level as unit, not a whitespace.
-    pub fn unind(&mut self, level: usize) -> PResult<bool> {
-        if level > 1 {
-            self.ind(level - 1)?;
-            self.context(|p| Ok(p.ind(1).is_err()))
-        } else {
-            self.ind(level)?;
-            Ok(false)
-        }
     }
 
     /// Match any optional invisible characters between two lines.
