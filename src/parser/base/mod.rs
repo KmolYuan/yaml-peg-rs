@@ -86,11 +86,7 @@ impl<'a> Parser<'a> {
 impl Parser<'_> {
     /// Set the starting point if character boundary is valid.
     pub fn pos(self, pos: usize) -> Self {
-        Self {
-            pos,
-            eaten: pos,
-            ..self
-        }
+        Self { pos, eaten: pos, ..self }
     }
 
     /// Get the indicator.

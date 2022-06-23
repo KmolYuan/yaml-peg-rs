@@ -32,22 +32,11 @@ pub struct Dumper<'a, R: Repr> {
 impl<'a, R: Repr> Dumper<'a, R> {
     /// Create the dumper.
     pub fn new(node: &'a Node<R>, anchors: &'a Anchors<R>) -> Self {
-        Self {
-            node,
-            root: Root::Scalar,
-            level: 0,
-            anchors,
-        }
+        Self { node, root: Root::Scalar, level: 0, anchors }
     }
 
     fn part(&self, node: &'a Node<R>, root: Root, level: usize) -> String {
-        Self {
-            node,
-            root,
-            level,
-            anchors: self.anchors,
-        }
-        .dump()
+        Self { node, root, level, anchors: self.anchors }.dump()
     }
 
     /// Dump into string.

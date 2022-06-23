@@ -144,11 +144,7 @@ pub fn to_arc_node(any: impl Serialize) -> Result<NodeArc, SerdeError> {
 ///     age: u8,
 /// }
 ///
-/// let officer = Member {
-///     name: "Bob",
-///     married: true,
-///     age: 46,
-/// };
+/// let officer = Member { name: "Bob", married: true, age: 46 };
 /// let officer_doc = "\
 /// name: Bob
 /// married: true

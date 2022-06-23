@@ -155,10 +155,7 @@ impl<R: Repr> Loader<'_, R> {
     /// This will make [`Yaml::Alias`] have a placeholder
     /// and adding anchor information in the [`Node`].
     pub fn cyclic_mode(self, cyclic_mode: bool) -> Self {
-        Self {
-            cyclic_mode,
-            ..self
-        }
+        Self { cyclic_mode, ..self }
     }
 
     /// Consume this loader and return the recorded anchors.
