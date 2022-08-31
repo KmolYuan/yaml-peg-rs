@@ -5,6 +5,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use core::fmt::Write;
 
 /// Newline symbol in common platforms.
 ///
@@ -47,7 +48,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
             .iter()
             .find_map(|(k, v)| if v == self.node { Some(k) } else { None })
         {
-            doc += &format!("&{} ", a);
+            write!(doc, "&{a} ").unwrap();
         }
         let tag = self.node.tag();
         if !tag.is_empty() && !tag.starts_with(parser::tag_prefix!()) {
@@ -94,7 +95,7 @@ impl<'a, R: Repr> Dumper<'a, R> {
                         doc += &ind;
                     }
                     let s = self.part(node, Root::Array, self.level + 1);
-                    doc += &format!("- {}{}", s, NL);
+                    write!(doc, "- {s}{NL}").unwrap();
                 }
                 doc.truncate(doc.len() - NL.len());
                 doc

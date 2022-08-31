@@ -33,7 +33,7 @@ use serde::{Deserialize, Serialize};
 ///     assert_eq!(format!("img/{}.png", i + 1), img.src);
 /// }
 /// ```
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum InlineList<T> {
     /// Listed representation.

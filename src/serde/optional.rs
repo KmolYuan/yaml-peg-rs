@@ -37,7 +37,7 @@ use serde::{Deserialize, Serialize};
 /// enabled.img.ok(|img| doc += &img.src);
 /// assert_eq!(":~/img/.desktop.png:img/1.png", doc);
 /// ```
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Optional<T> {
     /// Boolean value, false means disable, true means default.
