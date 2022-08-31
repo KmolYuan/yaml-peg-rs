@@ -20,6 +20,19 @@ pub enum PError {
     },
 }
 
+impl PError {
+    /// A "than" function for the error handling, execute the given function when mismatched.
+    pub fn or<R, F>(self, f: F) -> Result<R, Self>
+    where
+        F: FnOnce() -> Result<R, Self>,
+    {
+        match self {
+            Self::Mismatch => f(),
+            Self::Terminate { .. } => Err(self),
+        }
+    }
+}
+
 impl Display for PError {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match self {
