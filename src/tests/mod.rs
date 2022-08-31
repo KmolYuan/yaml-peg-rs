@@ -95,9 +95,9 @@ fn test_yaml() {
                         "src" => "https://placekitten.com/600/300",
                         "frag" => "fade-left"
                     }),
-                ])
-            })])
-        })
+                ]),
+            })]),
+        }),
     );
 }
 

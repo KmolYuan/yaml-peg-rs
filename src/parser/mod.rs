@@ -136,16 +136,16 @@ impl<'a, R: Repr> Loader<'a, R> {
 /// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
 /// Additionally, they should eat the string by themself.
 ///
-/// # Parameter `nest`
+/// # Parameter `map`
 ///
-/// The `nest` parameter presents that the expression is in a **map** structure,
+/// The `map` parameter presents that the expression is in a **map** structure,
 /// includes grand parents.
 ///
-/// If `nest` is false, the expression might in the document root.
+/// If `map` is false, the expression might in the document root.
 ///
-/// # Parameter `inner`
+/// # Parameter `flow`
 ///
-/// The `inner` parameter presents that the expression is in a **flow** expression.
+/// The `flow` parameter presents that the expression is in a **flow** expression.
 impl<R: Repr> Loader<'_, R> {
     /// Keep the anchor insertion.
     ///
@@ -217,7 +217,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match scalar.
-    pub fn scalar(&mut self, level: usize, nest: bool, inner: bool) -> PResult<Node<R>> {
+    pub fn scalar(&mut self, level: usize, map: bool, flow: bool) -> PResult<Node<R>> {
         self.scalar_node(|p| {
             if let Ok(s) = p.string_literal(level) {
                 Ok(R::new_rc(Yaml::Str(s)))
@@ -225,17 +225,17 @@ impl<R: Repr> Loader<'_, R> {
                 Ok(R::new_rc(Yaml::Str(s)))
             } else {
                 or!(
-                    p.seq(level, nest);
-                    p.map(level, nest, inner);
-                    p.scalar_term(level, inner)
+                    p.seq(level, map);
+                    p.map(level, map, flow);
+                    p.scalar_term(level, flow)
                 )
             }
         })
     }
 
     /// Match flow scalar.
-    pub fn scalar_flow(&mut self, level: usize, inner: bool) -> PResult<Node<R>> {
-        self.scalar_node(|p| p.scalar_term(level, inner))
+    pub fn scalar_flow(&mut self, level: usize, flow: bool) -> PResult<Node<R>> {
+        self.scalar_node(|p| p.scalar_term(level, flow))
     }
 
     fn scalar_node<F>(&mut self, f: F) -> PResult<Node<R>>
@@ -278,7 +278,7 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match flow scalar terminal.
-    pub fn scalar_term(&mut self, level: usize, inner: bool) -> PResult<R::Rc> {
+    pub fn scalar_term(&mut self, level: usize, flow: bool) -> PResult<R::Rc> {
         let yaml = if let Ok(s) = self.float() {
             R::new_rc(Yaml::Float(s))
         } else if let Ok(s) = self.sci_float() {
@@ -297,7 +297,7 @@ impl<R: Repr> Loader<'_, R> {
             R::new_rc(Yaml::Str(s))
         } else if let Ok(s) = self.string_quoted(b'"', b"\\\"") {
             R::new_rc(Yaml::Str(Parser::escape(&s)))
-        } else if let Ok(s) = self.string_plain(level, inner) {
+        } else if let Ok(s) = self.string_plain(level, flow) {
             R::new_rc(match s.as_str() {
                 "~" | "null" | "Null" | "NULL" => Yaml::Null,
                 "true" | "True" | "TRUE" => Yaml::Bool(true),
@@ -388,13 +388,13 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match sequence.
-    pub fn seq(&mut self, level: usize, nest: bool) -> PResult<R::Rc> {
+    pub fn seq(&mut self, level: usize, map: bool) -> PResult<R::Rc> {
         let mut v = vec![];
         loop {
             self.forward();
             if v.is_empty() {
                 // First item
-                if nest {
+                if map {
                     self.gap(true)?;
                     self.ind_define(level)?;
                 } else if self.gap(true).is_ok() {
@@ -427,13 +427,13 @@ impl<R: Repr> Loader<'_, R> {
     }
 
     /// Match map.
-    pub fn map(&mut self, level: usize, nest: bool, inner: bool) -> PResult<R::Rc> {
+    pub fn map(&mut self, level: usize, map: bool, flow: bool) -> PResult<R::Rc> {
         let mut m = vec![];
         loop {
             self.forward();
             let k = if m.is_empty() {
                 // First item
-                if nest {
+                if map {
                     self.gap(true)?;
                     self.ind_define(level)?;
                 } else if self.gap(true).is_ok() {
@@ -443,13 +443,13 @@ impl<R: Repr> Loader<'_, R> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = or!(self.scalar(level + 1, true, inner); self.err("map key"))?;
+                    let k = or!(self.scalar(level + 1, true, flow); self.err("map key"))?;
                     if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
                     k
                 } else {
-                    self.scalar_flow(level + 1, inner)?
+                    self.scalar_flow(level + 1, flow)?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     // Return key
@@ -466,13 +466,13 @@ impl<R: Repr> Loader<'_, R> {
                 self.forward();
                 let k = if self.complex_mapping().is_ok() {
                     self.forward();
-                    let k = or!(self.scalar(level + 1, true, inner); self.err("map key"))?;
+                    let k = or!(self.scalar(level + 1, true, flow); self.err("map key"))?;
                     if self.gap(true).is_ok() {
                         self.ind(level)?;
                     }
                     k
                 } else {
-                    or!(self.scalar_flow(level + 1, inner); self.err("map key"))?
+                    or!(self.scalar_flow(level + 1, flow); self.err("map key"))?
                 };
                 if self.sym(b':').is_err() || self.bound().is_err() {
                     return self.err("map splitter");
