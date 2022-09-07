@@ -157,7 +157,8 @@ impl<'a, R: Repr> Dumper<'a, R> {
 /// assert_eq!(doc, ans.replace('\n', NL));
 /// ```
 ///
-/// When calling [`parse`] function then [`dump`] the string, the string can be reformatted.
+/// When calling [`parse`] function then [`dump`] the string, the string can be
+/// reformatted.
 ///
 /// Anchors can pass with the result of the [`Loader`](crate::parser::Loader).
 pub fn dump<R: Repr>(nodes: &[Node<R>], anchors: &[Anchors<R>]) -> String {

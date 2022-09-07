@@ -38,8 +38,8 @@ pub type NodeRc = Node<RcRepr>;
 /// A node with [`alloc::sync::Arc`] holder.
 pub type NodeArc = Node<ArcRepr>;
 
-/// Readonly node, including line number, column number, type assertion and anchor.
-/// You can access [`Yaml`] type through [`Node::yaml`] method.
+/// Readonly node, including line number, column number, type assertion and
+/// anchor. You can access [`Yaml`] type through [`Node::yaml`] method.
 ///
 /// This type will ignore additional information when comparison and hashing.
 ///
@@ -74,11 +74,12 @@ pub type NodeArc = Node<ArcRepr>;
 /// let n = &n["a"][Ind(0)]["b"];
 /// ```
 ///
-/// Same as containers, to prevent panic, the [`Node::get`] method is the best choice.
-/// The [`Node::get_default`] can provide missing key value when indexing.
+/// Same as containers, to prevent panic, the [`Node::get`] method is the best
+/// choice. The [`Node::get_default`] can provide missing key value when
+/// indexing.
 ///
-/// There are `as_*` methods provide `Result<T, u64>` returns with node position,
-/// default options can be created by [`Result::unwrap_or`],
+/// There are `as_*` methods provide `Result<T, u64>` returns with node
+/// position, default options can be created by [`Result::unwrap_or`],
 /// additional error message can be attach by [`Result::map_err`],
 /// and the optional [`Option`] can be return by [`Result::ok`],
 /// which shown as following example:
@@ -105,11 +106,13 @@ pub type NodeArc = Node<ArcRepr>;
 ///
 /// # Clone
 ///
-/// Since the YAML data is wrapped by reference counter [`alloc::rc::Rc`]/[`alloc::sync::Arc`],
-/// cloned nodes are still shared together, just like Python or JavaScript.
-/// Please see the [`Node::rc_ref`]/[`Node::yaml`]/[`Node::clone_yaml`] methods for details.
+/// Since the YAML data is wrapped by reference counter
+/// [`alloc::rc::Rc`]/[`alloc::sync::Arc`], cloned nodes are still shared
+/// together, just like Python or JavaScript. Please see the
+/// [`Node::rc_ref`]/[`Node::yaml`]/[`Node::clone_yaml`] methods for details.
 ///
-/// If you still want to copy data, use [`From`]/[`Into`] or serialize them to your custom type.
+/// If you still want to copy data, use [`From`]/[`Into`] or serialize them to
+/// your custom type.
 pub struct Node<R: Repr> {
     pos: u64,
     tag: String,
@@ -148,7 +151,8 @@ impl<R: Repr> Node<R> {
         self.pos
     }
 
-    /// Tag. If the tag is not specified, returns a default tag from core schema.
+    /// Tag. If the tag is not specified, returns a default tag from core
+    /// schema.
     ///
     /// Anchor has no tag.
     pub fn tag(&self) -> &str {

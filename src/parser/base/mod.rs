@@ -82,7 +82,8 @@ impl<'a> Parser<'a> {
 
 /// The low level grammar implementation.
 ///
-/// These sub-parser returns `Result<(), PError>`, and calling [`Parser::backward`] if mismatched.
+/// These sub-parser returns `Result<(), PError>`, and calling
+/// [`Parser::backward`] if mismatched.
 impl Parser<'_> {
     /// Set the starting point if character boundary is valid.
     pub fn pos(self, pos: usize) -> Self {

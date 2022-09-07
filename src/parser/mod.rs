@@ -33,8 +33,8 @@
 //! ### Array
 //!
 //! + sequence item: Item behind `-` indicator is invalid.
-//! + sequence terminator: The end of sequence is invalid, may caused by the last item
-//!   (like wrapped string).
+//! + sequence terminator: The end of sequence is invalid, may caused by the
+//! last item   (like wrapped string).
 //!
 //! ### Map
 //!
@@ -74,8 +74,8 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 
 /// A parser with YAML grammar, support UTF-8 characters.
 ///
-/// This loader will output YAML nodes with representation notation [`repr::Repr`].
-/// If you just want to use sub-parser, please see [`Parser`].
+/// This loader will output YAML nodes with representation notation
+/// [`repr::Repr`]. If you just want to use sub-parser, please see [`Parser`].
 ///
 /// A simple example for parsing YAML only:
 ///
@@ -91,9 +91,9 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 ///
 /// + They will move the current cursor if matched.
 /// + Returned value:
-///     + `Result<(), PError>` represents the sub-parser can be matched and mismatched.
-///     + [`PError`] represents the sub-parser can be totally breaked when mismatched.
-/// + Use `?` to match a condition.
+///     + `Result<(), PError>` represents the sub-parser can be matched and
+/// mismatched.     + [`PError`] represents the sub-parser can be totally
+/// breaked when mismatched. + Use `?` to match a condition.
 /// + Use [`Result::unwrap_or_default`] to match an optional condition.
 /// + Method [`Parser::forward`] is used to move on.
 /// + Method [`Parser::text`] is used to get the matched string.
@@ -120,8 +120,8 @@ impl<'a, R: Repr> Loader<'a, R> {
 
 /// The basic implementation.
 ///
-/// These sub-parser returns [`PError`], and failed immediately for [`PError::Terminate`].
-/// Additionally, they should eat the string by themself.
+/// These sub-parser returns [`PError`], and failed immediately for
+/// [`PError::Terminate`]. Additionally, they should eat the string by themself.
 ///
 /// # Parameter `map`
 ///
@@ -132,7 +132,8 @@ impl<'a, R: Repr> Loader<'a, R> {
 ///
 /// # Parameter `flow`
 ///
-/// The `flow` parameter presents that the expression is in a **flow** expression.
+/// The `flow` parameter presents that the expression is in a **flow**
+/// expression.
 impl<R: Repr> Loader<'_, R> {
     /// Keep the anchor insertion.
     ///
@@ -492,8 +493,9 @@ impl<R: Repr> DerefMut for Loader<'_, R> {
     }
 }
 
-/// Parse non-cyclic YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
-/// Return an sequence of nodes and insert the anchors automatically.
+/// Parse non-cyclic YAML document into [`alloc::rc::Rc`] or
+/// [`alloc::sync::Arc`] data holder. Return an sequence of nodes and insert the
+/// anchors automatically.
 ///
 /// ```
 /// use yaml_peg::{parse, node};
@@ -523,8 +525,8 @@ pub fn parse<R: Repr>(doc: &str) -> Result<Seq<R>, PError> {
     Loader::new(doc.as_bytes()).parse()
 }
 
-/// Parse cyclic YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`] data holder.
-/// Return an sequence of nodes and keep the anchors placeholder.
+/// Parse cyclic YAML document into [`alloc::rc::Rc`] or [`alloc::sync::Arc`]
+/// data holder. Return an sequence of nodes and keep the anchors placeholder.
 ///
 /// ```
 /// use yaml_peg::{parse_cyclic, node};

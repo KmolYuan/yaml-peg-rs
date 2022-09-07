@@ -18,7 +18,8 @@ use alloc::{format, string::String};
 ///       ^
 /// ```
 ///
-/// This may be what you need if you went to indicate an error on the invalid data.
+/// This may be what you need if you went to indicate an error on the invalid
+/// data.
 pub fn indicated_msg(doc: &[u8], mut pos: u64) -> String {
     for (line, str_line) in doc.split(|c| *c == b'\n').enumerate() {
         let full_line = str_line.len() as u64 + 1;

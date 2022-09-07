@@ -76,8 +76,8 @@ impl<T> Optional<T> {
         }
     }
 
-    /// Do things with the provided functions, the functions can return the value in both cases.
-    /// (enabled / disabled)
+    /// Do things with the provided functions, the functions can return the
+    /// value in both cases. (enabled / disabled)
     ///
     /// If the value is `Bool(true)`, use the default value instead.
     pub fn ok_or<Ok, Or, R>(&self, mut ok: Ok, mut or: Or) -> R

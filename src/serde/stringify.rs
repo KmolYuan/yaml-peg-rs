@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 /// A type that can deserialize from any data to string type.
 ///
-/// It just like [`Yaml`](crate::Yaml) but no null value, anchor type and containers.
+/// It just like [`Yaml`](crate::Yaml) but no null value, anchor type and
+/// containers.
 ///
 /// Calling [`ToString::to_string`] can convert the data into string.
 ///

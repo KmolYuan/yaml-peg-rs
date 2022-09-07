@@ -24,27 +24,32 @@
 //! assert_eq!(46, officer.age);
 //! ```
 //!
-//! At least you should enable the `serde/derive` and `serde/alloc` features to run the example.
-//! The `serde/derive` feature provides derive macro for the custom data,
-//! and if `serde/alloc` is not used, you cannot deserialize [`alloc::string::String`] or [`alloc::vec::Vec`] type.
+//! At least you should enable the `serde/derive` and `serde/alloc` features to
+//! run the example. The `serde/derive` feature provides derive macro for the
+//! custom data, and if `serde/alloc` is not used, you cannot deserialize
+//! [`alloc::string::String`] or [`alloc::vec::Vec`] type.
 //!
-//! For converting custom data into YAML data, please see [`to_node`] and [`to_arc_node`],
-//! and if you went to parse / dump YAML document, use [`from_str`] and [`to_string`].
+//! For converting custom data into YAML data, please see [`to_node`] and
+//! [`to_arc_node`], and if you went to parse / dump YAML document, use
+//! [`from_str`] and [`to_string`].
 //!
 //! # Anchors
 //!
 //! [`crate::Yaml::Alias`] is not support serialization.
-//! Please using direct parsing function [`crate::parse`] to avoid the alias node.
+//! Please using direct parsing function [`crate::parse`] to avoid the alias
+//! node.
 //!
 //! Cyclic data should be handled manually.
 //!
 //! # Mixed String Type
 //!
-//! If the data needs to deserialized from any type into string, please see [`Stringify`] type.
+//! If the data needs to deserialized from any type into string, please see
+//! [`Stringify`] type.
 //!
 //! # Mixed Listed Map
 //!
-//! If the data supports listed items but allows single mapped item, please see [`InlineList`] type.
+//! If the data supports listed items but allows single mapped item, please see
+//! [`InlineList`] type.
 //!
 //! # Error
 //!

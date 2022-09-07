@@ -99,7 +99,8 @@ macro_rules! impl_map_serializer {
 /// assert_eq!(officer_yaml, to_node(&officer).unwrap());
 /// ```
 ///
-/// There is another version for multi-thread reference counter: [`to_arc_node`].
+/// There is another version for multi-thread reference counter:
+/// [`to_arc_node`].
 pub fn to_node(any: &impl Serialize) -> Result<NodeRc, SerdeError> {
     any.serialize(NodeSerializer(PhantomData))
 }

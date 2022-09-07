@@ -21,7 +21,8 @@ pub enum PError {
 }
 
 impl PError {
-    /// A "than" function for the error handling, execute the given function when mismatched.
+    /// A "than" function for the error handling, execute the given function
+    /// when mismatched.
     pub fn or<R, F>(self, f: F) -> Result<R, Self>
     where
         F: FnOnce() -> Result<R, Self>,

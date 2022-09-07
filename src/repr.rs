@@ -1,4 +1,5 @@
-//! This module contains the representation holders, the underlayer type of [`Yaml`] type.
+//! This module contains the representation holders, the underlay type of
+//! [`Yaml`] type.
 //!
 //! [`Rc`] is the single thread reference counter,
 //! and [`Arc`] is the multiple thread reference counter.
