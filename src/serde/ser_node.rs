@@ -24,7 +24,7 @@ impl<R: Repr> Serialize for Node<R> {
                 }
                 map.end()
             }
-            Yaml::Alias(a) => Err(S::Error::custom(format!("anchor {}", a))),
+            Yaml::Alias(a) => Err(S::Error::custom(format!("anchor {a}"))),
         }
     }
 }

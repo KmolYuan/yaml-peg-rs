@@ -56,5 +56,5 @@ pub fn indicated_msg(doc: &[u8], mut pos: u64) -> String {
 ///       ^
 /// ```
 pub fn indicated_msg_file(path: &str, doc: &[u8], pos: u64) -> String {
-    format!("{}:{}", path, indicated_msg(doc, pos))
+    format!("{path}:{}", indicated_msg(doc, pos))
 }

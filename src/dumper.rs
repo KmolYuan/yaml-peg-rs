@@ -52,23 +52,24 @@ impl<'a, R: Repr> Dumper<'a, R> {
         }
         let tag = self.node.tag();
         if !tag.is_empty() && !tag.starts_with(parser::tag_prefix!()) {
-            doc += &if tag.starts_with(parser::tag_prefix!()) {
-                format!("!!{} ", tag)
+            if tag.starts_with(parser::tag_prefix!()) {
+                write!(doc, "!!{tag} ").unwrap();
             } else if parser::Parser::new(tag.as_bytes()).identifier().is_ok() {
-                format!("!{} ", tag)
+                write!(doc, "!{tag} ").unwrap();
             } else {
-                format!("!<{}> ", tag)
-            };
+                write!(doc, "!<{tag}> ").unwrap();
+            }
         }
         let ind = "  ".repeat(self.level);
-        doc += &match &self.node.yaml() {
-            Yaml::Null => "null".to_string(),
-            Yaml::Bool(b) => b.to_string(),
-            Yaml::Int(n) | Yaml::Float(n) => n.clone(),
+        match &self.node.yaml() {
+            Yaml::Null => doc += "null",
+            Yaml::Bool(b) => write!(doc, "{b}").unwrap(),
+            Yaml::Int(n) | Yaml::Float(n) => doc += n,
             Yaml::Str(s) => {
-                if s.contains(NL) {
+                if s.lines().nth(1).is_some() {
+                    // Multiline string
                     let s = s
-                        .split(NL)
+                        .lines()
                         .map(|s| {
                             if s.is_empty() {
                                 String::new()
@@ -78,46 +79,48 @@ impl<'a, R: Repr> Dumper<'a, R> {
                         })
                         .collect::<Vec<_>>()
                         .join(NL);
-                    format!("|{}{}{}", NL, ind, s.trim())
+                    write!(doc, "|{NL}{ind}{}", s.trim()).unwrap();
                 } else if parser::Parser::new(s.as_bytes())
                     .string_plain(0, false)
                     .is_err()
                 {
-                    format!("\"{}\"", s)
+                    // Literal string, not plain string
+                    write!(doc, "{s:?}").unwrap();
                 } else {
-                    s.clone()
+                    // Single line string
+                    doc += s;
                 }
             }
             Yaml::Seq(v) => {
-                let mut doc = NL.to_string();
+                let mut buf = NL.to_string();
                 for (i, node) in v.iter().enumerate() {
                     if i != 0 || self.level != 0 {
-                        doc += &ind;
+                        buf += &ind;
                     }
                     let s = self.part(node, Root::Array, self.level + 1);
-                    write!(doc, "- {s}{NL}").unwrap();
+                    write!(buf, "- {s}{NL}").unwrap();
                 }
-                doc.truncate(doc.len() - NL.len());
-                doc
+                buf.truncate(buf.len() - NL.len());
+                doc += &buf;
             }
             Yaml::Map(m) => {
-                let mut doc = match self.root {
+                let mut buf = match self.root {
                     Root::Map => NL.to_string(),
                     _ => String::new(),
                 };
                 for (i, (k, v)) in m.iter().enumerate() {
                     if i != 0 || self.root == Root::Map {
-                        doc += &ind;
+                        buf += &ind;
                     }
                     let s = self.part(k, Root::Map, self.level + 1);
-                    doc += &if let Yaml::Map(_) | Yaml::Seq(_) = k.yaml() {
+                    if matches!(k.yaml(), Yaml::Map(_) | Yaml::Seq(_)) {
                         let pre_ind = "  ".repeat(self.level + 1);
-                        format!("?{}{}{}{}{}", pre_ind, NL, s, NL, ind)
+                        write!(buf, "?{pre_ind}{NL}{s}{NL}{ind}").unwrap();
                     } else {
-                        s
+                        buf += &s;
                     };
-                    doc += ":";
-                    doc += &match v.yaml() {
+                    buf += ":";
+                    buf += &match v.yaml() {
                         Yaml::Map(_) => self.part(v, Root::Map, self.level + 1),
                         Yaml::Seq(_) if self.root == Root::Array && i == 0 => {
                             self.part(v, Root::Map, self.level)
@@ -125,12 +128,12 @@ impl<'a, R: Repr> Dumper<'a, R> {
                         Yaml::Seq(_) => self.part(v, Root::Map, self.level + 1),
                         _ => format!(" {}", self.part(v, Root::Map, self.level + 1)),
                     };
-                    doc += NL;
+                    buf += NL;
                 }
-                doc.truncate(doc.len() - NL.len());
-                doc
+                buf.truncate(buf.len() - NL.len());
+                doc += &buf;
             }
-            Yaml::Alias(a) => format!("*{}", a),
+            Yaml::Alias(a) => write!(doc, "*{a}").unwrap(),
         };
         doc
     }
@@ -175,7 +178,7 @@ pub fn dump<R: Repr>(nodes: &[Node<R>], anchors: &[Anchors<R>]) -> String {
             let doc = Dumper::new(node, anchors).dump() + NL;
             match i {
                 0 => doc,
-                _ => format!("---{}{}", NL, doc.trim_start()),
+                _ => format!("---{NL}{}", doc.trim_start()),
             }
         })
         .collect()

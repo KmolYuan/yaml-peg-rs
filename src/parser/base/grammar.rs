@@ -254,7 +254,7 @@ impl Parser<'_> {
         })
     }
 
-    /// String escaping, return a new string.
+    /// Match an escaped string, return unescaped string.
     pub fn escape(doc: &str) -> String {
         let mut s = String::new();
         let mut b = false;
@@ -319,7 +319,7 @@ impl Parser<'_> {
                     String::new()
                 }
             });
-            Ok(format!("{}{}", prefix, doc))
+            Ok(format!("{prefix}{doc}"))
         })
     }
 
@@ -356,7 +356,7 @@ impl Parser<'_> {
                 || p.sym_seq(b"\n\r").is_ok()
                 || p.sym(b'\n').is_ok()
                 || p.sym(b'\r').is_ok())
-            .then(|| ())
+            .then_some(())
             .ok_or(PError::Mismatch)
         })
     }

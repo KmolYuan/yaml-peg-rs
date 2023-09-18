@@ -284,7 +284,7 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
             Yaml::Str(s) => visitor.visit_str(s),
             Yaml::Seq(v) => visitor.visit_seq(SeqVisitor::from(v.clone())),
             Yaml::Map(m) => visitor.visit_map(MapVisitor::from(m.clone())),
-            Yaml::Alias(a) => Err(SerdeError::from(format!("anchor {}", a)).pos(self.pos())),
+            Yaml::Alias(a) => Err(SerdeError::from(format!("anchor {a}")).pos(self.pos())),
         }
     }
 
