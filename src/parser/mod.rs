@@ -387,7 +387,7 @@ impl<R: Repr> Loader<'_, R> {
                 self.sym(b'-')?;
                 self.bound()?;
             } else {
-                if self.gap(true).is_err() {
+                if self.gap(true).is_err() && !self.doc_end() {
                     return self.err("sequence terminator");
                 }
                 if self.doc_end() || self.ind(level).is_err() {
@@ -442,7 +442,7 @@ impl<R: Repr> Loader<'_, R> {
                 }
                 k
             } else {
-                if self.gap(true).is_err() {
+                if self.gap(true).is_err() && !self.doc_end() {
                     return self.err("map terminator");
                 }
                 if self.doc_end() || self.ind(level).is_err() {
