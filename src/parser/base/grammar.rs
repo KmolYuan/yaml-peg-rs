@@ -61,7 +61,7 @@ impl Parser<'_> {
             self.back(1);
         }
         self.bound()?;
-        Ok(s.trim_end_matches(|c| ".0".contains(c)).to_string())
+        Ok(s.trim_end_matches(".0").to_string())
     }
 
     /// Match float with scientific notation.
