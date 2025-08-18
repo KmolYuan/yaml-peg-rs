@@ -298,11 +298,6 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
         fn deserialize_u16(Int) => visit_u16(n => to_i64(n).unwrap() as u16)
         fn deserialize_u32(Int) => visit_u32(n => to_i64(n).unwrap() as u32)
         fn deserialize_u64(Int) => visit_u64(n => to_i64(n).unwrap() as u64)
-        fn deserialize_f32(Float) => visit_f32(n => to_f64(n).unwrap() as f32)
-        fn deserialize_f64(Float) => visit_f64(n => to_f64(n).unwrap())
-        fn deserialize_str(Str) => visit_str(s => s)
-        fn deserialize_string(Str) => visit_str(s => s)
-        fn deserialize_char(Str) => visit_str(s => s)
         fn deserialize_seq(Seq) => visit_seq(a => SeqVisitor::from(a.clone()))
         fn deserialize_map(Map) => visit_map(m => MapVisitor::from(m.clone()))
         fn deserialize_identifier(Str) => visit_str(s => s)
@@ -312,6 +307,79 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
         impl_deserializer! {
             fn deserialize_i128(Int) => visit_i128(n => to_i64(n).unwrap() as i128)
             fn deserialize_u128(Int) => visit_u128(n => to_i64(n).unwrap() as u128)
+        }
+    }
+
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.yaml() {
+            Yaml::Str(s) => visitor.visit_str(s),
+            Yaml::Int(n) => visitor.visit_str(n),
+            Yaml::Float(n) => visitor.visit_str(n),
+            Yaml::Bool(b) => visitor.visit_str(if *b { "true" } else { "false" }),
+            Yaml::Null => visitor.visit_str("null"),
+            _ => Err(unexpected(&self, visitor)),
+        }
+    }
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.yaml() {
+            Yaml::Str(s) => visitor.visit_str(s),
+            Yaml::Int(n) => visitor.visit_str(n),
+            Yaml::Float(n) => visitor.visit_str(n),
+            Yaml::Bool(b) => visitor.visit_str(if *b { "true" } else { "false" }),
+            Yaml::Null => visitor.visit_str("null"),
+            _ => Err(unexpected(&self, visitor)),
+        }
+    }
+
+    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.yaml() {
+            Yaml::Float(n) => visitor.visit_f32(to_f64(n).unwrap() as f32),
+            Yaml::Int(n) => visitor.visit_f32(to_i64(n).unwrap() as f32),
+            _ => Err(unexpected(&self, visitor)),
+        }
+    }
+
+    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.yaml() {
+            Yaml::Float(n) => visitor.visit_f64(to_f64(n).unwrap()),
+            Yaml::Int(n) => visitor.visit_f64(to_i64(n).unwrap() as f64),
+            _ => Err(unexpected(&self, visitor)),
+        }
+    }
+
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'a>,
+    {
+        match self.yaml() {
+            Yaml::Str(s) => {
+                if s.len() == 1 {
+                    visitor.visit_char(s.chars().next().unwrap())
+                } else {
+                    Err(unexpected(&self, visitor))
+                }
+            }
+            Yaml::Int(n) => {
+                if n.len() == 1 {
+                    visitor.visit_char(n.chars().next().unwrap())
+                } else {
+                    Err(unexpected(&self, visitor))
+                }
+            }
+            _ => Err(unexpected(&self, visitor)),
         }
     }
 
@@ -458,4 +526,193 @@ fn unexpected<R: Repr>(node: &Node<R>, exp: impl Expected) -> SerdeError {
         Yaml::Alias(_) => Unexpected::Other("anchor"),
     };
     SerdeError::invalid_type(ty, &exp).pos(node.pos())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{node, YamlRc};
+
+    #[test]
+    fn test_deserialize_string_from_various_types() {
+        // Test deserialize_string with different YAML types
+        let test_cases = vec![
+            (node!("hello"), "hello"),
+            (node!(42), "42"),
+            (node!(3.14), "3.14"),
+            (node!(true), "true"),
+            (node!(false), "false"),
+            (node!(()), "null"),
+        ];
+
+        for (input, expected) in test_cases {
+            let result: String = String::deserialize(input).unwrap();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_deserialize_str_from_various_types() {
+        // Test deserialize_str with different YAML types
+        let test_cases = vec![
+            (node!("hello"), "hello"),
+            (node!(42), "42"),
+            (node!(3.14), "3.14"),
+            (node!(true), "true"),
+            (node!(false), "false"),
+            (node!(()), "null"),
+        ];
+
+        for (input, expected) in test_cases {
+            let result: String = String::deserialize(input).unwrap();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_deserialize_char_from_various_types() {
+        // Test deserialize_char with single-character values
+        let test_cases = vec![(node!("a"), 'a'), (node!(1), '1')];
+
+        for (input, expected) in test_cases {
+            let result: char = char::deserialize(input).unwrap();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_deserialize_char_invalid_cases() {
+        // Test deserialize_char with invalid multi-character values
+        let invalid_cases = vec![
+            node!("hello"), // multi-char string
+            node!(42),      // multi-digit number
+            node!(3.14),    // multi-char float
+            node!(()),      // null
+        ];
+
+        for input in invalid_cases {
+            let result: Result<char, _> = char::deserialize(input.clone());
+            assert!(result.is_err(), "Expected error for {:?}", input.yaml());
+        }
+    }
+
+    #[test]
+    fn test_deserialize_f32_from_various_types() {
+        // Test deserialize_f32 with different numeric types
+        let test_cases = vec![
+            (node!(3.14), 3.14f32),
+            (node!(42), 42.0f32),
+            (node!(0), 0.0f32),
+            (node!(-5), -5.0f32),
+        ];
+
+        for (input, expected) in test_cases {
+            let result: f32 = f32::deserialize(input).unwrap();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_deserialize_f64_from_various_types() {
+        // Test deserialize_f64 with different numeric types
+        let test_cases = vec![
+            (node!(3.14), 3.14f64),
+            (node!(42), 42.0f64),
+            (node!(0), 0.0f64),
+            (node!(-5), -5.0f64),
+        ];
+
+        for (input, expected) in test_cases {
+            let result: f64 = f64::deserialize(input).unwrap();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_deserialize_float_invalid_cases() {
+        // Test deserialize_f32/f64 with invalid types
+        let invalid_cases = vec![
+            node!("hello"), // string
+            node!(true),    // boolean
+            node!(false),   // boolean
+            node!(()),      // null
+        ];
+
+        for input in invalid_cases {
+            let result_f32: Result<f32, _> = f32::deserialize(input.clone());
+            assert!(
+                result_f32.is_err(),
+                "Expected error for f32 from {:?}",
+                input.yaml()
+            );
+
+            let result_f64: Result<f64, _> = f64::deserialize(input.clone());
+            assert!(
+                result_f64.is_err(),
+                "Expected error for f64 from {:?}",
+                input.yaml()
+            );
+        }
+    }
+
+    #[test]
+    fn test_deserialize_string_invalid_cases() {
+        // Test deserialize_string with invalid types
+        let invalid_cases = vec![
+            node!([1, 2, 3]), // sequence
+            node!({1 => 2}),  // map
+        ];
+
+        for input in invalid_cases {
+            let result: Result<String, _> = String::deserialize(input.clone());
+            assert!(result.is_err(), "Expected error for {:?}", input.yaml());
+        }
+    }
+
+    #[test]
+    fn test_integration_with_struct() {
+        use serde::Deserialize;
+
+        #[derive(Debug, Deserialize, PartialEq)]
+        struct TestStruct {
+            name: String,
+            code: String,
+            digit: char,
+            duration: f32,
+            rating: f64,
+        }
+
+        let name_node = node!(42);
+        let code_node = node!(true);
+        let digit_node = node!(1);
+        let duration_node = node!(120);
+        let rating_node = node!(5.0);
+
+        let name: String = String::deserialize(name_node).unwrap();
+        let code: String = String::deserialize(code_node).unwrap();
+        let digit: char = char::deserialize(digit_node).unwrap();
+        let duration: f32 = f32::deserialize(duration_node).unwrap();
+        let rating: f64 = f64::deserialize(rating_node).unwrap();
+
+        assert_eq!(name, "42");
+        assert_eq!(code, "true");
+        assert_eq!(digit, '1');
+        assert_eq!(duration, 120.0);
+        assert_eq!(rating, 5.0);
+    }
+
+    #[test]
+    fn test_edge_cases() {
+        // Test edge cases and boundary values
+        let test_cases = vec![
+            (node!(""), ""),   // empty string
+            (node!(0), "0"),   // zero
+            (node!(1.0), "1"), // float that looks like int
+        ];
+
+        for (input, expected) in test_cases {
+            let result: String = String::deserialize(input).unwrap();
+            assert_eq!(result, expected);
+        }
+    }
 }
