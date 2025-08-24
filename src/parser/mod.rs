@@ -34,7 +34,7 @@
 //!
 //! + sequence item: Item behind `-` indicator is invalid.
 //! + sequence terminator: The end of sequence is invalid, may caused by the
-//! last item   (like wrapped string).
+//!   last item (like wrapped string).
 //!
 //! ### Map
 //!
@@ -92,8 +92,9 @@ pub const DEFAULT_PREFIX: &str = tag_prefix!();
 /// + They will move the current cursor if matched.
 /// + Returned value:
 ///     + `Result<(), PError>` represents the sub-parser can be matched and
-/// mismatched.     + [`PError`] represents the sub-parser can be totally
-/// breaked when mismatched. + Use `?` to match a condition.
+///       mismatched.
+///     + [`PError`] represents the sub-parser can be totally breaked when
+///       mismatched. + Use `?` to match a condition.
 /// + Use [`Result::unwrap_or_default`] to match an optional condition.
 /// + Method [`Parser::forward`] is used to move on.
 /// + Method [`Parser::text`] is used to get the matched string.

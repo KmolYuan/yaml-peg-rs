@@ -31,7 +31,7 @@
 //!
 //! + [`parse`]: The parser will replace the anchors during parsing.
 //! + [`parse_cyclic`]: Cyclic data means that a parent alias is inserted at the
-//! child node.   Keep the alias to avoid having undefined anchors when parsing.
+//!   child node. Keep the alias to avoid having undefined anchors when parsing.
 //!
 //! # No Standard Library
 //!
