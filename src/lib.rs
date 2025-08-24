@@ -48,7 +48,7 @@
 //!
 //! On the other hand, the primitive types are still able to transform to YAML
 //! data without serialization, according to built-in `From` and `Into` traits.
-#![cfg_attr(doc_cfg, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(auto_doc_cfg))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 extern crate alloc;
@@ -126,7 +126,6 @@ mod node;
 pub mod parser;
 pub mod repr;
 #[cfg(feature = "serde")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 pub mod serde;
 #[cfg(test)]
 mod tests;
