@@ -11,18 +11,13 @@ keywords = ["yaml", "parser"]
 categories = ["parser-implementations", "no-std"]
 
 [features]
-default = ["std"]
+default = ["std", "serde"]
 std = ["serde?/std"]
 serde = ["dep:serde"]
 
 [dependencies]
 ritelinked = "0.3"
-
-[dependencies.serde]
-version = "1"
-default-features = false
-features = ["derive", "alloc"]
-optional = true
+serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
 
 [package.metadata.docs.rs]
 all-features = true
