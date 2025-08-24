@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Encoded version of the left characters.
-    pub fn food_str(&self) -> Cow<str> {
+    pub fn food_str(&self) -> Cow<'_, str> {
         String::from_utf8_lossy(&self.doc[self.pos..])
     }
 

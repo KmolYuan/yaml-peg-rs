@@ -44,7 +44,7 @@ pub enum InlineList<T> {
 
 impl<T> InlineList<T> {
     /// Return the iterator over the items.
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
         match self {
             Self::List(v) => v.iter(),
             Self::Inline(e) => from_ref(e).iter(),
