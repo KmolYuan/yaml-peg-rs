@@ -531,7 +531,7 @@ fn unexpected<R: Repr>(node: &Node<R>, exp: impl Expected) -> SerdeError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{node, YamlRc};
+    use crate::node;
 
     #[test]
     fn test_deserialize_string_from_various_types() {
