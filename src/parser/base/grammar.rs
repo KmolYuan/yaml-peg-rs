@@ -91,7 +91,9 @@ impl Parser<'_> {
                 p.take_while(Self::not_in(&[b'\n', b'\r', b'\\', sym]), TakeOpt::More(0))?;
                 v.push_str(&p.text());
                 p.forward();
-                if p.sym_seq(ignore).is_ok() {
+                if p.sym_seq(b"\\\\").is_ok() {
+                    v.push_str("\\\\");
+                } else if p.sym_seq(ignore).is_ok() {
                     v.push(char::from(sym));
                 } else if let Ok(mut t) = p.gap(false) {
                     if v.ends_with('\\') {
