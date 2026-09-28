@@ -5,6 +5,14 @@ fn show_err<E>(e: PError) -> E {
 }
 
 #[test]
+fn test_yaml_escapechar() {
+    let doc: &str = include_str!("escape.yaml");
+    let mut root = parse(doc).unwrap_or_else(show_err);
+    let node = root.remove(0);
+    assert_eq!(node, node!({"foo" => "\\"}));
+}
+
+#[test]
 fn test_yaml_nofinalnewline() {
     let mut doc: &str = include_str!("nofinalnewline_seq.yaml");
     let mut root = parse(doc).unwrap_or_else(show_err);
@@ -14,18 +22,12 @@ fn test_yaml_nofinalnewline() {
     doc = include_str!("nofinalnewline_map.yaml");
     root = parse(doc).unwrap_or_else(show_err);
     node = root.remove(0);
-    assert_eq!(
-        node,
-        node!({"a" => "b"})
-    );
+    assert_eq!(node, node!({"a" => "b"}));
 
     doc = include_str!("nofinalnewline_scalar.yaml");
     root = parse(doc).unwrap_or_else(show_err);
     node = root.remove(0);
-    assert_eq!(
-        node,
-        node!("foo")
-    );
+    assert_eq!(node, node!("foo"));
 }
 
 #[test]

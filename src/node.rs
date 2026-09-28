@@ -446,7 +446,7 @@ impl<R: Repr> Node<R> {
 
 impl<R: Repr> Debug for Node<R> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Node{:?}", &self.yaml)
+        write!(f, "Node{:?}", self.yaml)
     }
 }
 

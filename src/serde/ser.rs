@@ -1,5 +1,5 @@
 use super::SerdeError;
-use crate::{dump, node, repr::Repr, Map, Node, NodeArc, NodeRc, Seq};
+use crate::{dump, repr::Repr, Map, Node, NodeArc, NodeRc, Seq};
 use alloc::string::String;
 use core::marker::PhantomData;
 use serde::{
@@ -7,7 +7,7 @@ use serde::{
         SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
         SerializeTupleStruct, SerializeTupleVariant,
     },
-    serde_if_integer128, Serialize, Serializer,
+    Serialize, Serializer,
 };
 
 macro_rules! impl_serializer {
@@ -186,13 +186,8 @@ impl<R: Repr> Serializer for NodeSerializer<R> {
         fn serialize_str(&str)
         fn serialize_none
         fn serialize_unit
-    }
-
-    serde_if_integer128! {
-        impl_serializer! {
-            fn serialize_i128(i128)
-            fn serialize_u128(u128)
-        }
+        fn serialize_i128(i128)
+        fn serialize_u128(u128)
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {

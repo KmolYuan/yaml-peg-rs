@@ -11,7 +11,7 @@ use serde::{
         DeserializeOwned, DeserializeSeed, EnumAccess, Error, Expected, MapAccess, SeqAccess,
         Unexpected, VariantAccess, Visitor,
     },
-    serde_if_integer128, Deserialize, Deserializer,
+    Deserialize, Deserializer,
 };
 
 macro_rules! impl_visitor {
@@ -301,13 +301,8 @@ impl<'a, R: Repr> Deserializer<'a> for Node<R> {
         fn deserialize_seq(Seq) => visit_seq(a => SeqVisitor::from(a.clone()))
         fn deserialize_map(Map) => visit_map(m => MapVisitor::from(m.clone()))
         fn deserialize_identifier(Str) => visit_str(s => s)
-    }
-
-    serde_if_integer128! {
-        impl_deserializer! {
-            fn deserialize_i128(Int) => visit_i128(n => to_i64(n).unwrap() as i128)
-            fn deserialize_u128(Int) => visit_u128(n => to_i64(n).unwrap() as u128)
-        }
+        fn deserialize_i128(Int) => visit_i128(n => to_i64(n).unwrap() as i128)
+        fn deserialize_u128(Int) => visit_u128(n => to_i64(n).unwrap() as u128)
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
